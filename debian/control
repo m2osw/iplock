@@ -6,13 +6,13 @@ Build-Depends: cmake,
     debhelper,
     doxygen,
     graphviz,
-    libaddr-dev (>= 1.0.8.89~xenial),
-    libadvgetopt-dev (>= 1.1.10.139~xenial),
+    libaddr-dev (>= 1.0.8.215~xenial),
+    libadvgetopt-dev (>= 1.1.11.2~xenial),
     libboost-dev,
     libboost-filesystem-dev,
     libboost-system-dev,
-    libexcept-dev (>= 1.0.2.124~xenial),
-    snapcmakemodules (>= 1.0.34.89~xenial)
+    libexcept-dev (>= 1.0.2.250~xenial),
+    snapcmakemodules (>= 1.0.35.3~xenial)
 Standards-Version: 3.9.4
 Homepage: http://www.snapwebsites.org/
 Vcs-Git: https://github.com/m2osw/snapcpp.git
