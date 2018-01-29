@@ -1,8 +1,9 @@
-iplock (3.0.14.154~xenial) xenial; urgency=high
+iplock (3.0.15.0~xenial) xenial; urgency=high
 
-  * Nightly build.
+  * Bumped copyright notice date to 2018.
+  * Updated the README.md file so it is better.
 
- -- Build Server <build@m2osw.com>  Fri, 28 Apr 2017 02:00:53 -0700
+ -- Alexis Wilke <alexis@m2osw.com>  Sun, 28 Jan 2018 23:52:01 -0700
 
 iplock (3.0.14.0~xenial) xenial; urgency=high
 
