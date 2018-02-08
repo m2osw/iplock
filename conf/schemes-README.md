@@ -83,4 +83,4 @@ For More
 For additional details, check out the http.conf and smtp.conf files.
 
 
-_This file is part of the [snapcpp project](http://snapwebsites.org/)._
+_This file is part of the [snapcpp project](https://snapwebsites.org/)._
