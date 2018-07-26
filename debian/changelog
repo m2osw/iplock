@@ -1,3 +1,9 @@
+iplock (3.0.16.0~xenial) xenial; urgency=high
+
+  * Made code -Weffc++ compatible.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Wed, 25 Jul 2018 18:31:25 -0800
+
 iplock (3.0.15.3~xenial) xenial; urgency=high
 
   * Bump version to recompile without the -fsanitizer flags.

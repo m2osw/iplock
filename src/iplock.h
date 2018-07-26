@@ -41,7 +41,10 @@ public:
         typedef std::shared_ptr<command> pointer_t;
 
                             command(iplock * parent, char const * command_name, advgetopt::getopt::pointer_t opt);
+                            command(command const & rhs) = delete;
         virtual             ~command();
+
+        command &           operator = (command const & rhs) = delete;
 
         virtual void        run() = 0;
 
@@ -49,10 +52,10 @@ public:
         void                verify_ip(std::string const & ip);
 
         iplock *                        f_iplock = nullptr; // just in case, unused at this time...
-        advgetopt::getopt::pointer_t    f_opt;
-        advgetopt::getopt::pointer_t    f_iplock_opt;
-        std::string                     f_chain = "unwanted";
-        std::string                     f_interface = "eth0";
+        advgetopt::getopt::pointer_t    f_opt = advgetopt::getopt::pointer_t();
+        advgetopt::getopt::pointer_t    f_iplock_opt = advgetopt::getopt::pointer_t();
+        std::string                     f_chain = std::string("unwanted");
+        std::string                     f_interface = std::string("eth0");
         bool const                      f_quiet;  // since it is const, you must specify it in the constructor
         bool const                      f_verbose;  // since it is const, you must specify it in the constructor
     };
@@ -79,8 +82,8 @@ public:
 
     protected:
         std::string                     f_scheme = "http";
-        advgetopt::getopt::pointer_t    f_scheme_opt;
-        port_list_t                     f_ports;
+        advgetopt::getopt::pointer_t    f_scheme_opt = advgetopt::getopt::pointer_t();
+        port_list_t                     f_ports = port_list_t();
     };
 
     class block_or_unblock
@@ -128,8 +131,8 @@ public:
 
     private:
         bool const                      f_reset;  // since it is const, you must specify it in the constructor
-        advgetopt::getopt::pointer_t    f_count_opt;
-        std::vector<std::string>        f_targets;
+        advgetopt::getopt::pointer_t    f_count_opt = advgetopt::getopt::pointer_t();
+        std::vector<std::string>        f_targets = std::vector<std::string>();
     };
 
     class flush
@@ -157,7 +160,7 @@ public:
         virtual void        run() override;
 
     private:
-        std::string         f_ip_addr_filename;
+        std::string         f_ip_addr_filename = std::string();
     };
 
                             iplock(int argc, char * argv[]);
@@ -168,7 +171,7 @@ private:
     void                    set_command(command::pointer_t c);
     void                    make_root();
 
-    command::pointer_t      f_command;
+    command::pointer_t      f_command = command::pointer_t();
 };
 
 
