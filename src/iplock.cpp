@@ -671,7 +671,7 @@ iplock::scheme::scheme
         , char const * scheme_name
         )
     : command( parent, command_name, opt )
-    , f_scheme( scheme_name? scheme_name : opt->get_string("scheme") )
+    , f_scheme( scheme_name ? scheme_name : opt->get_string("scheme") )
 {
     // the filename to define the ports, block, unblock commands
     //
@@ -686,20 +686,22 @@ iplock::scheme::scheme
 
     // make sure we accept that string as the name of a scheme
     //
-    std::for_each(
-                f_scheme.begin()
+    std::for_each(f_scheme.begin()
                 , f_scheme.end()
                 , [&](auto const & c)
-    {
-        if((c < 'a' || c > 'z')
-                && (c < 'A' || c > 'Z')
-                && (c < '0' || c > '9')
-                && c != '_')
-        {
-            std::cerr << "error:iplock: invalid --scheme option \"" << f_scheme << "\", only [a-zA-Z0-9_]+ are supported." << std::endl;
-            exit(1);
-        }
-    });
+                {
+                    if((c < 'a' || c > 'z')
+                    && (c < 'A' || c > 'Z')
+                    && (c < '0' || c > '9')
+                    && c != '_')
+                    {
+                        std::cerr << "error:iplock: invalid --scheme option \""
+                                  << f_scheme
+                                  << "\", only [a-zA-Z0-9_]+ are supported."
+                                  << std::endl;
+                        exit(1);
+                    }
+                });
 
     // read the scheme configuration file
     //
