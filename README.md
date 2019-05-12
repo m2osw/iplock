@@ -16,10 +16,11 @@ Not a Bug
 =========
 
 Note that when you uninstall `iplock` from your system, it does not
-automatically remove the IP address that were blocked by it for
-security reasons. This is not a bug. It is expected that if you
-uninstall our tool, you are probably going to install another tool
-which will re-add those IP addresses.
+automatically remove the IP addresses that it was asked to block.
+This is for clear security reasons. This is not a bug. It is expected
+that if you uninstall our tool, you are probably going to install
+another tool which will re-add all or some of those IP addresses
+to your firewall.
 
 If you want to clear your firewall and still have Snap! installed
 you can reset it by running the default firewall script:
@@ -29,8 +30,9 @@ you can reset it by running the default firewall script:
 This command resets the firewall as it looks like after a reboot on
 a Snap! system.
 
-Note that when `snapfirewall` starts, it adds the IP address using
-the `iplock` tool first, then allows Snap! to work.
+Note that when `snapfirewall` starts, it adds the IP addresses using
+the `iplock` tool first, then allows the Snap! Server to accept client's
+connections.
 
 
 Bugs
