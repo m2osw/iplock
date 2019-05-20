@@ -62,13 +62,6 @@
 
 
 
-/** \brief List of configuration files.
- *
- * This variable is used as a list of configuration files. It is
- * empty here because the configuration file may include parameters
- * that are not otherwise defined as command line options.
- */
-std::vector<std::string> const g_configuration_files; // Empty
 
 
 /** \brief Command line options.
@@ -76,138 +69,231 @@ std::vector<std::string> const g_configuration_files; // Empty
  * This table includes all the options supported by iplock on the
  * command line.
  */
-advgetopt::getopt::option const g_iplock_options[] =
+advgetopt::option const g_iplock_options[] =
 {
     {
-        '\0',
-        advgetopt::getopt::GETOPT_FLAG_SHOW_USAGE_ON_ERROR,
-        nullptr,
-        nullptr,
-        "Usage: %p [-<opt>] [ip]",
-        advgetopt::getopt::argument_mode_t::help_argument
-    },
-    {
-        '\0',
-        advgetopt::getopt::GETOPT_FLAG_SHOW_USAGE_ON_ERROR,
-        nullptr,
-        nullptr,
-        "where -<opt> is one or more of:",
-        advgetopt::getopt::argument_mode_t::help_argument
-    },
-    {
         'a',
-        0,
+        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_REQUIRED,
         "batch",
         nullptr,
         "Text file containing rules to add to the firewall.",
-        advgetopt::getopt::argument_mode_t::required_argument
+        nullptr
     },
     {
         'b',
-        0,
+        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_FLAG,
         "block",
         nullptr,
         "Block the speficied IP address. If already blocked, do nothing.",
-        advgetopt::getopt::argument_mode_t::no_argument
+        nullptr
     },
     {
         'n',
-        0,
+        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_FLAG,
         "count",
         nullptr,
         "Return the number of times each IP address was blocked since the last counter reset. You may use the --reset along this command to atomically reset the counters as you retrieve them.",
-        advgetopt::getopt::argument_mode_t::no_argument
+        nullptr
     },
     {
         'h',
-        advgetopt::getopt::GETOPT_FLAG_SHOW_USAGE_ON_ERROR,
+        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_FLAG | advgetopt::GETOPT_FLAG_SHOW_USAGE_ON_ERROR,
         "help",
         nullptr,
         "Show usage and exit.",
-        advgetopt::getopt::argument_mode_t::no_argument
+        nullptr
     },
     {
         'f',
-        advgetopt::getopt::GETOPT_FLAG_SHOW_USAGE_ON_ERROR,
+        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_FLAG | advgetopt::GETOPT_FLAG_SHOW_USAGE_ON_ERROR,
         "flush",
         nullptr,
         "Flush all rules specified in chain.",
-        advgetopt::getopt::argument_mode_t::no_argument
+        nullptr
     },
     {
         'q',
-        advgetopt::getopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE,
+        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE | advgetopt::GETOPT_FLAG_FLAG,
         "quiet",
         nullptr,
         "Prevent iptables from printing messages in stdout or stderr.",
-        advgetopt::getopt::argument_mode_t::no_argument
+        nullptr
     },
     {
         'r',
-        advgetopt::getopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE,
+        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE | advgetopt::GETOPT_FLAG_FLAG,
         "reset",
         nullptr,
         "Use with the --count command to retrieve the counters and reset them atomically.",
-        advgetopt::getopt::argument_mode_t::no_argument
+        nullptr
     },
     {
         's',
-        advgetopt::getopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE,
+        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE | advgetopt::GETOPT_FLAG_REQUIRED,
         "scheme",
         nullptr,
         "Configuration file to define iptables commands. This is one name (no '/' or '.'). The default is \"http\".",
-        advgetopt::getopt::argument_mode_t::required_argument
+        nullptr
     },
     {
         't',
-        advgetopt::getopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE,
+        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE | advgetopt::GETOPT_FLAG_FLAG,
         "total",
         nullptr,
         "Write the grand total only when --count is specified.",
-        advgetopt::getopt::argument_mode_t::no_argument
+        nullptr
     },
     {
         'u',
-        0,
+        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_FLAG,
         "unblock",
         nullptr,
         "Unblock the specified IP address. If not already blocked, do nothing.",
-        advgetopt::getopt::argument_mode_t::no_argument
+        nullptr
     },
     {
         'v',
-        advgetopt::getopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE,
+        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE | advgetopt::GETOPT_FLAG_FLAG,
         "verbose",
         nullptr,
         "Show commands being executed.",
-        advgetopt::getopt::argument_mode_t::no_argument
+        nullptr
     },
     {
         '\0',
-        0,
+        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_FLAG,
         "version",
         nullptr,
         "Show the version of iplock and exit.",
-        advgetopt::getopt::argument_mode_t::no_argument
+        nullptr
     },
     {
         '\0',
-        0,
-        nullptr,
+        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_MULTIPLE | advgetopt::GETOPT_FLAG_DEFAULT_OPTION,
+        "--",
         nullptr,
         "ip1 ip2 ip3 ... ipN",
-        advgetopt::getopt::argument_mode_t::default_multiple_argument
+        nullptr
     },
     {
         '\0',
-        0,
+        advgetopt::GETOPT_FLAG_END,
         nullptr,
         nullptr,
         nullptr,
-        advgetopt::getopt::argument_mode_t::end_of_options
+        nullptr
     }
 };
 
+
+
+// TODO: once we have stdc++20, remove all defaults
+#pragma GCC diagnostic ignored "-Wpedantic"
+advgetopt::options_environment const g_iplock_options_environment =
+{
+    .f_project_name = "iplock",
+    .f_options = g_iplock_options,
+    .f_options_files_directory = nullptr,
+    .f_environment_variable_name = "IPLOCK_OPTIONS",
+    .f_configuration_files = nullptr,
+    .f_configuration_filename = nullptr,
+    .f_configuration_directories = nullptr,
+    .f_environment_flags = 0,
+    .f_help_header = "Usage: %p [-<opt>] [ip]"
+                     "where -<opt> is one or more of:",
+    .f_help_footer = nullptr,
+    .f_version = IPLOCK_VERSION_STRING,
+    .f_license = nullptr,
+    .f_copyright = nullptr,
+    //.f_build_date = __DATE__,
+    //.f_build_time = __TIME__
+};
+
+
+
+
+
+
+/** \brief Scheme file options.
+ *
+ * This table includes all the variables supported by iplock in a
+ * scheme file such as http.conf.
+ */
+advgetopt::option const g_iplock_configuration_options[] =
+{
+    {
+        '\0',
+        advgetopt::GETOPT_FLAG_CONFIGURATION_FILE | advgetopt::GETOPT_FLAG_REQUIRED,
+        "batch",
+        nullptr,
+        "Command use to add multiple firewall rules from a file (e.g. iptables-restore).",
+        nullptr
+    },
+    {
+        '\0',
+        advgetopt::GETOPT_FLAG_CONFIGURATION_FILE | advgetopt::GETOPT_FLAG_REQUIRED,
+        "batch_footer",
+        nullptr,
+        "Footer to mark the end of the batch file which the batch tool processes.",
+        nullptr
+    },
+    {
+        '\0',
+        advgetopt::GETOPT_FLAG_CONFIGURATION_FILE | advgetopt::GETOPT_FLAG_REQUIRED,
+        "block",
+        nullptr,
+        "Command used to add a block rule to the firewall (e.g. iptables -w).",
+        nullptr
+    },
+    {
+        '\0',
+        advgetopt::GETOPT_FLAG_CONFIGURATION_FILE | advgetopt::GETOPT_FLAG_REQUIRED,
+        "chain",
+        nullptr,
+        "The name of the chain that iplock is expected to work with.",
+        nullptr
+    },
+    {
+        '\0',
+        advgetopt::GETOPT_FLAG_CONFIGURATION_FILE | advgetopt::GETOPT_FLAG_REQUIRED,
+        "check",
+        nullptr,
+        "The command used to perform a check of the current firewall rules.",
+        nullptr
+    },
+    {
+        '\0',
+        advgetopt::GETOPT_FLAG_CONFIGURATION_FILE | advgetopt::GETOPT_FLAG_REQUIRED,
+        "flush",
+        nullptr,
+        "The name of the command which will flush rules from a table.",
+        nullptr
+    },
+    {
+        '\0',
+        advgetopt::GETOPT_FLAG_CONFIGURATION_FILE | advgetopt::GETOPT_FLAG_REQUIRED,
+        "interface",
+        nullptr,
+        "The name of the interface that iplock is expected to work with.",
+        nullptr
+    },
+    {
+        '\0',
+        advgetopt::GETOPT_FLAG_CONFIGURATION_FILE | advgetopt::GETOPT_FLAG_REQUIRED,
+        "unblock",
+        nullptr,
+        "Command used to remove a block rule to the firewall (e.g. iptables -w).",
+        nullptr
+    },
+    {
+        '\0',
+        advgetopt::GETOPT_FLAG_END,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr
+    }
+};
 
 
 /** \brief The list of files (one) to the iplock.conf configuration file.
@@ -221,96 +307,35 @@ advgetopt::getopt::option const g_iplock_options[] =
  * Note that we do not give users a way to enter their own configuration
  * files. Those files can only be edited by root.
  */
-std::vector<std::string> const g_iplock_configuration_files
+constexpr char const * const g_iplock_configuration_files[]
 {
-    "@iplock@", // project name
-    "/etc/iplock/iplock.conf"
+    "/etc/iplock/iplock.conf",
+    nullptr
 };
 
 
 
-/** \brief Scheme file options.
- *
- * This table includes all the variables supported by iplock in a
- * scheme file such as http.conf.
- */
-advgetopt::getopt::option const g_iplock_configuration_options[] =
+
+// TODO: once we have stdc++20, remove all defaults
+#pragma GCC diagnostic ignored "-Wpedantic"
+advgetopt::options_environment const g_iplock_configuration_options_environment =
 {
-    {
-        '\0',
-        advgetopt::getopt::GETOPT_FLAG_CONFIGURATION_FILE,
-        "batch",
-        nullptr,
-        "Command use to add multiple firewall rules from a file (e.g. iptables-restore).",
-        advgetopt::getopt::argument_mode_t::required_argument
-    },
-    {
-        '\0',
-        advgetopt::getopt::GETOPT_FLAG_CONFIGURATION_FILE,
-        "batch_footer",
-        nullptr,
-        "Footer to mark the end of the batch file which the batch tool processes.",
-        advgetopt::getopt::argument_mode_t::required_argument
-    },
-    {
-        '\0',
-        advgetopt::getopt::GETOPT_FLAG_CONFIGURATION_FILE,
-        "block",
-        nullptr,
-        "Command used to add a block rule to the firewall (e.g. iptables -w).",
-        advgetopt::getopt::argument_mode_t::required_argument
-    },
-    {
-        '\0',
-        advgetopt::getopt::GETOPT_FLAG_CONFIGURATION_FILE,
-        "chain",
-        nullptr,
-        "The name of the chain that iplock is expected to work with.",
-        advgetopt::getopt::argument_mode_t::required_argument
-    },
-    {
-        '\0',
-        advgetopt::getopt::GETOPT_FLAG_CONFIGURATION_FILE,
-        "check",
-        nullptr,
-        "The command used to perform a check of the current firewall rules.",
-        advgetopt::getopt::argument_mode_t::required_argument
-    },
-    {
-        '\0',
-        advgetopt::getopt::GETOPT_FLAG_CONFIGURATION_FILE,
-        "flush",
-        nullptr,
-        "The name of the command which will flush rules from a table.",
-        advgetopt::getopt::argument_mode_t::required_argument
-    },
-    {
-        '\0',
-        advgetopt::getopt::GETOPT_FLAG_CONFIGURATION_FILE,
-        "interface",
-        nullptr,
-        "The name of the interface that iplock is expected to work with.",
-        advgetopt::getopt::argument_mode_t::required_argument
-    },
-    {
-        '\0',
-        advgetopt::getopt::GETOPT_FLAG_CONFIGURATION_FILE,
-        "unblock",
-        nullptr,
-        "Command used to remove a block rule to the firewall (e.g. iptables -w).",
-        advgetopt::getopt::argument_mode_t::required_argument
-    },
-    {
-        '\0',
-        0,
-        nullptr,
-        nullptr,
-        nullptr,
-        advgetopt::getopt::argument_mode_t::end_of_options
-    }
+    .f_project_name = "iplock",
+    .f_options = g_iplock_configuration_options,
+    .f_options_files_directory = nullptr,
+    .f_environment_variable_name = nullptr,
+    .f_configuration_files = g_iplock_configuration_files,
+    .f_configuration_filename = nullptr,
+    .f_configuration_directories = nullptr,
+    .f_environment_flags = 0,
+    .f_help_header = nullptr,
+    .f_help_footer = nullptr,
+    .f_version = IPLOCK_VERSION_STRING,
+    //.f_license = nullptr,
+    //.f_copyright = nullptr,
+    //.f_build_date = __DATE__,
+    //.f_build_time = __TIME__
 };
-
-
 
 
 
@@ -322,76 +347,190 @@ advgetopt::getopt::option const g_iplock_configuration_options[] =
  * This table includes all the variables supported by iplock in a
  * scheme file such as http.conf.
  */
-advgetopt::getopt::option const g_iplock_block_or_unblock_options[] =
+advgetopt::option const g_iplock_block_or_unblock_options[] =
 {
     {
         '\0',
-        advgetopt::getopt::GETOPT_FLAG_CONFIGURATION_FILE,
+        advgetopt::GETOPT_FLAG_CONFIGURATION_FILE | advgetopt::GETOPT_FLAG_REQUIRED,
         "batch",
         nullptr,
         "Rule to add a specified IP address in a batch-friendly fashion.",
-        advgetopt::getopt::argument_mode_t::required_argument
+        nullptr
     },
     {
         '\0',
-        advgetopt::getopt::GETOPT_FLAG_CONFIGURATION_FILE,
+        advgetopt::GETOPT_FLAG_CONFIGURATION_FILE | advgetopt::GETOPT_FLAG_REQUIRED,
         "block",
         nullptr,
         "Block the speficied IP address. If already blocked, do nothing.",
-        advgetopt::getopt::argument_mode_t::required_argument
+        nullptr
     },
     {
         '\0',
-        advgetopt::getopt::GETOPT_FLAG_CONFIGURATION_FILE,
+        advgetopt::GETOPT_FLAG_CONFIGURATION_FILE | advgetopt::GETOPT_FLAG_REQUIRED,
         "check",
         nullptr,
         "Command to check whether a rule already exists or not.",
-        advgetopt::getopt::argument_mode_t::required_argument
+        nullptr
     },
     {
         '\0',
-        advgetopt::getopt::GETOPT_FLAG_CONFIGURATION_FILE,
+        advgetopt::GETOPT_FLAG_CONFIGURATION_FILE | advgetopt::GETOPT_FLAG_REQUIRED,
         "flush",
         nullptr,
         "Flush the chain.",
-        advgetopt::getopt::argument_mode_t::required_argument
+        nullptr
     },
     {
         '\0',
-        advgetopt::getopt::GETOPT_FLAG_CONFIGURATION_FILE,
+        advgetopt::GETOPT_FLAG_CONFIGURATION_FILE | advgetopt::GETOPT_FLAG_REQUIRED,
         "ports",
         nullptr,
         "Comma separated list of ports.",
-        advgetopt::getopt::argument_mode_t::required_argument
+        nullptr
     },
     {
         '\0',
-        advgetopt::getopt::GETOPT_FLAG_CONFIGURATION_FILE,
+        advgetopt::GETOPT_FLAG_CONFIGURATION_FILE | advgetopt::GETOPT_FLAG_REQUIRED,
         "unblock",
         nullptr,
         "Unblock the specified IP address. If not already blocked, do nothing.",
-        advgetopt::getopt::argument_mode_t::required_argument
+        nullptr
     },
     {
         '\0',
-        advgetopt::getopt::GETOPT_FLAG_CONFIGURATION_FILE,
+        advgetopt::GETOPT_FLAG_CONFIGURATION_FILE,
         "whitelist",
         nullptr,
         "List of comma separated IPs to never block.",
-        advgetopt::getopt::argument_mode_t::optional_argument
+        nullptr
     },
     {
         '\0',
-        0,
+        advgetopt::GETOPT_FLAG_END,
         nullptr,
         nullptr,
         nullptr,
-        advgetopt::getopt::argument_mode_t::end_of_options
+        nullptr
     }
 };
 
 
+// Note: this one is not const because we change the list of configuration
+//       file dynamically (the name of the scheme changes)
+//
+// TODO: once we have stdc++20, remove all defaults
+#pragma GCC diagnostic ignored "-Wpedantic"
+advgetopt::options_environment g_iplock_block_or_unblock_options_environment =
+{
+    .f_project_name = "schemes",
+    .f_options = g_iplock_block_or_unblock_options,
+    .f_options_files_directory = nullptr,
+    .f_environment_variable_name = nullptr,
+    .f_configuration_files = nullptr,
+    .f_configuration_filename = nullptr,
+    .f_configuration_directories = nullptr,
+    .f_environment_flags = 0,
+    .f_help_header = nullptr,
+    .f_help_footer = nullptr,
+    .f_version = IPLOCK_VERSION_STRING,
+    .f_license = nullptr,
+    .f_copyright = nullptr,
+    //.f_build_date = __DATE__,
+    //.f_build_time = __TIME__
+};
 
+
+
+
+/** \brief Scheme file options.
+ *
+ * This table includes all the variables supported by iplock in a
+ * scheme file such as http.conf.
+ */
+advgetopt::option const g_iplock_count_options[] =
+{
+    {
+        '\0',
+        advgetopt::GETOPT_FLAG_CONFIGURATION_FILE | advgetopt::GETOPT_FLAG_REQUIRED,
+        "acceptable_targets",
+        nullptr,
+        "The list of comma separated target names that will be counted.",
+        nullptr
+    },
+    {
+        '\0',
+        advgetopt::GETOPT_FLAG_CONFIGURATION_FILE | advgetopt::GETOPT_FLAG_REQUIRED,
+        "bytes_column",
+        nullptr,
+        "The column representing the number of bytes transferred.",
+        nullptr
+    },
+    {
+        '\0',
+        advgetopt::GETOPT_FLAG_CONFIGURATION_FILE | advgetopt::GETOPT_FLAG_REQUIRED,
+        "count",
+        nullptr,
+        "The command line to print out the counters from iptables.",
+        nullptr
+    },
+    {
+        '\0',
+        advgetopt::GETOPT_FLAG_CONFIGURATION_FILE | advgetopt::GETOPT_FLAG_REQUIRED,
+        "count_and_reset",
+        nullptr,
+        "The command line to print out and reset the counters from iptables.",
+        nullptr
+    },
+    {
+        '\0',
+        advgetopt::GETOPT_FLAG_CONFIGURATION_FILE | advgetopt::GETOPT_FLAG_REQUIRED,
+        "ignore_line_starting_with",
+        nullptr,
+        "Ignore any line starting with the specified value.",
+        nullptr
+    },
+    {
+        '\0',
+        advgetopt::GETOPT_FLAG_CONFIGURATION_FILE | advgetopt::GETOPT_FLAG_REQUIRED,
+        "ip_column",
+        nullptr,
+        "The column in which our IP is found (changes depending on whether you use an input or output IP--we are limited to the input a.k.a \"source\" IP address for now.).",
+        nullptr
+    },
+    {
+        '\0',
+        advgetopt::GETOPT_FLAG_CONFIGURATION_FILE | advgetopt::GETOPT_FLAG_REQUIRED,
+        "lines_to_ignore",
+        nullptr,
+        "The number of lines to ignore at the start.",
+        nullptr
+    },
+    {
+        '\0',
+        advgetopt::GETOPT_FLAG_CONFIGURATION_FILE | advgetopt::GETOPT_FLAG_REQUIRED,
+        "packets_column",
+        nullptr,
+        "The column representing the number of packets received/sent.",
+        nullptr
+    },
+    {
+        '\0',
+        advgetopt::GETOPT_FLAG_CONFIGURATION_FILE | advgetopt::GETOPT_FLAG_REQUIRED,
+        "target_column",
+        nullptr,
+        "The column representing the number of packets received/sent.",
+        nullptr
+    },
+    {
+        '\0',
+        advgetopt::GETOPT_FLAG_END,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr
+    }
+};
 
 
 /** \brief The configuration files for the --count command line option.
@@ -399,102 +538,36 @@ advgetopt::getopt::option const g_iplock_block_or_unblock_options[] =
  * This vector includes a set of parameters used to load the --count
  * options from a configuration file.
  */
-std::vector<std::string> g_iplock_count_configuration_files
+constexpr char const * const g_iplock_count_configuration_files[]
 {
-    "@iplock@",
-    "/etc/iplock/count.conf"
+    "/etc/iplock/count.conf",
+    nullptr
 };
 
 
 
-/** \brief Scheme file options.
- *
- * This table includes all the variables supported by iplock in a
- * scheme file such as http.conf.
- */
-advgetopt::getopt::option const g_iplock_count_options[] =
+// TODO: once we have stdc++20, remove all defaults
+#pragma GCC diagnostic ignored "-Wpedantic"
+advgetopt::options_environment const g_iplock_count_options_environment =
 {
-    {
-        '\0',
-        advgetopt::getopt::GETOPT_FLAG_CONFIGURATION_FILE,
-        "acceptable_targets",
-        nullptr,
-        "The list of comma separated target names that will be counted.",
-        advgetopt::getopt::argument_mode_t::required_argument
-    },
-    {
-        '\0',
-        advgetopt::getopt::GETOPT_FLAG_CONFIGURATION_FILE,
-        "bytes_column",
-        nullptr,
-        "The column representing the number of bytes transferred.",
-        advgetopt::getopt::argument_mode_t::required_argument
-    },
-    {
-        '\0',
-        advgetopt::getopt::GETOPT_FLAG_CONFIGURATION_FILE,
-        "count",
-        nullptr,
-        "The command line to print out the counters from iptables.",
-        advgetopt::getopt::argument_mode_t::required_argument
-    },
-    {
-        '\0',
-        advgetopt::getopt::GETOPT_FLAG_CONFIGURATION_FILE,
-        "count_and_reset",
-        nullptr,
-        "The command line to print out and reset the counters from iptables.",
-        advgetopt::getopt::argument_mode_t::required_argument
-    },
-    {
-        '\0',
-        advgetopt::getopt::GETOPT_FLAG_CONFIGURATION_FILE,
-        "ignore_line_starting_with",
-        nullptr,
-        "Ignore any line starting with the specified value.",
-        advgetopt::getopt::argument_mode_t::required_argument
-    },
-    {
-        '\0',
-        advgetopt::getopt::GETOPT_FLAG_CONFIGURATION_FILE,
-        "ip_column",
-        nullptr,
-        "The column in which our IP is found (changes depending on whether you use an input or output IP--we are limited to the input a.k.a \"source\" IP address for now.).",
-        advgetopt::getopt::argument_mode_t::required_argument
-    },
-    {
-        '\0',
-        advgetopt::getopt::GETOPT_FLAG_CONFIGURATION_FILE,
-        "lines_to_ignore",
-        nullptr,
-        "The number of lines to ignore at the start.",
-        advgetopt::getopt::argument_mode_t::required_argument
-    },
-    {
-        '\0',
-        advgetopt::getopt::GETOPT_FLAG_CONFIGURATION_FILE,
-        "packets_column",
-        nullptr,
-        "The column representing the number of packets received/sent.",
-        advgetopt::getopt::argument_mode_t::required_argument
-    },
-    {
-        '\0',
-        advgetopt::getopt::GETOPT_FLAG_CONFIGURATION_FILE,
-        "target_column",
-        nullptr,
-        "The column representing the number of packets received/sent.",
-        advgetopt::getopt::argument_mode_t::required_argument
-    },
-    {
-        '\0',
-        0,
-        nullptr,
-        nullptr,
-        nullptr,
-        advgetopt::getopt::argument_mode_t::end_of_options
-    }
+    .f_project_name = "iplock",
+    .f_options = g_iplock_count_options,
+    .f_options_files_directory = nullptr,
+    .f_environment_variable_name = nullptr,
+    .f_configuration_files = g_iplock_count_configuration_files,
+    .f_configuration_filename = nullptr,
+    .f_configuration_directories = nullptr,
+    .f_environment_flags = 0,
+    .f_help_header = nullptr,
+    .f_help_footer = nullptr,
+    .f_version = IPLOCK_VERSION_STRING,
+    //.f_license = nullptr,
+    //.f_copyright = nullptr,
+    //.f_build_date = __DATE__,
+    //.f_build_time = __TIME__
 };
+
+
 
 
 /** \brief Free a FILE object.
@@ -545,11 +618,9 @@ iplock::command::command(iplock * parent, char const * command_name, advgetopt::
     };
 
     f_iplock_opt = std::make_shared<advgetopt::getopt>(
+                g_iplock_configuration_options_environment,
                 1,
-                const_cast<char **>(argv),
-                g_iplock_configuration_options,
-                g_iplock_configuration_files,
-                "");
+                const_cast<char **>(argv));
 
     if(!f_iplock_opt->is_defined("chain"))
     {
@@ -712,23 +783,23 @@ iplock::scheme::scheme
     // note that the schemes-README.md is fine because it does not end
     // with .conf
     //
-    std::vector<std::string> scheme_configuration_files
+    std::string const scheme_path("/etc/iplock/schemes/" + f_scheme + ".conf");
+    char const * const scheme_configuration_files[]
     {
-        "@schemes@",
-        "/etc/iplock/schemes/" + f_scheme + ".conf"
+          scheme_path.c_str()
+        , nullptr
     };
+    g_iplock_block_or_unblock_options_environment.f_configuration_files = scheme_configuration_files;
 
     char const * argv[2]
     {
-        "iplock_block_or_unblock"
+          "iplock_block_or_unblock"
         , nullptr
     };
     f_scheme_opt = std::make_shared<advgetopt::getopt>(
+                g_iplock_block_or_unblock_options_environment,
                 1,
-                const_cast<char **>(argv),
-                g_iplock_block_or_unblock_options,
-                scheme_configuration_files,
-                "");
+                const_cast<char **>(argv));
 
     // get the list of ports immediately
     //
@@ -1066,15 +1137,13 @@ iplock::count::count(iplock * parent, advgetopt::getopt::pointer_t opt)
     {
         char const * argv[2]
         {
-            "iplock_count",
-            nullptr
+              "iplock_count"
+            , nullptr
         };
         f_count_opt = std::make_shared<advgetopt::getopt>(
-                    1,
-                    const_cast<char **>(argv),
-                    g_iplock_count_options,
-                    g_iplock_count_configuration_files,
-                    "");
+                      g_iplock_count_options_environment
+                    , 1
+                    , const_cast<char **>(argv));
     }
 
     // parse the list of targets immediately
@@ -1659,7 +1728,7 @@ void iplock::batch::run()
  */
 iplock::iplock(int argc, char * argv[])
 {
-    advgetopt::getopt::pointer_t opt(std::make_shared<advgetopt::getopt>(argc, argv, g_iplock_options, g_configuration_files, "IPLOCK_OPTIONS"));
+    advgetopt::getopt::pointer_t opt(std::make_shared<advgetopt::getopt>(g_iplock_options_environment, argc, argv));
 
     // note: --help and --version are also commands (see below)
     //       but they have priority and do not generate an error
@@ -1667,7 +1736,7 @@ iplock::iplock(int argc, char * argv[])
 
     if(opt->is_defined("help"))
     {
-        opt->usage(advgetopt::getopt::status_t::no_error, "iplock v" IPLOCK_VERSION_STRING " -- to manage iptables automatically");
+        std::cerr << opt->usage();
         exit(1);
     }
 
