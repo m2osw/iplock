@@ -46,11 +46,17 @@
  * This can be changed in the configuration file.
  */
 
+// self
+//
 #include "iplock.h"
 
+// C++ lib
+//
 #include <iostream>
 
-#include "poison.h"
+// snapdev lib
+//
+#include <snapdev/poison.h>
 
 
 int main(int argc, char * argv[])

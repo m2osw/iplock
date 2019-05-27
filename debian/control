@@ -13,6 +13,7 @@ Build-Depends: cmake,
     libboost-system-dev,
     libexcept-dev (>= 1.0.2.250~xenial),
     snapcmakemodules (>= 1.0.35.3~xenial)
+    snapdev (>= 1.0.0.0~xenial)
 Standards-Version: 3.9.4
 Homepage: https://snapwebsites.org/
 Vcs-Git: https://github.com/m2osw/snapcpp.git

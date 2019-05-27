@@ -40,24 +40,35 @@
  * INPUT rules (with a -j \<table-name>).
  */
 
-
+// self
+//
 #include "iplock.h"
 #include "version.h"
 
-#include "libaddr/addr_parser.h"
+// libaddr lib
+//
+#include <libaddr/addr_parser.h>
 
+// boost lib
+//
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 
+// C++ lib
+//
 #include <iostream>
 #include <fstream>
 #include <sstream>
 
+// C lib
+//
 #include <net/if.h>
 #include <stdio.h>
 
-#include "poison.h"
+// snapdev lib
+//
+#include <snapdev/poison.h>
 
 
 
@@ -199,7 +210,7 @@ advgetopt::options_environment const g_iplock_options_environment =
     .f_configuration_filename = nullptr,
     .f_configuration_directories = nullptr,
     .f_environment_flags = 0,
-    .f_help_header = "Usage: %p [-<opt>] [ip]"
+    .f_help_header = "Usage: %p [-<opt>] [ip]\n"
                      "where -<opt> is one or more of:",
     .f_help_footer = nullptr,
     .f_version = IPLOCK_VERSION_STRING,
