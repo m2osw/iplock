@@ -1,3 +1,10 @@
+iplock (3.0.18.0~xenial) xenial; urgency=high
+
+  * Added a PROJECT_BRIEF description.
+  * Added in=C++ to the MAPPING_EXTENSION.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Tue, 11 Jun 2019 23:46:00 -0800
+
 iplock (3.0.17.0~xenial) xenial; urgency=high
 
   * Updates to support the new version of advgetopt.
