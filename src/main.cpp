@@ -48,15 +48,23 @@
 
 // self
 //
-#include "iplock.h"
+#include    "iplock.h"
+
+
+// advgetopt
+//
+#include    <advgetopt/exception.h>
+
 
 // C++ lib
 //
-#include <iostream>
+#include    <iostream>
+
 
 // snapdev lib
 //
-#include <snapdev/poison.h>
+#include    <snapdev/poison.h>
+
 
 
 int main(int argc, char * argv[])
@@ -68,6 +76,10 @@ int main(int argc, char * argv[])
         l.run_command();
 
         exit(0);
+    }
+    catch(advgetopt::getopt_exception_exit const & e)
+    {
+        exit(e.code());
     }
     catch(std::exception const & e)
     {

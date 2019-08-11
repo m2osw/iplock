@@ -30,7 +30,19 @@
 #ifndef IPLOCK_H
 #define IPLOCK_H
 
+/** \file
+ * \brief Various definition of the iplock tool.
+ *
+ * The iplock is an object used to execute the command line instructions
+ * as passed by the administrator.
+ *
+ * Depending on the command the system also loads configuration files
+ * using the advgetopt library.
+ */
+
 #include <advgetopt/advgetopt.h>
+
+
 
 class iplock
 {
@@ -173,8 +185,6 @@ private:
 
     command::pointer_t      f_command = command::pointer_t();
 };
-
-
 
 
 

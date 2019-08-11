@@ -33,42 +33,48 @@
  * \brief iplock tool.
  *
  * This implementation offers a way to easily and safely add and remove
- * IP address one wants to block temporarily.
+ * IP addresses one wants to block/unblock temporarily.
  *
  * The tool makes use of the iptables tool to add and remove rules
  * to one specific table which is expected to be included in your
- * INPUT rules (with a -j \<table-name>).
+ * INPUT rules (with a `-j \<table-name>`).
  */
+
 
 // self
 //
-#include "iplock.h"
-#include "version.h"
+#include    "iplock.h"
+#include    "version.h"
+
 
 // libaddr lib
 //
-#include <libaddr/addr_parser.h>
+#include    <libaddr/addr_parser.h>
+
 
 // boost lib
 //
-#include <boost/algorithm/string/replace.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/lexical_cast.hpp>
+#include    <boost/algorithm/string/replace.hpp>
+#include    <boost/filesystem.hpp>
+#include    <boost/lexical_cast.hpp>
+
 
 // C++ lib
 //
-#include <iostream>
-#include <fstream>
-#include <sstream>
+#include    <iostream>
+#include    <fstream>
+#include    <sstream>
+
 
 // C lib
 //
-#include <net/if.h>
-#include <stdio.h>
+#include    <net/if.h>
+#include    <stdio.h>
+
 
 // snapdev lib
 //
-#include <snapdev/poison.h>
+#include    <snapdev/poison.h>
 
 
 
@@ -82,119 +88,125 @@
  */
 advgetopt::option const g_iplock_options[] =
 {
-    {
-        'a',
-        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_REQUIRED,
-        "batch",
-        nullptr,
-        "Text file containing rules to add to the firewall.",
-        nullptr
-    },
-    {
-        'b',
-        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_FLAG,
-        "block",
-        nullptr,
-        "Block the speficied IP address. If already blocked, do nothing.",
-        nullptr
-    },
-    {
-        'n',
-        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_FLAG,
-        "count",
-        nullptr,
-        "Return the number of times each IP address was blocked since the last counter reset. You may use the --reset along this command to atomically reset the counters as you retrieve them.",
-        nullptr
-    },
-    {
-        'h',
-        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_FLAG | advgetopt::GETOPT_FLAG_SHOW_USAGE_ON_ERROR,
-        "help",
-        nullptr,
-        "Show usage and exit.",
-        nullptr
-    },
-    {
-        'f',
-        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_FLAG | advgetopt::GETOPT_FLAG_SHOW_USAGE_ON_ERROR,
-        "flush",
-        nullptr,
-        "Flush all rules specified in chain.",
-        nullptr
-    },
-    {
-        'q',
-        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE | advgetopt::GETOPT_FLAG_FLAG,
-        "quiet",
-        nullptr,
-        "Prevent iptables from printing messages in stdout or stderr.",
-        nullptr
-    },
-    {
-        'r',
-        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE | advgetopt::GETOPT_FLAG_FLAG,
-        "reset",
-        nullptr,
-        "Use with the --count command to retrieve the counters and reset them atomically.",
-        nullptr
-    },
-    {
-        's',
-        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE | advgetopt::GETOPT_FLAG_REQUIRED,
-        "scheme",
-        nullptr,
-        "Configuration file to define iptables commands. This is one name (no '/' or '.'). The default is \"http\".",
-        nullptr
-    },
-    {
-        't',
-        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE | advgetopt::GETOPT_FLAG_FLAG,
-        "total",
-        nullptr,
-        "Write the grand total only when --count is specified.",
-        nullptr
-    },
-    {
-        'u',
-        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_FLAG,
-        "unblock",
-        nullptr,
-        "Unblock the specified IP address. If not already blocked, do nothing.",
-        nullptr
-    },
-    {
-        'v',
-        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE | advgetopt::GETOPT_FLAG_FLAG,
-        "verbose",
-        nullptr,
-        "Show commands being executed.",
-        nullptr
-    },
-    {
-        '\0',
-        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_FLAG,
-        "version",
-        nullptr,
-        "Show the version of iplock and exit.",
-        nullptr
-    },
-    {
-        '\0',
-        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_MULTIPLE | advgetopt::GETOPT_FLAG_DEFAULT_OPTION,
-        "--",
-        nullptr,
-        "ip1 ip2 ip3 ... ipN",
-        nullptr
-    },
-    {
-        '\0',
-        advgetopt::GETOPT_FLAG_END,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr
-    }
+    // COMMANDS
+    //
+    advgetopt::define_option(
+          advgetopt::Name("batch")
+        , advgetopt::ShortName('a')
+        , advgetopt::Flags(advgetopt::command_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_COMMANDS
+                    , advgetopt::GETOPT_FLAG_REQUIRED>())
+        , advgetopt::Help("Text file containing rules to add to the firewall.")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("block")
+        , advgetopt::ShortName('b')
+        , advgetopt::Flags(advgetopt::standalone_command_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
+        , advgetopt::Help("Block the speficied IP address. If already blocked, do nothing.")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("count")
+        , advgetopt::ShortName('n')
+        , advgetopt::Flags(advgetopt::standalone_command_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
+        , advgetopt::Help("Return the number of times each IP address was"
+                " blocked since the last counter reset. You may use the"
+                " --reset along this command to atomically reset the"
+                " counters as you retrieve them.")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("flush")
+        , advgetopt::ShortName('f')
+        , advgetopt::Flags(advgetopt::standalone_command_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_COMMANDS
+                    , advgetopt::GETOPT_FLAG_SHOW_USAGE_ON_ERROR>())
+        , advgetopt::Help("Flush all rules specified in chain.")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("unblock")
+        , advgetopt::ShortName('u')
+        , advgetopt::Flags(advgetopt::option_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_COMMANDS
+                    , advgetopt::GETOPT_FLAG_COMMAND_LINE>())
+        , advgetopt::Help("Unblock the specified IP address. If not already blocked, do nothing.")
+    ),
+
+    // OPTIONS
+    //
+    advgetopt::define_option(
+          advgetopt::Name("quiet")
+        , advgetopt::ShortName('q')
+        , advgetopt::Flags(advgetopt::option_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_OPTIONS
+                    , advgetopt::GETOPT_FLAG_COMMAND_LINE
+                    , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE>())
+        , advgetopt::Help("Prevent iptables from printing messages in stdout or stderr.")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("reset")
+        , advgetopt::ShortName('r')
+        , advgetopt::Flags(advgetopt::option_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_OPTIONS
+                    , advgetopt::GETOPT_FLAG_COMMAND_LINE
+                    , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE>())
+        , advgetopt::Help("Use with the --count command to retrieve the counters and reset them atomically.")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("scheme")
+        , advgetopt::ShortName('s')
+        , advgetopt::Flags(advgetopt::any_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_OPTIONS
+                    , advgetopt::GETOPT_FLAG_COMMAND_LINE
+                    , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE
+                    , advgetopt::GETOPT_FLAG_REQUIRED>())
+        , advgetopt::Help("Configuration file to define iptables commands. This is one name (no '/' or '.'). The default is \"http\".")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("total")
+        , advgetopt::ShortName('t')
+        , advgetopt::Flags(advgetopt::option_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_OPTIONS
+                    , advgetopt::GETOPT_FLAG_COMMAND_LINE
+                    , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE>())
+        , advgetopt::Help("Write the grand total only when --count is specified.")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("verbose")
+        , advgetopt::ShortName('v')
+        , advgetopt::Flags(advgetopt::option_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_OPTIONS
+                    , advgetopt::GETOPT_FLAG_COMMAND_LINE
+                    , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE>())
+        , advgetopt::Help("Show comands being executed.")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("--")
+        , advgetopt::Flags(advgetopt::command_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_OPTIONS
+                    , advgetopt::GETOPT_FLAG_DEFAULT_OPTION
+                    , advgetopt::GETOPT_FLAG_MULTIPLE>())
+    ),
+    advgetopt::end_options()
 };
+
+
+
+advgetopt::group_description const g_group_descriptions[] =
+{
+    advgetopt::define_group(
+          advgetopt::GroupNumber(advgetopt::GETOPT_FLAG_GROUP_COMMANDS)
+        , advgetopt::GroupName("command")
+        , advgetopt::GroupDescription("Commands:")
+    ),
+    advgetopt::define_group(
+          advgetopt::GroupNumber(advgetopt::GETOPT_FLAG_GROUP_OPTIONS)
+        , advgetopt::GroupName("option")
+        , advgetopt::GroupDescription("Options:")
+    ),
+    advgetopt::end_groups()
+};
+
 
 
 
@@ -209,15 +221,17 @@ advgetopt::options_environment const g_iplock_options_environment =
     .f_configuration_files = nullptr,
     .f_configuration_filename = nullptr,
     .f_configuration_directories = nullptr,
-    .f_environment_flags = 0,
+    .f_environment_flags = advgetopt::GETOPT_ENVIRONMENT_FLAG_SYSTEM_PARAMETERS
+                         | advgetopt::GETOPT_ENVIRONMENT_FLAG_PROCESS_SYSTEM_PARAMETERS,
     .f_help_header = "Usage: %p [-<opt>] [ip]\n"
                      "where -<opt> is one or more of:",
     .f_help_footer = nullptr,
     .f_version = IPLOCK_VERSION_STRING,
-    .f_license = nullptr,
-    .f_copyright = nullptr,
-    //.f_build_date = __DATE__,
-    //.f_build_time = __TIME__
+    .f_license = "This software is licenced under the MIT",
+    .f_copyright = "Copyright (c) 2007-" BOOST_PP_STRINGIZE(UTC_BUILD_YEAR) " by Made to Order Software Corporation",
+    .f_build_date = __DATE__,
+    .f_build_time = __TIME__,
+    .f_groups = g_group_descriptions
 };
 
 
@@ -666,7 +680,9 @@ iplock::command::command(iplock * parent, char const * command_name, advgetopt::
     if(f_interface.empty()
     || f_interface.size() >= IFNAMSIZ)
     {
-        std::cerr << "iplock:error: the \"interface\" parameter cannot be more than 15 characters nor empty." << std::endl;
+        std::cerr << "iplock:error: the \"interface\" parameter cannot be more than "
+                  << IFNAMSIZ
+                  << " characters nor empty." << std::endl;
         exit(1);
     }
 
@@ -1239,7 +1255,7 @@ void iplock::count::run()
     // run the command and retrieve its output
     //
     std::string cmd;
-    if(f_opt->is_defined("reset"))
+    if(f_reset)
     {
         cmd = f_count_opt->get_string("count_and_reset");
     }
@@ -1740,22 +1756,6 @@ void iplock::batch::run()
 iplock::iplock(int argc, char * argv[])
 {
     advgetopt::getopt::pointer_t opt(std::make_shared<advgetopt::getopt>(g_iplock_options_environment, argc, argv));
-
-    // note: --help and --version are also commands (see below)
-    //       but they have priority and do not generate an error
-    //       if used along another command...
-
-    if(opt->is_defined("help"))
-    {
-        std::cerr << opt->usage();
-        exit(1);
-    }
-
-    if(opt->is_defined("version"))
-    {
-        std::cout << IPLOCK_VERSION_STRING << std::endl;
-        exit(0);
-    }
 
     // define the command
     //

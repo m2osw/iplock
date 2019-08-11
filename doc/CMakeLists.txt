@@ -44,6 +44,7 @@ install(
     FILES
         iplock-icon-32x32.jpg
         iplock-logo.jpg
+
     DESTINATION
         share/doc/iplock
 )

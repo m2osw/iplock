@@ -34,7 +34,10 @@ project(iplock)
 include(GNUInstallDirs)
 
 # Put the version in the cpp file
-configure_file( ${CMAKE_CURRENT_SOURCE_DIR}/version.h.in ${CMAKE_CURRENT_BINARY_DIR}/version.h )
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/version.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/version.h
+)
 
 include_directories(
     ${CMAKE_CURRENT_BINARY_DIR}
@@ -60,6 +63,7 @@ target_link_libraries(${PROJECT_NAME}
 install(
     TARGETS
         ${PROJECT_NAME}
+
     RUNTIME DESTINATION
         sbin
 )
