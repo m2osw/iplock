@@ -1,10 +1,7 @@
 #
-# File:         conf/CMakeLists.txt
-# Object:       Definitions to create the build environment
+# Copyright (c) 2012-2019  Made to Order Software Corp.  All Rights Reserved
 #
-# Copyright:    Copyright (c) 2012-2019  Made to Order Software Corp.  All Rights Reserved
-#
-# https://snapwebsites.org/
+# https://snapwebsites.org/project/iplock
 # contact@m2osw.com
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy

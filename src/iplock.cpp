@@ -1,12 +1,7 @@
 //
-// File:        src/iplock.cpp
-// Object:      Allow users to easily add and remove IPs in an iptable
-//              firewall; this is useful if you have a blacklist of IPs
+// Copyright (c) 2007-2019  Made to Order Software Corp.  All Rights Reserved.
 //
-// Copyright:   Copyright (c) 2007-2019  Made to Order Software Corp.  All Rights Reserved
-//              All Rights Reserved.
-//
-// https://snapwebsites.org/
+// https://snapwebsites.org/project/iplock
 // contact@m2osw.com
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -229,8 +224,8 @@ advgetopt::options_environment const g_iplock_options_environment =
     .f_version = IPLOCK_VERSION_STRING,
     .f_license = "This software is licenced under the MIT",
     .f_copyright = "Copyright (c) 2007-" BOOST_PP_STRINGIZE(UTC_BUILD_YEAR) " by Made to Order Software Corporation",
-    .f_build_date = __DATE__,
-    .f_build_time = __TIME__,
+    .f_build_date = UTC_BUILD_DATE,
+    .f_build_time = UTC_BUILD_TIME,
     .f_groups = g_group_descriptions
 };
 
@@ -358,8 +353,8 @@ advgetopt::options_environment const g_iplock_configuration_options_environment 
     .f_version = IPLOCK_VERSION_STRING,
     //.f_license = nullptr,
     //.f_copyright = nullptr,
-    //.f_build_date = __DATE__,
-    //.f_build_time = __TIME__
+    //.f_build_date = UTC_BUILD_DATE,
+    //.f_build_time = UTC_BUILD_TIME
 };
 
 
@@ -461,8 +456,8 @@ advgetopt::options_environment g_iplock_block_or_unblock_options_environment =
     .f_version = IPLOCK_VERSION_STRING,
     .f_license = nullptr,
     .f_copyright = nullptr,
-    //.f_build_date = __DATE__,
-    //.f_build_time = __TIME__
+    //.f_build_date = UTC_BUILD_DATE,
+    //.f_build_time = UTC_BUILD_TIME
 };
 
 
@@ -588,8 +583,8 @@ advgetopt::options_environment const g_iplock_count_options_environment =
     .f_version = IPLOCK_VERSION_STRING,
     //.f_license = nullptr,
     //.f_copyright = nullptr,
-    //.f_build_date = __DATE__,
-    //.f_build_time = __TIME__
+    //.f_build_date = UTC_BUILD_DATE,
+    //.f_build_time = UTC_BUILD_TIME
 };
 
 
