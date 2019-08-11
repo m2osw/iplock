@@ -1,3 +1,18 @@
+iplock (3.0.19.0~xenial) xenial; urgency=high
+
+  * Switch to using the system command line options.
+    - Added the copyright & license notices in the command line options.
+    - Put arguments in two groups: COMMANDS & OPTIONS.
+    - Added a catch so we can have the auto-execution of the system commands.
+    - Removed the handling of the help & version since that's part of the
+      system commands.
+  * Fixed an access to the "reset" flag, it should have used the f_reset field.
+  * Fixed a message which had a hard coded size instead of IFNAMSIZ.
+  * Added the mk script so I can quickly recompile and install this project.
+  * Removed the tokenize_string.h since we're not using it.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Sat, 10 Aug 2019 17:01:51 -0800
+
 iplock (3.0.18.1~xenial) xenial; urgency=high
 
   * Bump version to get a recompile on launchpad.
