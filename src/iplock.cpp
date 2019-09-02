@@ -706,8 +706,8 @@ iplock::command::~command()
 
 void iplock::command::verify_ip(std::string const & ip)
 {
-    // TODO: add support for IPv6 (we probably want our snap_addr
-    //       class in a contrib "net" library first...
+    // TODO: add support for IPv6 -- we now has our libaddr
+    //       library in a contrib...
     //
     int c(1);
     int n(-1);
