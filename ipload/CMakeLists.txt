@@ -1,7 +1,7 @@
 #
-# Copyright (c) 2012-2019  Made to Order Software Corp.  All Rights Reserved
+# Copyright (c) 2012-2019  Made to Order Software Corp.  All Rights Reserved.
 #
-# https://snapwebsites.org/project/iplock
+# https://snapwebsites.org/project/ipload
 # contact@m2osw.com
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -24,28 +24,45 @@
 #
 cmake_minimum_required(VERSION 2.8)
 
-enable_language( CXX )
 
-project(iplock_project)
+project(ipload)
 
-if( "${CMAKE_BUILD_TYPE}" STREQUAL "Debug" )
-    add_definitions( "-DMO_DEBUG" )
-endif()
+include(GNUInstallDirs)
 
-find_package( AdvGetOpt        REQUIRED )
-find_package( Boost            REQUIRED COMPONENTS filesystem system )
-find_package( LibAddr          REQUIRED )
-find_package( LibExcept        REQUIRED )
-find_package( SnapCMakeModules REQUIRED )
-find_package( SnapDev          REQUIRED )
-find_package( SnapDoxygen )
+# Put the version in the cpp file
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/version.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/version.h
+)
 
-SnapGetVersion( IPLOCK ${CMAKE_CURRENT_SOURCE_DIR} )
+include_directories(
+    ${CMAKE_CURRENT_BINARY_DIR}
+    ${ADVGETOPT_INCLUDE_DIRS}
+    ${BOOST_INCLUDE_DIRS}
+    ${LIBADDR_INCLUDE_DIRS}
+    ${LIBEXCEPT_INCLUDE_DIRS}
+)
 
-# Sub-directories
-add_subdirectory(iplock)
-add_subdirectory(ipload)
-add_subdirectory(doc)
+add_executable(${PROJECT_NAME}
+    ipload.cpp
+    main.cpp
+)
+
+target_link_libraries(${PROJECT_NAME}
+    ${ADVGETOPT_LIBRARIES}
+    ${Boost_FILESYSTEM_LIBRARY}
+    ${Boost_SYSTEM_LIBRARY}
+    ${LIBADDR_LIBRARIES}
+    ${LIBEXCEPT_LIBRARIES}
+)
+
+install(
+    TARGETS
+        ${PROJECT_NAME}
+
+    RUNTIME DESTINATION
+        sbin
+)
 
 
 # vim: ts=4 sw=4 et
