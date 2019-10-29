@@ -44,7 +44,7 @@ SnapGetVersion( IPLOCK ${CMAKE_CURRENT_SOURCE_DIR} )
 
 # Sub-directories
 add_subdirectory(iplock)
-add_subdirectory(ipload)
+#add_subdirectory(ipload)
 add_subdirectory(doc)
 
 

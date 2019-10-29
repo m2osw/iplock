@@ -73,7 +73,7 @@ int main(int argc, char * argv[])
 
         exit(0);
     }
-    catch(advgetopt::getopt_exception_exit const & e)
+    catch(advgetopt::getopt_exit const & e)
     {
         exit(e.code());
     }
