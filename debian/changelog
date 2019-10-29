@@ -1,3 +1,9 @@
+iplock (3.0.21.0~xenial) xenial; urgency=high
+
+  * Fixed the advgetopt exception.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Mon, 29 Seo 2019 02:44:29 -0800
+
 iplock (3.0.20.0~xenial) xenial; urgency=high
 
   * Fixed the __DATE/TIME__ with the UTC_BUILD_DATE/TIME.
