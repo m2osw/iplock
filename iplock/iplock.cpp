@@ -210,6 +210,7 @@ advgetopt::group_description const g_group_descriptions[] =
 advgetopt::options_environment const g_iplock_options_environment =
 {
     .f_project_name = "iplock",
+    .f_group_name = nullptr,
     .f_options = g_iplock_options,
     .f_options_files_directory = nullptr,
     .f_environment_variable_name = "IPLOCK_OPTIONS",
@@ -341,6 +342,7 @@ constexpr char const * const g_iplock_configuration_files[]
 advgetopt::options_environment const g_iplock_configuration_options_environment =
 {
     .f_project_name = "iplock",
+    .f_group_name = nullptr,
     .f_options = g_iplock_configuration_options,
     .f_options_files_directory = nullptr,
     .f_environment_variable_name = nullptr,
@@ -444,6 +446,7 @@ advgetopt::option const g_iplock_block_or_unblock_options[] =
 advgetopt::options_environment g_iplock_block_or_unblock_options_environment =
 {
     .f_project_name = "schemes",
+    .f_group_name = nullptr,
     .f_options = g_iplock_block_or_unblock_options,
     .f_options_files_directory = nullptr,
     .f_environment_variable_name = nullptr,
@@ -571,6 +574,7 @@ constexpr char const * const g_iplock_count_configuration_files[]
 advgetopt::options_environment const g_iplock_count_options_environment =
 {
     .f_project_name = "iplock",
+    .f_group_name = nullptr,
     .f_options = g_iplock_count_options,
     .f_options_files_directory = nullptr,
     .f_environment_variable_name = nullptr,
