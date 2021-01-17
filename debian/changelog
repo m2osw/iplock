@@ -1,3 +1,9 @@
+iplock (3.0.23.2~xenial) xenial; urgency=high
+
+  * Bump version to attempt a re-build with new dependencies.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Sun, 17 Jan 2021 14:17:05 -0800
+
 iplock (3.0.23.1~xenial) xenial; urgency=high
 
   * Bump version to attempt a re-build with new dependencies.
