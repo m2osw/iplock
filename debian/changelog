@@ -1,3 +1,11 @@
+iplock (3.0.23.3~xenial) xenial; urgency=high
+
+  * Bump version to recompile against the new cppthread.
+  * Updated all the copyright notices to 2021.
+  * Added the -r option to the mk script.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Mon, 15 Mar 2021 23:20:25 -0700
+
 iplock (3.0.23.2~xenial) xenial; urgency=high
 
   * Bump version to attempt a re-build with new dependencies.
