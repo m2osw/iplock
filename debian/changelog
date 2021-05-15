@@ -1,3 +1,9 @@
+iplock (3.0.23.4~xenial) xenial; urgency=high
+
+  * Bump version to recompile against the new cppthread.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Sat, 15 May 2021 12:40:29 -0700
+
 iplock (3.0.23.3~xenial) xenial; urgency=high
 
   * Bump version to recompile against the new cppthread.
