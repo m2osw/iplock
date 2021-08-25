@@ -1,3 +1,9 @@
+iplock (3.0.23.6~bionic) bionic; urgency=high
+
+  * Bumped build version to rebuild on Launchpad.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Tue, 24 Aug 2021 17:54:55 -0700
+
 iplock (3.0.23.5~xenial) xenial; urgency=high
 
   * Bump version to recompile against the new dependencies.
