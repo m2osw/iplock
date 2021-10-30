@@ -1660,7 +1660,7 @@ void iplock::batch::run()
 
         // Iterate through all of the ip addresses, and each specified port.
         //
-        for( auto const ip_addr : ip_list )
+        for( auto const & ip_addr : ip_list )
         {
             for( auto const port : sme.get_ports() )
             {
