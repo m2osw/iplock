@@ -35,17 +35,18 @@ configure_file(
     ${CMAKE_CURRENT_BINARY_DIR}/version.h
 )
 
-include_directories(
-    ${CMAKE_CURRENT_BINARY_DIR}
-    ${ADVGETOPT_INCLUDE_DIRS}
-    ${BOOST_INCLUDE_DIRS}
-    ${LIBADDR_INCLUDE_DIRS}
-    ${LIBEXCEPT_INCLUDE_DIRS}
-)
-
 add_executable(${PROJECT_NAME}
     iplock.cpp
     main.cpp
+)
+
+target_include_directories(${PROJECT_NAME}
+    PUBLIC
+        ${CMAKE_CURRENT_BINARY_DIR}
+        ${ADVGETOPT_INCLUDE_DIRS}
+        ${BOOST_INCLUDE_DIRS}
+        ${LIBADDR_INCLUDE_DIRS}
+        ${LIBEXCEPT_INCLUDE_DIRS}
 )
 
 target_link_libraries(${PROJECT_NAME}

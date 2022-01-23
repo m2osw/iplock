@@ -1,6 +1,6 @@
 
 <p align="center">
-<img alt="advgetopt" title="IP Lock -- a command line to easily add and remove IPs from your firewall."
+<img alt="iplock" title="IP Lock -- a command line to easily add and remove IPs from your firewall."
 src="https://snapwebsites.org/sites/snapwebsites.org/files/images/iplock-logo.jpg" width="200" height="200"/>
 </p>
 

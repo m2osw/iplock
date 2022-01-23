@@ -173,7 +173,7 @@ advgetopt::option const g_iplock_options[] =
                       advgetopt::GETOPT_FLAG_GROUP_OPTIONS
                     , advgetopt::GETOPT_FLAG_COMMAND_LINE
                     , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE>())
-        , advgetopt::Help("Show comands being executed.")
+        , advgetopt::Help("Show commands being executed.")
     ),
     advgetopt::define_option(
           advgetopt::Name("--")
