@@ -1,3 +1,11 @@
+iplock (3.0.24.0~bionic) bionic; urgency=high
+
+  * Updated to work with the new snapdev namespace.
+  * Updated to use the new SnapCatch2 v3.
+  * Updates to work with changes to advgetopt.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Tue, 01 Feb 2022 09:31:09 -0800
+
 iplock (3.0.23.7~bionic) bionic; urgency=high
 
   * Bumped build version to rebuild on Launchpad.
