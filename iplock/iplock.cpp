@@ -945,10 +945,10 @@ std::cout << "check_cmdline: " << check_cmdline << std::endl << "block_cmdline: 
         std::string const whitelist(f_scheme_opt->get_string("whitelist"));
         addr::addr_parser p;
         p.set_protocol(IPPROTO_TCP);        // define a protocol because otherwise we get same IPs with various protocols...
-        p.set_allow(addr::addr_parser::flag_t::MULTI_ADDRESSES_COMMAS, true);
-        p.set_allow(addr::addr_parser::flag_t::MULTI_ADDRESSES_SPACES, true);
-        p.set_allow(p.flag_t::MASK, true);
-        p.set_allow(p.flag_t::PORT, false);
+        p.set_allow(addr::allow_t::ALLOW_MULTI_ADDRESSES_COMMAS, true);
+        p.set_allow(addr::allow_t::ALLOW_MULTI_ADDRESSES_SPACES, true);
+        p.set_allow(addr::allow_t::ALLOW_MASK, true);
+        p.set_allow(addr::allow_t::ALLOW_PORT, false);
         whitelist_ips = p.parse(whitelist);
     }
 
@@ -971,7 +971,7 @@ std::cout << "check_cmdline: " << check_cmdline << std::endl << "block_cmdline: 
             // as we do not want to block white listed IPs
             //
             addr::addr_parser p;
-            p.set_allow(p.flag_t::PORT, false);
+            p.set_allow(addr::allow_t::ALLOW_PORT, false);
             addr::addr_range::vector_t ips(p.parse(ip));
             if(ips.size() > 0
             && addr::address_match_ranges(whitelist_ips, ips[0].get_from()))
