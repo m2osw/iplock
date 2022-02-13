@@ -1,4 +1,4 @@
-iplock (3.0.24.0~bionic) bionic; urgency=high
+iplock (3.0.25.0~bionic) bionic; urgency=high
 
   * Update to work with the new allow_t in libaddr.
 
