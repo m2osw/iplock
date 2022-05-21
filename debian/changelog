@@ -1,3 +1,9 @@
+iplock (3.0.27.0~bionic) bionic; urgency=high
+
+  * Fixed the compat version to v10.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Fri, 20 May 2022 17:12:16 -0700
+
 iplock (3.0.26.0~bionic) bionic; urgency=high
 
   * Added the Environment Variable Into.
