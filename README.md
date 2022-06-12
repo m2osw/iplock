@@ -58,7 +58,7 @@ The following show the list of supported tags:
     rule::<name>::except_sources = <source>[, <source>]*
     rule::<name>::destinations = <destination>[, <destination>]*
     rule::<name>::except_destinations = <destination>[, <destination>]*
-    rule::<name>::protocols = tcp, udp
+    rule::<name>::protocols = tcp, udp, icmp, etc.
     rule::<name>::state = [!]new, [!]established, [!]related
     rule::<name>::limit = <number>[, <number>]
     rule::<name>::action = <action>
@@ -66,8 +66,8 @@ The following show the list of supported tags:
 
     variable::<name> = <value>
 
-Some entries accept lists, which in most cases means that multiple rules
-are created to handle the rule.
+Some entries accept lists, which in most cases means that multiple iptable
+rules are created to handle one entry.
 
 The `log` variable means that we add a `-j LOG` rule before the other
 rule(s). In iptables parlance, this is an action. We simplify for you
@@ -83,12 +83,27 @@ a rule within that chain will be dropped.
 
 Only built-in chains can be assigned a policy.
 
+Default: policy is set to `DROP` by default since it is more constrained.
+
 ### `chain::<name>::type`
 
 This parameter defines the type of the chain.
 
-At this time, this mainly defines how we close the chain, as is, which rule
+At this time, this mainly defines how we close the chain, as in, which rule
 to use to close the chain.
+
+A type set to `DROP` means the chain drops any packet that is not accepted
+by a rule within that chain. If the type is set to `RETURN`, then if none
+of the rules within that chain was set to `DROP`, then the filtering
+continues.
+
+Default: `DROP` since this is a stronger constraint.
+
+### `chain::<name>::log`
+
+This parameter defines a log message.
+
+Default: no message.
 
 ### `rule::<name>::chains`
 
@@ -96,18 +111,24 @@ This parameter defines the list of chains that are to receive this rule.
 
 Chain names include built-in chains (INPUT, OUTPUT, etc.) and user defined
 chains. User defined chains do not need to be pre-defined. The tool will
-automatically create them as required.
+automatically create them as required and apply defaults as defined in
+each `chain::...` variable.
+
+Default: none, this is a required parameter, you need to have at least one
+chain to which the rule applies.
 
 ### `rule::<name>::interfaces`
 
 This parameter defines the list of interfaces that the rule applies to.
+
+Default: none, which means the rule applies to all interfaces.
 
 ### `rule::<name>::sources`
 
 This parameter defines a list of IP addresses or domain names to use to
 filter the incoming network traffic.
 
-By default, no source is checked and the rule is accepted whatever
+Default: no source is checked and the rule is accepted whatever
 the source is.
 
 ### `rule::<name>::except_sources`
@@ -117,33 +138,40 @@ match when this rule is checked. If the source matches, then that rule
 will be skipped. This is particularly useful in the FORWARD chain to
 avoid having your own traffic forwarded.
 
+Default: none.
+
 ### `rule::<name>::destinations`
 
 This parameter defines a list of IP addresses or domain names to use to
 filter the outgoing network traffic.
 
-By default, no destination is checked and the rule is accepted whatever
+Default: no destination is checked and the rule is accepted whatever
 the destination is.
 
 ### `rule::<name>::except_destinations`
 
 This parameter defines a list of IP addresses or domain names to not
-match when this rule is checked. If the destination matches, then that rule
-will be skipped.
+match when this rule is checked. If the destination matches, then that
+rule will be skipped.
+
+Default: none.
 
 ### `rule::<name>::protocol`
 
-This parameter defines which parameter is necessary to match this rule.
-By default, no protocol gets matched.
+This parameter defines which protocol is necessary to match this rule.
+
+Default: no protocol is matched meaning that all packets get checked.
 
 ### `rule::<name>::limit`
 
-This parameter defines the maximum number of connections are accepted
+This parameter defines the maximum number of connections accepted
 by this rule. The parameter accepts one or two numbers. The first number
 represents the maximum number of connections from the sources and the
 second represents the maximum number of connections from the destinations.
 
-Note that each limit requires a rule for each limit.
+Note that each limit requires an iptable rule for each limit.
+
+Default: no limit enforced.
 
 ### `rule::<name>::action`
 
@@ -153,33 +181,41 @@ We support the following actions:
 
 * `ACCEPT`
 
-    On a match, the packet is accepted.
+   On a match, the packet is accepted.
 
 * `DROP`
 
-    On a match, the packet is dropped. This means our computer stops working
-    on that packet immediately. No more wasting time.
+   On a match, the packet is dropped. This means our computer stops working
+   on that packet immediately. No more wasting time or bandwidth.
+
+   This should be used to block public traffic (from computers you do not
+   own, i.e. the rest of the Internet). For local traffic, it is nicer to
+   use the `REJECT` option.
 
 * `REJECT [<type>]`
 
-    On a match, the packet is rejected. This means our computer builds a
-    reponse so we can tell the client that we do not want their traffic.
-    This is a nice way to refuse data. However, this makes use of more
-    of your bandwidth and lets the client know that you exist.
+   On a match, the packet is rejected. This means our computer builds a
+   reponse so we can tell the client that we do not want their traffic.
+   This is a nice way to refuse data. However, this makes use of more
+   of your bandwidth and lets the client know that you exist.
 
-    In most cases, especially on the Internet, it is wiser to use DROP.
-    Limit your use of the REJECT action to just local traffic.
+   In most cases, especially on the Internet, it is wiser to use `DROP`.
+   Limit your use of the `REJECT` action to just local traffic.
 
-    The type is one of the available reject type. See the `--reject-with`
-    docs. We like to use `icmp-port-unreachable` which says that the
-    port is not open.
+   The type is one of the available reject type. See the `--reject-with`
+   docs. We like to use `icmp-port-unreachable` which says that the
+   port is not open to the other side, whether it is open or not.
+
+   This should be used to block connections between your systems on your
+   private network (10.x.x.x, 192.168.x.x, etc.) so that way improper
+   attempts at connection fail quickly.
 
 * `CALL <chain>`
 
-    This action is used to call a user defined chain. This is particularly
-    useful when you want to check a set of rules from multiple places.
-    For example, we have a set of _bad TCP packets_ which we like to
-    check on INPUT and OUTPUT.
+   This action is used to call a user defined chain. This is particularly
+   useful when you want to check a set of rules from multiple places.
+   For example, we have a set of _bad TCP packets_ which we like to
+   check on INPUT and OUTPUT.
 
 ### Variables (`variable::<name>`)
 
@@ -191,7 +227,7 @@ For example, when specifying an IP address, you may use a variable such as:
     rule::<name>::sources = ${admin_ips}
 
 This allows us to write one rule for all the administrators (opposed to
-one rule per administrator) and with any number of variables, all the user
+one rule per administrator) and with any number of variables, all the users
 of any given group.
 
 To support multiple lists in variables, separate them with commas:
@@ -212,7 +248,8 @@ then we can use one rule instead of 16.
 
 There is an interesting side effect with lists of ports. These can actually
 be used as is in a rule (i.e. certain rules support multiple ports).
-The number of ports in a rule is limited, though.
+The number of ports in an iptable rule is limited, but our software takes
+care of handling that limit.
 
 Note that this is a sort of optimization rather than a feature.
 a.k.a. If possible we optimize the number of rules by using the multi-port
@@ -229,7 +266,46 @@ The following lists a set of interfaces that you just want to block completely:
     rule::blocked_interfaces::action = DROP
     rule::blocked_interfaces::log = interface unavailable
 
-This rule prevents all communications (IN and OUT) from `eth3` and `eth4`.
+This rule prevents all communications (**in** and **out**) from `eth3` and
+`eth4`.
+
+
+Algorithm
+=========
+
+When the iplock firewall starts:
+
+1. it reads all the configuration files
+
+2. it transforms the configuration files in an iptables script
+
+3. if it detected sets of IPs while handling the configuration files,
+   read the corresponding IPs from the database and add them to the
+   sets
+
+3. it runs the iptables script
+
+Later, the iplock system is sent new IPs to block or unblock via the
+firewall service:
+
+1. `BLOCK` -- add the IP to the database and the firewall; this is done
+   by adding the IP to one of the sets; if the set is full, then a new set
+   is created and added to the firewall
+
+2. `UNBLOCK` -- remove the IP from the database and the firewall; this is
+   done by removing the IP from one of the sets; if the set is empty and
+   there are more than one for the same set, it gets removed (i.e. if we
+   had to create a second set of an overflow, we want to remove such
+   additional sets)
+
+The `iplock` tool is used to make edits to the `iptables` rules.
+
+The `ipcontroller` service is used to accept / receive `BLOCK` and `UNBLOCK`
+messages, manage the database, and run the iplock tool to update the rules.
+
+The `ipload` tool reads configuration files and build the `iptables` rules.
+
+
 
 
 Not a Bug
@@ -242,17 +318,10 @@ that if you uninstall our tool, you are probably going to install
 another tool which will re-add all or some of those IP addresses
 to your firewall.
 
-If you want to clear your firewall and still have Snap! installed
-you can reset it by running the default firewall script:
+If you really want to clear you firewall completely, you can use the
+following command to flush everything:
 
-    sudo /etc/network/firewall
-
-This command resets the firewall as it looks like after a reboot on
-a Snap! system.
-
-Note that when `snapfirewall` starts, it adds the IP addresses using
-the `iplock` tool first, then allows the Snap! Server to accept client's
-connections.
+    sudo iptable -F
 
 
 Bugs
