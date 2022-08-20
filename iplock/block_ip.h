@@ -18,27 +18,27 @@
 #pragma once
 
 /** \file
- * \brief Definitions of the iplock version.
+ * \brief Declare the block_ip() function.
  *
- * This header includes the iplock library version and functions
- * you can use to check the current version of the library.
+ * This header declares the block_ip() function and related parameters.
  */
 
+// eventdispatcher
+//
+#include    <eventdispatcher/connection_with_send_message.h>
 
-#define    IPLOCK_VERSION_MAJOR   @IPLOCK_VERSION_MAJOR@
-#define    IPLOCK_VERSION_MINOR   @IPLOCK_VERSION_MINOR@
-#define    IPLOCK_VERSION_PATCH   @IPLOCK_VERSION_PATCH@
-#define    IPLOCK_VERSION_STRING  "@IPLOCK_VERSION_MAJOR@.@IPLOCK_VERSION_MINOR@.@IPLOCK_VERSION_PATCH@"
+
 
 namespace iplock
 {
 
 
 
-int             get_major_version();
-int             get_release_version();
-int             get_patch_version();
-char const *    get_version_string();
+void block_ip(
+      ed::connection_with_send_message::pointer_t messenger
+    , std::string const & uri
+    , std::string const & period = std::string()
+    , std::string const & reason = std::string());
 
 
 

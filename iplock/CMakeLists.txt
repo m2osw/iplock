@@ -1,56 +1,68 @@
-# Copyright (c) 2012-2022  Made to Order Software Corp.  All Rights Reserved.
+# Copyright (c) 2012-2022  Made to Order Software Corp.  All Rights Reserved
 #
 # https://snapwebsites.org/project/iplock
 # contact@m2osw.com
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+##
+## iplock library
+##
 project(iplock)
 
-include(GNUInstallDirs)
-
-# Put the version in the cpp file
+# Put the version in the header file
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/version.h.in
     ${CMAKE_CURRENT_BINARY_DIR}/version.h
 )
 
-add_executable(${PROJECT_NAME}
-    iplock.cpp
-    main.cpp
+add_library(${PROJECT_NAME} SHARED
+    block_ip.cpp
+    wait_on_firewall.cpp
+    version.cpp
 )
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC
-        ${CMAKE_CURRENT_BINARY_DIR}
         ${ADVGETOPT_INCLUDE_DIRS}
-        ${BOOST_INCLUDE_DIRS}
+        ${COMMUNICATORD_INCLUDE_DIRS}
+        ${CPPPROCESS_INCLUDE_DIRS}
+        ${EVENTDISPATCHER_INCLUDE_DIRS}
+        ${FLUIDSETTINGS_INCLUDE_DIRS}
         ${LIBADDR_INCLUDE_DIRS}
         ${LIBEXCEPT_INCLUDE_DIRS}
+        ${SNAPLOGGER_INCLUDE_DIRS}
 )
 
 target_link_libraries(${PROJECT_NAME}
     ${ADVGETOPT_LIBRARIES}
-    ${Boost_FILESYSTEM_LIBRARY}
-    ${Boost_SYSTEM_LIBRARY}
+    ${COMMUNICATORD_LIBRARIES}
+    ${EVENTDISPATCHER_LIBRARIES}
+    ${FLUIDSETTINGS_LIBRARIES}
+    ${CPPPROCESS_LIBRARIES}
     ${LIBADDR_LIBRARIES}
     ${LIBEXCEPT_LIBRARIES}
+    ${SNAPLOGGER_LIBRARIES}
+)
+
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    VERSION
+        ${IPLOCK_VERSION_MAJOR}.${IPLOCK_VERSION_MINOR}
+
+    SOVERSION
+        ${IPLOCK_VERSION_MAJOR}
 )
 
 install(
@@ -58,8 +70,32 @@ install(
         ${PROJECT_NAME}
 
     RUNTIME DESTINATION
-        sbin
+        bin
+
+    LIBRARY DESTINATION
+        lib
+
+    ARCHIVE DESTINATION
+        lib
 )
 
+install(
+    DIRECTORY
+        ${CMAKE_CURRENT_SOURCE_DIR}/
+
+    DESTINATION
+        include/iplock
+
+    FILES_MATCHING PATTERN
+        "*.h"
+)
+
+install(
+    FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/version.h
+
+    DESTINATION
+        include/iplock
+)
 
 # vim: ts=4 sw=4 et

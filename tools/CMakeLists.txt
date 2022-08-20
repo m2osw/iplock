@@ -16,25 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+add_subdirectory(ipload)
+add_subdirectory(iplock)
+add_subdirectory(ipwall)
 
-##
-## Documentation
-##
-find_package(SnapDoxygen)
-AddDoxygenTarget(
-    iplock
-    ${IPLOCK_VERSION_MAJOR}
-    ${IPLOCK_VERSION_MINOR}
-    ${IPLOCK_VERSION_PATCH}
-)
-
-install(
-    FILES
-        iplock-icon-32x32.jpg
-        iplock-logo.jpg
-
-    DESTINATION
-        share/doc/iplock
-)
-
-# vim: ts=4 sw=4 et nocindent
+# vim: ts=4 sw=4 et

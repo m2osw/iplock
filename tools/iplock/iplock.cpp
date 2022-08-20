@@ -39,41 +39,46 @@
 // self
 //
 #include    "iplock.h"
-#include    "version.h"
 
 
-// libaddr lib
+// iplock
+//
+#include    <iplock/version.h>
+
+
+// libaddr
 //
 #include    <libaddr/addr_parser.h>
 
 
-// boost lib
+// boost
 //
 #include    <boost/algorithm/string/replace.hpp>
 #include    <boost/filesystem.hpp>
 #include    <boost/lexical_cast.hpp>
 
 
-// C++ lib
+// C++
 //
 #include    <iostream>
 #include    <fstream>
 #include    <sstream>
 
 
-// C lib
+// C
 //
 #include    <net/if.h>
 #include    <stdio.h>
 
 
-// snapdev lib
+// last include
 //
 #include    <snapdev/poison.h>
 
 
 
-
+namespace tool
+{
 
 
 /** \brief Command line options.
@@ -1868,4 +1873,5 @@ void iplock::run_command()
 
 
 
+} // namespace tool
 // vim: ts=4 sw=4 et

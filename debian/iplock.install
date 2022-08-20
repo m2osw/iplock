@@ -1,6 +1,9 @@
 usr/sbin/iplock
-conf/iplock.conf conf/count.conf etc/iplock/
-conf/all.conf conf/http.conf conf/smtp.conf etc/iplock/schemes/
-conf/README.md etc/iplock/iplock.d/
-conf/schemes-README.md etc/iplock/schemes/schemes.d/
-conf/iplock-action.conf etc/fail2ban/action.d/
+conf/iplock.conf                                   etc/iplock
+conf/count.conf                                    etc/iplock/
+conf/all.conf                                      etc/iplock/schemes/
+conf/http.conf                                     etc/iplock/schemes/
+conf/smtp.conf                                     etc/iplock/schemes/
+conf/README.md                                     etc/iplock/iplock.d/
+conf/schemes-README.md                             etc/iplock/schemes/schemes.d/
+conf/iplock-action.conf                            etc/fail2ban/action.d/

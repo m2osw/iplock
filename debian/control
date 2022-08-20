@@ -3,8 +3,12 @@ Section: net
 Priority: optional
 Maintainer: Alexis Wilke <alexis@m2osw.com>
 Build-Depends: cmake,
+    communicatord-dev (>= 2.0.0.0~bionic),
+    cppprocess-dev (>= 1.1.52.0~bionic),
     debhelper,
     doxygen,
+    eventdispatcher-dev (>= 1.1.51.0~bionic),
+    fluid-settings-dev (>= 1.0.0.0~bionic),
     graphviz,
     libaddr-dev (>= 1.0.8.215~xenial),
     libadvgetopt-dev (>= 2.0.4.0~xenial),
@@ -12,8 +16,10 @@ Build-Depends: cmake,
     libboost-filesystem-dev,
     libboost-system-dev,
     libexcept-dev (>= 1.0.2.250~xenial),
+    snapcatch2 (>= 2.9.1.0~bionic),
     snapcmakemodules (>= 1.0.35.3~xenial),
     snapdev (>= 1.0.0.0~xenial)
+    snaplogger-dev (>= 1.0.0.0~bionic)
 Standards-Version: 3.9.4
 Homepage: https://snapwebsites.org/
 Vcs-Git: https://github.com/m2osw/snapcpp.git
@@ -22,13 +28,28 @@ Vcs-Browser: https://github.com/m2osw/iplock
 Package: iplock
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Suggests: iplock-doc, fail2ban, snapfirewall
-Description: Add or remove IP addresses from your iptables firewall.
- The iplock tool is a very simple executable used to add or remove IP addresses
- to your iptables firewall to protect your services such as Apache and Postfix.
+Suggests: iplock-doc
+Description: Advanced management of your iptables firewall.
+ The iplock environment is a set of tools and a service used to manage your
+ firewall in your cluster. Whenever an IP address gets blocked, it immediately
+ gets shared across all your systems allowing each front end computer to block
+ this IP address instantly.
  .
- The tool reads a configuration file (/etc/network/iplock.conf) where iptables
- commands and ports are defined. It is used by the tool to generate the
+ The iplock executable is a very simple tool used to add or remove IP
+ addresses to your iptables firewall to protect your services such as
+ Apache and Postfix.
+ .
+ The ipload executable loads your firewall on each reboot. The system is
+ automatically setup so this runs before the network is started by the
+ Linux system.
+ .
+ The ipwall is a service which automatically starts and allows communication
+ between all your computers so the block of an IP address is instantly
+ replicated on all your systems. This is extremely effective to avoid cluster
+ attacks.
+ .
+ The tools read configuration files under /etc/iplock/... where iptables
+ commands and ports are defined. It is used by the tools to generate
  iptables commands to run in order to block or unblock a set of IP addresses.
 
 Package: iplock-doc
@@ -37,4 +58,4 @@ Architecture: all
 Depends: ${misc:Depends}
 Recommends: iplock (= ${binary:Version})
 Description: Add or remove IP addresses from your iptables firewall.
- The iplock tool documentation.
+ The documentation of the iplock environment.

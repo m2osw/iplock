@@ -3,48 +3,49 @@
 # https://snapwebsites.org/project/iplock
 # contact@m2osw.com
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 cmake_minimum_required(VERSION 3.10.2)
 
-enable_language( CXX )
+enable_language(CXX)
 
 project(iplock_project)
 
-if( "${CMAKE_BUILD_TYPE}" STREQUAL "Debug" )
-    add_definitions( "-DMO_DEBUG" )
-endif()
+find_package(AdvGetOpt        REQUIRED)
+find_package(Boost            REQUIRED COMPONENTS filesystem system)
+find_package(Communicatord    REQUIRED)
+find_package(CppProcess       REQUIRED)
+find_package(EventDispatcher  REQUIRED)
+find_package(FluidSettings    REQUIRED)
+find_package(LibAddr          REQUIRED)
+find_package(LibExcept        REQUIRED)
+find_package(SnapCMakeModules REQUIRED)
+find_package(SnapDev          REQUIRED)
+find_package(SnapLogger       REQUIRED)
 
-find_package( AdvGetOpt        REQUIRED )
-find_package( Boost            REQUIRED COMPONENTS filesystem system )
-find_package( LibAddr          REQUIRED )
-find_package( LibExcept        REQUIRED )
-find_package( SnapCMakeModules REQUIRED )
-find_package( SnapDev          REQUIRED )
-find_package( SnapDoxygen )
+SnapGetVersion(IPLOCK ${CMAKE_CURRENT_SOURCE_DIR})
 
-SnapGetVersion( IPLOCK ${CMAKE_CURRENT_SOURCE_DIR} )
+include_directories(
+    ${PROJECT_SOURCE_DIR}
+    ${CMAKE_CURRENT_BINARY_DIR}
+)
 
 # Sub-directories
-add_subdirectory(iplock)
-#add_subdirectory(ipload)
-add_subdirectory(doc)
+add_subdirectory(iplock)        # library
+add_subdirectory(tools)         # tools and daemon
+add_subdirectory(doc)           # documentation
+add_subdirectory(tests)         # tests of library
 
 
 # vim: ts=4 sw=4 et

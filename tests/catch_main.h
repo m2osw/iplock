@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2022  Made to Order Software Corp.  All Rights Reserved
+// Copyright (c) 2022  Made to Order Software Corp.  All Rights Reserved
 //
 // https://snapwebsites.org/project/iplock
 // contact@m2osw.com
@@ -17,30 +17,30 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #pragma once
 
-/** \file
- * \brief Definitions of the iplock version.
- *
- * This header includes the iplock library version and functions
- * you can use to check the current version of the library.
- */
+// catch2
+//
+#include    <catch2/snapcatch2.hpp>
 
 
-#define    IPLOCK_VERSION_MAJOR   @IPLOCK_VERSION_MAJOR@
-#define    IPLOCK_VERSION_MINOR   @IPLOCK_VERSION_MINOR@
-#define    IPLOCK_VERSION_PATCH   @IPLOCK_VERSION_PATCH@
-#define    IPLOCK_VERSION_STRING  "@IPLOCK_VERSION_MAJOR@.@IPLOCK_VERSION_MINOR@.@IPLOCK_VERSION_PATCH@"
+// C++
+//
+#include    <string>
+#include    <cstring>
+#include    <cstdlib>
+#include    <iostream>
 
-namespace iplock
+
+
+namespace SNAP_CATCH2_NAMESPACE
 {
 
 
 
-int             get_major_version();
-int             get_release_version();
-int             get_patch_version();
-char const *    get_version_string();
+extern char ** g_argv;
 
 
 
-} // namespace iplock
+
+}
+// namespace SNAP_CATCH2_NAMESPACE
 // vim: ts=4 sw=4 et

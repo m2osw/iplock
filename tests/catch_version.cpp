@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2022  Made to Order Software Corp.  All Rights Reserved
+// Copyright (c) 2022  Made to Order Software Corp.  All Rights Reserved
 //
 // https://snapwebsites.org/project/iplock
 // contact@m2osw.com
@@ -15,32 +15,35 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#pragma once
 
-/** \file
- * \brief Definitions of the iplock version.
- *
- * This header includes the iplock library version and functions
- * you can use to check the current version of the library.
- */
+// self
+//
+#include    "catch_main.h"
 
 
-#define    IPLOCK_VERSION_MAJOR   @IPLOCK_VERSION_MAJOR@
-#define    IPLOCK_VERSION_MINOR   @IPLOCK_VERSION_MINOR@
-#define    IPLOCK_VERSION_PATCH   @IPLOCK_VERSION_PATCH@
-#define    IPLOCK_VERSION_STRING  "@IPLOCK_VERSION_MAJOR@.@IPLOCK_VERSION_MINOR@.@IPLOCK_VERSION_PATCH@"
+// iplock
+//
+#include    <iplock/version.h>
 
-namespace iplock
+
+// last include
+//
+#include    <snapdev/poison.h>
+
+
+
+
+CATCH_TEST_CASE("Version", "[version]")
 {
+    CATCH_START_SECTION("verify runtime vs compile time iplock version numbers")
+    {
+        CATCH_REQUIRE(iplock::get_major_version()   == IPLOCK_VERSION_MAJOR);
+        CATCH_REQUIRE(iplock::get_release_version() == IPLOCK_VERSION_MINOR);
+        CATCH_REQUIRE(iplock::get_patch_version()   == IPLOCK_VERSION_PATCH);
+        CATCH_REQUIRE(strcmp(iplock::get_version_string(), IPLOCK_VERSION_STRING) == 0);
+    }
+    CATCH_END_SECTION()
+}
 
 
-
-int             get_major_version();
-int             get_release_version();
-int             get_patch_version();
-char const *    get_version_string();
-
-
-
-} // namespace iplock
 // vim: ts=4 sw=4 et

@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2022  Made to Order Software Corp.  All Rights Reserved
+// Copyright (c) 2014-2022  Made to Order Software Corp.  All Rights Reserved
 //
 // https://snapwebsites.org/project/iplock
 // contact@m2osw.com
@@ -18,29 +18,30 @@
 #pragma once
 
 /** \file
- * \brief Definitions of the iplock version.
+ * \brief Exceptions.
  *
- * This header includes the iplock library version and functions
- * you can use to check the current version of the library.
+ * The following are all the exceptions used by the IP Lock library.
  */
 
 
-#define    IPLOCK_VERSION_MAJOR   @IPLOCK_VERSION_MAJOR@
-#define    IPLOCK_VERSION_MINOR   @IPLOCK_VERSION_MINOR@
-#define    IPLOCK_VERSION_PATCH   @IPLOCK_VERSION_PATCH@
-#define    IPLOCK_VERSION_STRING  "@IPLOCK_VERSION_MAJOR@.@IPLOCK_VERSION_MINOR@.@IPLOCK_VERSION_PATCH@"
+// libexcept
+//
+#include    <libexcept/exception.h>
+
+
 
 namespace iplock
 {
 
 
 
-int             get_major_version();
-int             get_release_version();
-int             get_patch_version();
-char const *    get_version_string();
+DECLARE_LOGIC_ERROR(logic_error);
+
+DECLARE_MAIN_EXCEPTION(iplock_exception);
+
+DECLARE_EXCEPTION(iplock_exception, count_mismatch);
 
 
 
-} // namespace iplock
+} // namespace ed
 // vim: ts=4 sw=4 et

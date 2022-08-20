@@ -21,35 +21,32 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-project(ipload)
-
-include(GNUInstallDirs)
-
-# Put the version in the cpp file
-configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/version.h.in
-    ${CMAKE_CURRENT_BINARY_DIR}/version.h
-)
-
-include_directories(
-    ${CMAKE_CURRENT_BINARY_DIR}
-    ${ADVGETOPT_INCLUDE_DIRS}
-    ${BOOST_INCLUDE_DIRS}
-    ${LIBADDR_INCLUDE_DIRS}
-    ${LIBEXCEPT_INCLUDE_DIRS}
-)
+project(iplock-tool)
 
 add_executable(${PROJECT_NAME}
-    ipload.cpp
+    iplock.cpp
     main.cpp
 )
 
+target_include_directories(${PROJECT_NAME}
+    PUBLIC
+        ${CMAKE_CURRENT_BINARY_DIR}
+        ${ADVGETOPT_INCLUDE_DIRS}
+        ${BOOST_INCLUDE_DIRS}
+        ${CPPPROCESS_INCLUDE_DIRS}
+        ${EVENTDISPATCHER_INCLUDE_DIRS}
+        ${LIBADDR_INCLUDE_DIRS}
+        ${LIBEXCEPT_INCLUDE_DIRS}
+)
+
 target_link_libraries(${PROJECT_NAME}
-    ${ADVGETOPT_LIBRARIES}
+    iplock
     ${Boost_FILESYSTEM_LIBRARY}
     ${Boost_SYSTEM_LIBRARY}
-    ${LIBADDR_LIBRARIES}
-    ${LIBEXCEPT_LIBRARIES}
+)
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    OUTPUT_NAME iplock
 )
 
 install(

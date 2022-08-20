@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2022  Made to Order Software Corp.  All Rights Reserved
+// Copyright (c) 2014-2022  Made to Order Software Corp.  All Rights Reserved
 //
 // https://snapwebsites.org/project/iplock
 // contact@m2osw.com
@@ -18,29 +18,35 @@
 #pragma once
 
 /** \file
- * \brief Definitions of the iplock version.
+ * \brief Various definition of the iplock tool.
  *
- * This header includes the iplock library version and functions
- * you can use to check the current version of the library.
+ * The iplock is an object used to execute the command line instructions
+ * as passed by the administrator.
+ *
+ * Depending on the command the system also loads configuration files
+ * using the advgetopt library.
  */
 
 
-#define    IPLOCK_VERSION_MAJOR   @IPLOCK_VERSION_MAJOR@
-#define    IPLOCK_VERSION_MINOR   @IPLOCK_VERSION_MINOR@
-#define    IPLOCK_VERSION_PATCH   @IPLOCK_VERSION_PATCH@
-#define    IPLOCK_VERSION_STRING  "@IPLOCK_VERSION_MAJOR@.@IPLOCK_VERSION_MINOR@.@IPLOCK_VERSION_PATCH@"
+// advgetopt
+//
+#include <advgetopt/advgetopt.h>
 
-namespace iplock
+
+
+class ipload
 {
+public:
+                            ipload(int argc, char * argv[]);
+
+    void                    run();
+
+private:
+    void                    make_root();
+
+    advgetopt::getopt       f_opts;
+};
 
 
 
-int             get_major_version();
-int             get_release_version();
-int             get_patch_version();
-char const *    get_version_string();
-
-
-
-} // namespace iplock
 // vim: ts=4 sw=4 et

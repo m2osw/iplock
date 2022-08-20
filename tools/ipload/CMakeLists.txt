@@ -16,25 +16,33 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+project(ipload)
 
-##
-## Documentation
-##
-find_package(SnapDoxygen)
-AddDoxygenTarget(
+add_executable(${PROJECT_NAME}
+    ipload.cpp
+    main.cpp
+)
+
+target_include_directories(${PROJECT_NAME}
+    PUBLIC
+        ${CMAKE_CURRENT_BINARY_DIR}
+        ${ADVGETOPT_INCLUDE_DIRS}
+        ${BOOST_INCLUDE_DIRS}
+        ${LIBADDR_INCLUDE_DIRS}
+        ${LIBEXCEPT_INCLUDE_DIRS}
+)
+
+target_link_libraries(${PROJECT_NAME}
     iplock
-    ${IPLOCK_VERSION_MAJOR}
-    ${IPLOCK_VERSION_MINOR}
-    ${IPLOCK_VERSION_PATCH}
 )
 
 install(
-    FILES
-        iplock-icon-32x32.jpg
-        iplock-logo.jpg
+    TARGETS
+        ${PROJECT_NAME}
 
-    DESTINATION
-        share/doc/iplock
+    RUNTIME DESTINATION
+        sbin
 )
 
-# vim: ts=4 sw=4 et nocindent
+
+# vim: ts=4 sw=4 et

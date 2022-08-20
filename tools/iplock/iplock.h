@@ -22,8 +22,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-#ifndef IPLOCK_H
-#define IPLOCK_H
+#pragma once
 
 /** \file
  * \brief Various definition of the iplock tool.
@@ -36,6 +35,11 @@
  */
 
 #include <advgetopt/advgetopt.h>
+
+
+
+namespace tool
+{
 
 
 
@@ -183,5 +187,5 @@ private:
 
 
 
-#endif
+} // namespace tool
 // vim: ts=4 sw=4 et

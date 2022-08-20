@@ -26,7 +26,8 @@ that are read using advgetopt and generates a script supported by iptables.
 
 The configuration files are saved under `/etc/iplock/firewall`. These are
 used to setup the base firewall which the `iplock` can later use to
-dynamically add and remove rules of what looks like hacking attempts.
+dynamically add and remove rules and IP addresses of what looks like
+hacking attempts.
 
 ## Configuration Files organization
 
@@ -44,34 +45,38 @@ files to open or block the ports they manage.
 
 ## Configuration Format
 
-The following show the list of supported tags:
+The following shows the list of supported tags (see details below):
 
-    chain::<name>::policy = accept | drop
-    chain::<name>::type = return | drop
-    chain::<name>::log = <message>
+    [chain::<name>]
+    policy = accept | drop
+    type = return | drop
+    log = <message>
 
-    rule::<name>::condition = <condition>
-    rule::<name>::chains = <name>[, <name>]*
-    rule::<name>::interfaces = <interface>[, <interface>]*
-    rule::<name>::destination_interfaces = <interface>[, <interface>]*
-    rule::<name>::sources = <source>[, <source>]*
-    rule::<name>::except_sources = <source>[, <source>]*
-    rule::<name>::destinations = <destination>[, <destination>]*
-    rule::<name>::except_destinations = <destination>[, <destination>]*
-    rule::<name>::protocols = tcp, udp, icmp, etc.
-    rule::<name>::state = [!]new, [!]established, [!]related
-    rule::<name>::limit = <number>[, <number>]
-    rule::<name>::action = <action>
-    rule::<name>::log = <message>
+    [rule::<name>]
+    condition = <condition>
+    chains = <name>[, <name>]*
+    interfaces = <interface>[, <interface>]*
+    destination_interfaces = <interface>[, <interface>]*
+    sources = <source>[, <source>]*
+    except_sources = <source>[, <source>]*
+    destinations = <destination>[, <destination>]*
+    except_destinations = <destination>[, <destination>]*
+    protocols = tcp, udp, icmp, etc.
+    state = [!]new, [!]established, [!]related
+    limit = <number>[, <number>]
+    action = <action>
+    log = <message>
 
-    variable::<name> = <value>
+    [variables]
+    <name> = <value>
+    ...
 
 Some entries accept lists, which in most cases means that multiple iptable
 rules are created to handle one entry.
 
 The `log` variable means that we add a `-j LOG` rule before the other
 rule(s). In iptables parlance, this is an action. We simplify for you
-having a single rule implement both features at once.
+having a single rule implementing both features at once.
 
 ### `chain::<name>::policy`
 
@@ -83,7 +88,7 @@ a rule within that chain will be dropped.
 
 Only built-in chains can be assigned a policy.
 
-Default: policy is set to `DROP` by default since it is more constrained.
+**Default:** policy is set to `DROP` by default since it is more constrained.
 
 ### `chain::<name>::type`
 
@@ -97,13 +102,14 @@ by a rule within that chain. If the type is set to `RETURN`, then if none
 of the rules within that chain was set to `DROP`, then the filtering
 continues.
 
-Default: `DROP` since this is a stronger constraint.
+**Default:** `DROP` since this is a stronger constraint.
 
 ### `chain::<name>::log`
 
-This parameter defines a log message.
+This parameter defines a log message. This message is printed only if
+the `RETURN` or `DROP` rule found at the end is encountered.
 
-Default: no message.
+**Default:** no message.
 
 ### `rule::<name>::chains`
 
@@ -114,38 +120,38 @@ chains. User defined chains do not need to be pre-defined. The tool will
 automatically create them as required and apply defaults as defined in
 each `chain::...` variable.
 
-Default: none, this is a required parameter, you need to have at least one
-chain to which the rule applies.
+**Default:** none, this is a required parameter, you need to have at least one
+chain to which the `<name>` rule applies.
 
 ### `rule::<name>::interfaces`
 
 This parameter defines the list of interfaces that the rule applies to.
 
-Default: none, which means the rule applies to all interfaces.
+**Default:** none, which means the rule applies to all interfaces.
 
 ### `rule::<name>::sources`
 
 This parameter defines a list of IP addresses or domain names to use to
 filter the incoming network traffic.
 
-Default: no source is checked and the rule is accepted whatever
+**Default:** no source is checked and the rule is accepted whatever
 the source is.
 
 ### `rule::<name>::except_sources`
 
 This parameter defines a list of IP addresses or domain names to not
 match when this rule is checked. If the source matches, then that rule
-will be skipped. This is particularly useful in the FORWARD chain to
+will be skipped. This is particularly useful in the `FORWARD` chain to
 avoid having your own traffic forwarded.
 
-Default: none.
+**Default:** none.
 
 ### `rule::<name>::destinations`
 
 This parameter defines a list of IP addresses or domain names to use to
 filter the outgoing network traffic.
 
-Default: no destination is checked and the rule is accepted whatever
+**Default:** no destination is checked and the rule is accepted whatever
 the destination is.
 
 ### `rule::<name>::except_destinations`
@@ -154,13 +160,13 @@ This parameter defines a list of IP addresses or domain names to not
 match when this rule is checked. If the destination matches, then that
 rule will be skipped.
 
-Default: none.
+**Default:** none.
 
 ### `rule::<name>::protocol`
 
 This parameter defines which protocol is necessary to match this rule.
 
-Default: no protocol is matched meaning that all packets get checked.
+**Default:** no protocol is matched meaning that all packets get checked.
 
 ### `rule::<name>::limit`
 
@@ -169,9 +175,9 @@ by this rule. The parameter accepts one or two numbers. The first number
 represents the maximum number of connections from the sources and the
 second represents the maximum number of connections from the destinations.
 
-Note that each limit requires an iptable rule for each limit.
+Note that a separate iptable rule is necessary for each limit.
 
-Default: no limit enforced.
+**Default:** no limit enforced.
 
 ### `rule::<name>::action`
 
@@ -215,9 +221,9 @@ We support the following actions:
    This action is used to call a user defined chain. This is particularly
    useful when you want to check a set of rules from multiple places.
    For example, we have a set of _bad TCP packets_ which we like to
-   check on INPUT and OUTPUT.
+   check on `INPUT` and `OUTPUT`.
 
-### Variables (`variable::<name>`)
+### Variables (`[variable]` + `<name> = <value>`)
 
 The configuration can reference variables. These are lists of IP addresses,
 domain names, port numbers, etc.
