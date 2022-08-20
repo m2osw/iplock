@@ -31,13 +31,19 @@ hacking attempts.
 
 ## Configuration Files organization
 
-The iplock project makes use of the advgetopt which loads files from
-a .d folder and order them using the first two digits of the filenames.
-This allows us to define the order in which the configuration files
-should be added to the firewall which, obviously, is very important.
+The iplock project makes use of the advgetopt to load configuration files
+from the `/usr/share/iplock/rules` folder. The rules are order using the
+`before`, `after`, and `section` names defined within the rules.
+This allows us to define the order in which the rules have to be loaded
+in the firewall which, obviously, is very important.
 
-By default the firewall marks all the chains with "DROP". This means
-we have to have an "ACCEPT" for anything that we want to accept. This
+The `before`/`after` parameters work within a `section`. It is otherwise
+ignored. The `section` allows us to have groups of rules such as
+`"localhost"`, `"tools"`, and `"footer"`. The sections are sorted using
+their own `before` and `after` parameters.
+
+By default the ipload tool marks all the chains with "DROP". This means
+we have to have an "ACCEPT" rule for anything that we want to accept. This
 works by adding intermediate files in the .d folder.
 
 This technique allows other projects to add their own configuration
@@ -47,14 +53,23 @@ files to open or block the ports they manage.
 
 The following shows the list of supported tags (see details below):
 
-    [chain::<name>]
+    [chain::<chain-name>]
     policy = accept | drop
     type = return | drop
     log = <message>
 
-    [rule::<name>]
+    [section]
+    name = <section-name>
+    before = <section-name>[, <section-name>]*
+    after = <section-name>[, <section-name>]*
+    default = true | false
+
+    [rule::<rule-name>]
+    chains = <chain-name>[, <chain-name>]*
+    section = <section-name>
+    before = <rule-name>[, <rule-name>]*
+    after = <rule-name>[, <rule-name>]*
     condition = <condition>
-    chains = <name>[, <name>]*
     interfaces = <interface>[, <interface>]*
     destination_interfaces = <interface>[, <interface>]*
     sources = <source>[, <source>]*
@@ -68,7 +83,7 @@ The following shows the list of supported tags (see details below):
     log = <message>
 
     [variables]
-    <name> = <value>
+    <variable-name> = <value>
     ...
 
 Some entries accept lists, which in most cases means that multiple iptable
@@ -78,7 +93,7 @@ The `log` variable means that we add a `-j LOG` rule before the other
 rule(s). In iptables parlance, this is an action. We simplify for you
 having a single rule implementing both features at once.
 
-### `chain::<name>::policy`
+### `chain::<chain-name>::policy`
 
 This parameter defines the default policy of a system chain.
 
@@ -111,6 +126,48 @@ the `RETURN` or `DROP` rule found at the end is encountered.
 
 **Default:** no message.
 
+### `section::name`
+
+Sections define groups of rules so we can more easily sort rules in the
+correct order for the final list of rules to upload to the iptables.
+
+The sections support a name. By placing a rule in a section, it is simply
+added at the end. You can also force your rule(s) to appear before or after
+another rule if necessary.
+
+Note that sections are not specific to a chain. Rules appearing in different
+chains can be placed in the same section.
+
+### `section::before`
+
+Define the name of a section that we want to appear before. In the final
+list of rules, all the rules in this section will appear before the
+rules found in the section named in this parameter.
+
+Multiple names can be included. Separate each name with a comma. Spaces
+are ignored.
+
+### `section::after`
+
+Define the name of a section that we want to appear after. In the final
+list of rules, all the rules in this section will appear after the
+rules found in the section named in this parameter.
+
+Multiple names can be included. Separate each name with a comma. Spaces
+are ignored.
+
+### `section::default`
+
+Mark this section as the default one. You are expected to set this parameter
+to true.
+
+Once all the rules for a given chain are defined, the process makes sure that
+at most one default section is defined in the final list. That default is used
+to add all the rules that were not assigned a section name.
+
+If none of the sections were marked as the default section and some rules do
+not specifically name a section, then an error is generated.
+
 ### `rule::<name>::chains`
 
 This parameter defines the list of chains that are to receive this rule.
@@ -122,6 +179,31 @@ each `chain::...` variable.
 
 **Default:** none, this is a required parameter, you need to have at least one
 chain to which the `<name>` rule applies.
+
+### `rule::<name>::section`
+
+The name of the section in which to add this rule.
+
+A single name is allowed.
+
+The named section must exist.
+
+If no section name is defined, the rule is added in the default section of
+the corresponding chain.
+
+### `rule::<name>::before`
+
+The name of one or more rules that must be added after this one.
+
+If the named rules are not defined, then that name is ignored.
+
+### `rule::<name>::after`
+
+The name of one or more rules that must be added before this one.
+
+This parameter allows you to sort your rules as expected in the final output.
+
+If the named rules are not defined, then that name is ignored.
 
 ### `rule::<name>::interfaces`
 
