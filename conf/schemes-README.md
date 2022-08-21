@@ -26,6 +26,15 @@ with lower numbers (i.e. `20-<name>.conf`) and number 80 is considered
 special and used as the _global settings_. It gets copied to all your
 machines using `snaprfs` and it overwrites your user settings.
 
+For example, if you make use of a service that attempts penetration tests
+on your system and you want to whitelist those attempts, you can add a
+file named `/etc/iplock/schemes/schemes.d/50-http.conf` with:
+
+    # Prevent system from blocking penetration tests
+    whitelist=192.168.45.0/24
+
+This comes particularly handy when you have PCI DSS tests running against
+your machines. Just enter their IP addresses in the whitelist.
 
 
 Parameters in a Scheme File
