@@ -50,7 +50,7 @@ public:
                         command(
                               iplock * parent
                             , char const * command_name
-                            , advgetopt::getopt::pointer_t opt);
+                            , advgetopt::getopt::pointer_t opts);
                         command(command const & rhs) = delete;
     virtual             ~command();
 
@@ -58,16 +58,19 @@ public:
 
     virtual void        run() = 0;
 
+    int                 exit_code() const;
+
 protected:
     void                verify_ip(std::string const & ip);
 
     iplock *                        f_iplock = nullptr; // just in case, unused at this time...
-    advgetopt::getopt::pointer_t    f_opt = advgetopt::getopt::pointer_t();
-    advgetopt::getopt::pointer_t    f_iplock_opt = advgetopt::getopt::pointer_t();
+    advgetopt::getopt::pointer_t    f_opts = advgetopt::getopt::pointer_t();
+    advgetopt::getopt::pointer_t    f_iplock_opts = advgetopt::getopt::pointer_t();
     std::string                     f_chain = std::string("unwanted");
     std::string                     f_interface = std::string("eth0");
     bool const                      f_quiet;  // since it is const, you must specify it in the constructor
     bool const                      f_verbose;  // since it is const, you must specify it in the constructor
+    int                             f_exit_code = 0;
 };
 
 

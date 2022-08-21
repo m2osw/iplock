@@ -44,12 +44,10 @@ class unblock
 public:
                         unblock(
                               iplock * parent
-                            , advgetopt::getopt::pointer_t opt);
+                            , advgetopt::getopt::pointer_t opts);
     virtual             ~unblock() override;
 
     virtual void        run() override;
-
-private:
 };
 
 

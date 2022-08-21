@@ -1,0 +1,24 @@
+#!/bin/sh -e
+
+# Source debconf library.
+. /usr/share/debconf/confmodule
+
+PACKAGENAME=ipwall
+
+if [ "$1" = "purge" ]
+then
+    # delete the logs
+    #
+    rm -f /var/log/iplock/${PACKAGENAME}.log*
+    rm -rf /var/log/iptables
+
+    # delete the user configuration file
+    #
+    rm -f /etc/iplock/iplock.d/??-${PACKAGENAME}.conf
+
+    # TBD: reset the firewall to empty? It does not seem wise to me.
+fi
+
+#DEBHELPER#
+
+# vim: ts=4 sw=4 et nocindent

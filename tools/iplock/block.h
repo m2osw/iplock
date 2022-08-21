@@ -18,7 +18,7 @@
 #pragma once
 
 /** \file
- * \brief Various definition of the iplock tool.
+ * \brief Various definitions of the iplock tool.
  *
  * The iplock is an object used to execute the command line instructions
  * as passed by the administrator.
@@ -42,12 +42,10 @@ class block
     : public block_or_unblock
 {
 public:
-                        block(iplock * parent, advgetopt::getopt::pointer_t opt);
+                        block(iplock * parent, advgetopt::getopt::pointer_t opts);
     virtual             ~block() override;
 
     virtual void        run() override;
-
-private:
 };
 
 

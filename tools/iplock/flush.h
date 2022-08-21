@@ -44,13 +44,11 @@ class flush
 public:
                         flush(
                               iplock * parent
-                            , advgetopt::getopt::pointer_t opt
+                            , advgetopt::getopt::pointer_t opts
                             , char const * command_name = "iplock --flush");
     virtual             ~flush() override;
 
     virtual void        run() override;
-
-private:
 };
 
 

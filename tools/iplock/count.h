@@ -44,14 +44,14 @@ class count
 public:
                                     count(
                                           iplock * parent
-                                        , advgetopt::getopt::pointer_t opt);
+                                        , advgetopt::getopt::pointer_t opts);
     virtual                         ~count() override;
 
     virtual void                    run() override;
 
 private:
     bool const                      f_reset;  // since it is const, you must specify it in the constructor
-    advgetopt::getopt::pointer_t    f_count_opt = advgetopt::getopt::pointer_t();
+    advgetopt::getopt::pointer_t    f_count_opts = advgetopt::getopt::pointer_t();
     std::vector<std::string>        f_targets = std::vector<std::string>();
 };
 

@@ -45,7 +45,7 @@ public:
                         block_or_unblock(
                               iplock * parent
                             , char const * command_name
-                            , advgetopt::getopt::pointer_t opt);
+                            , advgetopt::getopt::pointer_t opts);
     virtual             ~block_or_unblock() override;
 
     void                handle_ips(std::string const & name, int run_on_result);

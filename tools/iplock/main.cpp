@@ -55,6 +55,11 @@
 #include    <libexcept/file_inheritance.h>
 
 
+// snapdev
+//
+#include    <snapdev/not_reached.h>
+
+
 // C++
 //
 #include    <iostream>
@@ -76,20 +81,19 @@ int main(int argc, char * argv[])
     {
         tool::iplock l(argc, argv);
 
-        l.run_command();
-
-        exit(0);
+        return l.run_command();
     }
     catch(advgetopt::getopt_exit const & e)
     {
         exit(e.code());
+        snapdev::NOT_REACHED();
     }
     catch(std::exception const & e)
     {
         std::cerr << "error:iplock: an exception occurred: " << e.what() << std::endl;
     }
 
-    exit(1);
+    return 1;
 }
 
 

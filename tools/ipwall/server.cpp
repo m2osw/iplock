@@ -35,14 +35,7 @@
 
 // snapdev lib
 //
-//#include <snapdev/not_used.h>
 #include <snapdev/gethostname.h>
-
-
-//// libaddr lib
-////
-//#include <libaddr/addr_exception.h>
-//#include <libaddr/addr_parser.h>
 
 
 // advgetopt lib
@@ -53,17 +46,6 @@
 // boost
 //
 #include    <boost/preprocessor/stringize.hpp>
-
-
-//// C++ lib
-////
-//#include <fstream>
-//#include <sstream>
-//
-//
-//// C lib
-////
-//#include <sys/stat.h>
 
 
 // last include

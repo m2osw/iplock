@@ -1,9 +1,20 @@
+#!/usr/bin/dh-exec
+
+# Executables
+#
 usr/sbin/iplock
+usr/sbin/ipload
+
+# Configuration Files
+#
 conf/iplock.conf                                   etc/iplock
 conf/count.conf                                    etc/iplock/
 conf/all.conf                                      etc/iplock/schemes/
 conf/http.conf                                     etc/iplock/schemes/
 conf/smtp.conf                                     etc/iplock/schemes/
 conf/README.md                                     etc/iplock/iplock.d/
-conf/schemes-README.md                             etc/iplock/schemes/schemes.d/
-conf/iplock-action.conf                            etc/fail2ban/action.d/
+conf/ipload                                        etc/iplock/
+
+# Here I do a rename so it's just "README.md" in the package
+#
+conf/schemes-README.md                          => etc/iplock/schemes/schemes.d/README.md

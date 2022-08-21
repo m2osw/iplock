@@ -23,12 +23,32 @@
 
 project(iplock_configuration)
 
+# Logger files
 install(
     FILES
-        iplock.conf
+        logger/ipwall.conf
 
     DESTINATION
-        share/iplock/conf
+        ${SNAPLOGGER_SHARE_CONF_DIR}
 )
+
+# ipwall definitions for fluid-settings
+install(
+    FILES
+        ipwall.ini
+
+    DESTINATION
+        ${FLUIDSETTINGS_DEFINITIONS_INSTALL_DIR}
+)
+
+# Define ipwall as a Communicator Service
+install(
+    FILES
+        ipwall.service
+
+    DESTINATION
+        ${COMMUNICATORD_SERVICES_INSTALL_DIR}
+)
+
 
 # vim: ts=4 sw=4 et

@@ -6,6 +6,7 @@ Build-Depends: cmake,
     communicatord-dev (>= 2.0.0.0~bionic),
     cppprocess-dev (>= 1.1.52.0~bionic),
     debhelper,
+    dh-sysuser,
     doxygen,
     eventdispatcher-dev (>= 1.1.51.0~bionic),
     fluid-settings-dev (>= 1.0.0.0~bionic),
@@ -26,6 +27,7 @@ Vcs-Git: https://github.com/m2osw/snapcpp.git
 Vcs-Browser: https://github.com/m2osw/iplock
 
 Package: iplock
+Section: utils
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Suggests: iplock-doc
@@ -46,7 +48,7 @@ Description: Advanced management of your iptables firewall.
  The ipwall is a service which automatically starts and allows communication
  between all your computers so the block of an IP address is instantly
  replicated on all your systems. This is extremely effective to avoid cluster
- attacks.
+ attacks. (you must install the ipwall package for this functionality.)
  .
  The tools read configuration files under /etc/iplock/... where iptables
  commands and ports are defined. It is used by the tools to generate
@@ -59,3 +61,25 @@ Depends: ${misc:Depends}
 Recommends: iplock (= ${binary:Version})
 Description: Add or remove IP addresses from your iptables firewall.
  The documentation of the iplock environment.
+
+Package: iplock-dev
+Section: libdevel
+Architecture: all
+Depends: iplock (= ${binary:Version}), ${misc:Depends}
+Suggests: iplock-doc
+Description: Add or remove IP addresses from your iptables firewall.
+ The library used to send BLOCK and UNBLOCK commands to the ipwall service.
+ The library also has a class one can use to know whether the firewall is
+ up and running, which is important if you open a public port private to
+ your systems (i.e. open a database access on 0.0.0.0:123).
+
+Package: ipwall
+Section: utils
+Architecture: any
+Depends: iplock, ${shlibs:Depends}, ${misc:Depends}
+Suggests: iplock-doc
+Description: Advanced management of your iptables firewall.
+ The service running ipwall to add IP addresses to your firewall in order to
+ block access from those IPs. The service makes use of the iplock command
+ line tool in order to add and remove IP addresses to the firewall.
+

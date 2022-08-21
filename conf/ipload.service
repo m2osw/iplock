@@ -1,0 +1,24 @@
+# Documentation available at:
+# https://www.freedesktop.org/software/systemd/man/systemd.service.html
+
+# Note: this file is placed under conf/... because it does not match the name
+#       of the package (which is iplock)
+
+[Unit]
+Description=IP Load -- load the firewall after boot
+Wants=network-pre.target systemd-modules-load.service local-fs.target
+Before=network-pre.target
+After=systemd-modules-load.service local-fs.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=~
+ProtectHome=true
+RemainAfterExit=yes
+ExecStart=/usr/sbin/ipload
+Restart=no
+
+[Install]
+WantedBy=multi-user.target
+
+# vim: syntax=dosini

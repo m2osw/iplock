@@ -46,13 +46,15 @@ class batch
     : public command
 {
 public:
-                        batch(iplock * parent, advgetopt::getopt::pointer_t opt);
-    virtual             ~batch() override;
+                                    batch(
+                                          iplock * parent
+                                        , advgetopt::getopt::pointer_t opts);
+    virtual                         ~batch() override;
 
-    virtual void        run() override;
+    virtual void                    run() override;
 
 private:
-    std::string         f_ip_addr_filename = std::string();
+    std::string                     f_ip_addr_filename = std::string();
 };
 
 

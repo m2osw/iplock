@@ -16,47 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-project(iplock-tool)
-
-add_executable(${PROJECT_NAME}
-    batch.cpp
-    block.cpp
-    block_or_unblock.cpp
-    command.cpp
-    count.cpp
-    flush.cpp
-    iplock.cpp
-    main.cpp
-    scheme.cpp
-    unblock.cpp
-)
-
-target_include_directories(${PROJECT_NAME}
-    PUBLIC
-        ${CMAKE_CURRENT_BINARY_DIR}
-        ${ADVGETOPT_INCLUDE_DIRS}
-        ${BOOST_INCLUDE_DIRS}
-        ${CPPPROCESS_INCLUDE_DIRS}
-        ${EVENTDISPATCHER_INCLUDE_DIRS}
-        ${LIBADDR_INCLUDE_DIRS}
-        ${LIBEXCEPT_INCLUDE_DIRS}
-)
-
-target_link_libraries(${PROJECT_NAME}
-    iplock
-)
-
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    OUTPUT_NAME iplock
-)
+project(iplock_cmake)
 
 install(
-    TARGETS
-        ${PROJECT_NAME}
+    FILES
+        IPLockConfig.cmake
 
-    RUNTIME DESTINATION
-        sbin
+    DESTINATION
+        share/cmake/IPLock
 )
 
-
-# vim: ts=4 sw=4 et
+# vim: ts=4 sw=4 et nocindent

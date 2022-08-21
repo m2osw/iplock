@@ -1,0 +1,28 @@
+usr/sbin/ipwall                                usr/sbin/
+
+usr/bin/unblock-all                            usr/bin/
+usr/bin/unblock-ip                             usr/bin/
+usr/bin/showfw                                 usr/bin/
+usr/bin/snapresetfail2ban                      usr/bin/
+usr/bin/count-unwanted                         usr/bin/
+
+usr/share/communicatord
+usr/share/fluid-settings
+usr/share/snaplogger
+
+conf/ipwall.conf                               etc/iplock/
+conf/logger/README.md                          etc/iplock/logger/iplock.d
+
+conf/iptables                                  etc/logrotate.d/
+conf/01-iptables.conf                          etc/rsyslog.d/
+
+# snapmanager files (TBD)
+#debian/tmp/usr/lib/snapwebsites/tables/snapfirewall-tables.xml                    usr/lib/snapwebsites/tables/
+#debian/tmp/usr/lib/snapwebsites/manager_plugins/libfirewall.so                    usr/lib/snapwebsites/manager_plugins/
+
+# The following is being replaced by ipload
+#snapfirewall/conf/snapinitfirewall.service                                        lib/systemd/system/
+#snapfirewall/conf/firewall                                                        etc/network/
+#snapfirewall/conf/firewall.conf                                                   etc/network/
+#snapfirewall/conf/ip4tables.rules                                                 etc/network/
+#snapfirewall/conf/ip6tables.rules                                                 etc/network/

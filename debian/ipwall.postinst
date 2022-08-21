@@ -1,0 +1,30 @@
+#!/bin/sh -e
+
+#DEBHELPER#
+
+# Source debconf library.
+. /usr/share/debconf/confmodule
+
+
+if [ "$1" = "configure" ]
+then
+    PACKAGENAME=ipwall
+    USERNAME=iplock
+    GROUPNAME=iplock
+
+    # Create the logfile because the iplock user may have
+    # difficulties with it otherwise during logrotate.
+    #
+    LOGDIR=/var/log/iplock
+    LOGFILE=${LOGDIR}/${PACKAGENAME}.log
+    touch ${LOGFILE}
+    chown ${USERNAME}:${GROUPNAME} ${LOGFILE}
+    chmod 640 ${LOGFILE}
+
+    # We added the 01-iptables.conf file, make sure it is taken in account
+    #
+    invoke-rc.d rsyslog restart
+fi
+
+
+# vim: ts=4 sw=4 et nocindent

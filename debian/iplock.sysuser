@@ -1,0 +1,7 @@
+# Create a user "<name>" and corresponding group "<name>"
+# and create a home directory (a.k.a. /var/lib/<name>)
+#
+# see: man dh_sysuser
+#
+# Name            Options
+iplock            home
