@@ -34,7 +34,9 @@
  * using the advgetopt library.
  */
 
-#include <advgetopt/advgetopt.h>
+// self
+//
+#include    "command.h"
 
 
 
@@ -46,134 +48,6 @@ namespace tool
 class iplock
 {
 public:
-    class command
-    {
-    public:
-        typedef std::shared_ptr<command> pointer_t;
-
-                            command(iplock * parent, char const * command_name, advgetopt::getopt::pointer_t opt);
-                            command(command const & rhs) = delete;
-        virtual             ~command();
-
-        command &           operator = (command const & rhs) = delete;
-
-        virtual void        run() = 0;
-
-    protected:
-        void                verify_ip(std::string const & ip);
-
-        iplock *                        f_iplock = nullptr; // just in case, unused at this time...
-        advgetopt::getopt::pointer_t    f_opt = advgetopt::getopt::pointer_t();
-        advgetopt::getopt::pointer_t    f_iplock_opt = advgetopt::getopt::pointer_t();
-        std::string                     f_chain = std::string("unwanted");
-        std::string                     f_interface = std::string("eth0");
-        bool const                      f_quiet;  // since it is const, you must specify it in the constructor
-        bool const                      f_verbose;  // since it is const, you must specify it in the constructor
-    };
-
-
-    class scheme
-        : public command
-    {
-    public:
-        typedef std::vector<uint16_t> port_list_t;
-
-        scheme( iplock * parent
-              , char const * command_name
-              , advgetopt::getopt::pointer_t opt
-              , char const * scheme_name = nullptr
-              );
-
-        std::string get_command      ( std::string const &name ) const;
-        std::string get_scheme_string( std::string const &name ) const;
-
-        port_list_t const &             get_ports()      const { return f_ports; }
-
-        virtual void run() override {}
-
-    protected:
-        std::string                     f_scheme = "http";
-        advgetopt::getopt::pointer_t    f_scheme_opt = advgetopt::getopt::pointer_t();
-        port_list_t                     f_ports = port_list_t();
-    };
-
-    class block_or_unblock
-        : public scheme
-    {
-    public:
-                            block_or_unblock(iplock * parent, char const * command_name, advgetopt::getopt::pointer_t opt);
-        virtual             ~block_or_unblock() override;
-
-        void                handle_ips(std::string const & name, int run_on_result);
-    };
-
-    class block
-        : public block_or_unblock
-    {
-    public:
-                            block(iplock * parent, advgetopt::getopt::pointer_t opt);
-        virtual             ~block() override;
-
-        virtual void        run() override;
-
-    private:
-    };
-
-    class unblock
-        : public block_or_unblock
-    {
-    public:
-                            unblock(iplock * parent, advgetopt::getopt::pointer_t opt);
-        virtual             ~unblock() override;
-
-        virtual void        run() override;
-
-    private:
-    };
-
-    class count
-        : public command
-    {
-    public:
-                            count(iplock * parent, advgetopt::getopt::pointer_t opt);
-        virtual             ~count() override;
-
-        virtual void        run() override;
-
-    private:
-        bool const                      f_reset;  // since it is const, you must specify it in the constructor
-        advgetopt::getopt::pointer_t    f_count_opt = advgetopt::getopt::pointer_t();
-        std::vector<std::string>        f_targets = std::vector<std::string>();
-    };
-
-    class flush
-        : public command
-    {
-    public:
-                            flush( iplock * parent
-                                 , advgetopt::getopt::pointer_t opt
-                                 , char const * command_name = "iplock --flush"
-                                 );
-        virtual             ~flush() override;
-
-        virtual void        run() override;
-
-    private:
-    };
-
-    class batch
-        : public command
-    {
-    public:
-                            batch(iplock * parent, advgetopt::getopt::pointer_t opt);
-        virtual             ~batch() override;
-
-        virtual void        run() override;
-
-    private:
-        std::string         f_ip_addr_filename = std::string();
-    };
-
                             iplock(int argc, char * argv[]);
 
     void                    run_command();
