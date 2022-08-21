@@ -18,7 +18,7 @@ Build-Depends: cmake,
     libexcept-dev (>= 1.0.2.250~xenial),
     snapcatch2 (>= 2.9.1.0~bionic),
     snapcmakemodules (>= 1.0.35.3~xenial),
-    snapdev (>= 1.0.0.0~xenial)
+    snapdev (>= 1.0.0.0~xenial),
     snaplogger-dev (>= 1.0.0.0~bionic)
 Standards-Version: 3.9.4
 Homepage: https://snapwebsites.org/
