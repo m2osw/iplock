@@ -47,18 +47,21 @@
 
 // snaplogger
 //
+#include    <snaplogger/message.h>
 #include    <snaplogger/options.h>
 
 
-// boost lib
+// snapdev
+//
+#include    <snapdev/glob_to_list.h>
+
+
+// boost
 //
 #include    <boost/preprocessor/stringize.hpp>
-//#include    <boost/algorithm/string/replace.hpp>
-//#include    <boost/filesystem.hpp>
-//#include    <boost/lexical_cast.hpp>
 
 
-// C++ lib
+// C++
 //
 //#include    <iostream>
 //#include    <fstream>
@@ -67,11 +70,10 @@
 
 // C
 //
-//#include    <net/if.h>
 #include    <unistd.h>
 
 
-// snapdev lib
+// last include
 //
 #include    <snapdev/poison.h>
 
@@ -90,45 +92,23 @@ advgetopt::option const g_options[] =
     // COMMANDS
     //
     advgetopt::define_option(
-          advgetopt::Name("batch")
-        , advgetopt::ShortName('a')
+          advgetopt::Name("load")
+        , advgetopt::ShortName('l')
         , advgetopt::Flags(advgetopt::command_flags<
-                      advgetopt::GETOPT_FLAG_GROUP_COMMANDS
-                    , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::Help("Text file containing rules to add to the firewall.")
+                      advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
+        , advgetopt::Help("Load or reload all the rules.")
     ),
     advgetopt::define_option(
-          advgetopt::Name("block")
-        , advgetopt::ShortName('b')
+          advgetopt::Name("show")
         , advgetopt::Flags(advgetopt::standalone_command_flags<
                       advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
-        , advgetopt::Help("Block the speficied IP address. If already blocked, do nothing.")
+        , advgetopt::Help("Show the rules. Like --load but instead of loading the rules to iptables, show them in your console.")
     ),
     advgetopt::define_option(
-          advgetopt::Name("count")
-        , advgetopt::ShortName('n')
+          advgetopt::Name("verify")
         , advgetopt::Flags(advgetopt::standalone_command_flags<
                       advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
-        , advgetopt::Help("Return the number of times each IP address was"
-                " blocked since the last counter reset. You may use the"
-                " --reset along this command to atomically reset the"
-                " counters as you retrieve them.")
-    ),
-    advgetopt::define_option(
-          advgetopt::Name("flush")
-        , advgetopt::ShortName('f')
-        , advgetopt::Flags(advgetopt::standalone_command_flags<
-                      advgetopt::GETOPT_FLAG_GROUP_COMMANDS
-                    , advgetopt::GETOPT_FLAG_SHOW_USAGE_ON_ERROR>())
-        , advgetopt::Help("Flush all rules specified in chain.")
-    ),
-    advgetopt::define_option(
-          advgetopt::Name("unblock")
-        , advgetopt::ShortName('u')
-        , advgetopt::Flags(advgetopt::option_flags<
-                      advgetopt::GETOPT_FLAG_GROUP_COMMANDS
-                    , advgetopt::GETOPT_FLAG_COMMAND_LINE>())
-        , advgetopt::Help("Unblock the specified IP address. If not already blocked, do nothing.")
+        , advgetopt::Help("Verify the rules. Like --load but without the final step of actually loading the rules in iptables.")
     ),
 
     // OPTIONS
@@ -143,32 +123,14 @@ advgetopt::option const g_options[] =
         , advgetopt::Help("Prevent iptables from printing messages in stdout or stderr.")
     ),
     advgetopt::define_option(
-          advgetopt::Name("reset")
+          advgetopt::Name("rules")
         , advgetopt::ShortName('r')
         , advgetopt::Flags(advgetopt::option_flags<
                       advgetopt::GETOPT_FLAG_GROUP_OPTIONS
                     , advgetopt::GETOPT_FLAG_COMMAND_LINE
                     , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE>())
-        , advgetopt::Help("Use with the --count command to retrieve the counters and reset them atomically.")
-    ),
-    advgetopt::define_option(
-          advgetopt::Name("scheme")
-        , advgetopt::ShortName('s')
-        , advgetopt::Flags(advgetopt::any_flags<
-                      advgetopt::GETOPT_FLAG_GROUP_OPTIONS
-                    , advgetopt::GETOPT_FLAG_COMMAND_LINE
-                    , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE
-                    , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::Help("Configuration file to define iptables commands. This is one name (no '/' or '.'). The default is \"http\".")
-    ),
-    advgetopt::define_option(
-          advgetopt::Name("total")
-        , advgetopt::ShortName('t')
-        , advgetopt::Flags(advgetopt::option_flags<
-                      advgetopt::GETOPT_FLAG_GROUP_OPTIONS
-                    , advgetopt::GETOPT_FLAG_COMMAND_LINE
-                    , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE>())
-        , advgetopt::Help("Write the grand total only when --count is specified.")
+        , advgetopt::DefaultValue("/etc/iplock/ipload")
+        , advgetopt::Help("Path to the rules to load in iptables.")
     ),
     advgetopt::define_option(
           advgetopt::Name("verbose")
@@ -178,13 +140,6 @@ advgetopt::option const g_options[] =
                     , advgetopt::GETOPT_FLAG_COMMAND_LINE
                     , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE>())
         , advgetopt::Help("Show comands being executed.")
-    ),
-    advgetopt::define_option(
-          advgetopt::Name("--")
-        , advgetopt::Flags(advgetopt::command_flags<
-                      advgetopt::GETOPT_FLAG_GROUP_OPTIONS
-                    , advgetopt::GETOPT_FLAG_DEFAULT_OPTION
-                    , advgetopt::GETOPT_FLAG_MULTIPLE>())
     ),
     advgetopt::end_options()
 };
@@ -230,7 +185,7 @@ advgetopt::options_environment const g_options_environment =
                      "where -<opt> is one or more of:",
     .f_help_footer = nullptr,
     .f_version = IPLOCK_VERSION_STRING,
-    .f_license = "This software is licenced under the MIT",
+    .f_license = "GNU GPL 3",
     .f_copyright = "Copyright (c) 2007-"
                     BOOST_PP_STRINGIZE(UTC_BUILD_YEAR)
                     " by Made to Order Software Corporation",
@@ -269,30 +224,46 @@ ipload::ipload(int argc, char * argv[])
     {
         // exit on any error
         //
-        throw advgetopt::getopt_exit("logger options generated an error.", 0);
+        throw advgetopt::getopt_exit("logger options generated an error.", 1);
+    }
+
+    f_verbose = f_opts.is_defined("verbose");
+    f_quiet = f_opts.is_defined("quiet");
+
+    if(f_opts.is_defined("load"))
+    {
+        f_command |= COMMAND_LOAD;
+    }
+    if(f_opts.is_defined("show"))
+    {
+        f_command |= COMMAND_SHOW;
+    }
+    if(f_opts.is_defined("verify"))
+    {
+        f_command |= COMMAND_VERIFY;
+    }
+
+    switch(f_command)
+    {
+    case COMMAND_LOAD:
+    case COMMAND_SHOW:
+    case COMMAND_VERIFY:
+        break;
+
+    case 0:
+        SNAP_LOG_ERROR
+            << "you need to enter one of the supported commands: --load, --show, or --verify."
+            << SNAP_LOG_SEND;
+        throw advgetopt::getopt_exit("command missing.", 1);
+
+    default:
+        SNAP_LOG_ERROR
+            << "you cannot use more than one command simultaneously (one of --load, --show, or --verify)."
+            << SNAP_LOG_SEND;
+        throw advgetopt::getopt_exit("multiple commands.", 1);
+
     }
 }
-
-
-///** \brief Save the command pointer in f_command.
-// *
-// * This function saves the specified \p c command pointer to the f_command
-// * parameter.
-// *
-// * It is done that way so we can very easily detect whether more than one
-// * command was specified on the command line.
-// *
-// * \param[in] c  The pointer to the command line to save in iplock.
-// */
-//void iplock::set_command(command::pointer_t c)
-//{
-//    if(f_command != nullptr)
-//    {
-//        std::cerr << "iplock:error: you can only specify one command at a time, one of: --block, --unblock, or --count." << std::endl;
-//        exit(1);
-//    }
-//    f_command = c;
-//}
 
 
 /** \brief Before running a command, make sure we are root.
@@ -328,16 +299,200 @@ void ipload::make_root()
  * This function first makes sure the user is running as root.
  * This may change in the future if some of the commands may
  * otherwise be run as a regular user.
+ *
+ * \return 1 if an error occurs, 0 otherwise.
  */
-void ipload::run()
+int ipload::run()
 {
     // all iptables commands require the user to be root.
     //
     make_root();
 
-    //f_command->run();
+    switch(f_command)
+    {
+    case COMMAND_LOAD:
+        if(!load_data())
+        {
+            return 1;
+        }
+        load_to_iptables();
+        break;
+
+    case COMMAND_SHOW:
+        if(!load_data())
+        {
+            return 1;
+        }
+        show();
+        break;
+
+    case COMMAND_VERIFY:
+        if(!load_data())
+        {
+            return 1;
+        }
+        break;
+
+    }
+
+    return 0;
 }
 
+
+bool ipload::load_data()
+{
+    std::string const path(f_opts.get_string("rules"));
+
+    snapdev::glob_to_list<std::list<std::string>> glob;
+    if(!glob.read_path<
+             snapdev::glob_to_list_flag_t::GLOB_FLAG_IGNORE_ERRORS,
+             snapdev::glob_to_list_flag_t::GLOB_FLAG_PERIOD>(path + "/..."))
+    {
+        SNAP_LOG_ERROR
+            << "failed reading rules directory: \""
+            << path
+            << "\"."
+            << SNAP_LOG_SEND;
+        return false;
+    }
+
+    if(glob.empty())
+    {
+        SNAP_LOG_ERROR
+            << "no rules found under \""
+            << path
+            << "\"."
+            << SNAP_LOG_SEND;
+        return false;
+    }
+
+    // convert all the files in sets of config parameter loaded by advgetopt
+    //
+    for(auto const & n : glob)
+    {
+        load_config(n);
+    }
+
+    return true;
+}
+
+
+void ipload::load_config(std::string const & filename)
+{
+    advgetopt::conf_file::parameters_t config_params;
+
+    load_conf_file(filename, config_params);
+
+    advgetopt::string_list_t extra_files(advgetopt::insert_group_name(filename, "ipload", "iplock"));
+    for(auto const & e : extra_files)
+    {
+        load_conf_file(e, config_params);
+    }
+
+    // now save all the parameters loaded from that one file and overrides
+    // into our main list of parameters; here overrides are not allowed
+    // except for the special case of "rules::<name>::enabled" for which
+    // the value "false" has higher priority
+    //
+    for(auto const & p : config_params)
+    {
+        auto it(f_parameters.find(p.first));
+        if(it == f_parameters.end())
+        {
+            // not yet defined, we can just copy the value
+            //
+            f_parameters[p.first] = p.second;
+            continue;
+        }
+
+        // it exists, we are allowed to diable an entry using the
+        // 'enabled = false' technique, otherwise, it is an error
+        //
+        // size == "rules::" + at least 1 char + "::enabled"
+        //
+        if(p.first.length() >= (7 + 1 + 9)
+        && strncmp(p.first.c_str(), "rules::", 7) == 0
+        && strncmp(p.first.c_str() + p.first.length() - 9, "::enabled", 9) == 0)
+        {
+            if(advgetopt::is_false(it->second))
+            {
+                // it's already false, nothing to change and acceptable
+                //
+                continue;
+            }
+
+            if(advgetopt::is_false(p.second))
+            {
+                // the new one is false, make sure the old one is too
+                //
+                f_parameters[p.first] = "0"; // "0" is shorter than "false"
+                continue;
+            }
+
+            SNAP_LOG_RECOVERABLE_ERROR
+                << "the \""
+                << p.first
+                << "\" parameter cannot be duplicated unless set to true once in the main definition and false everywhere else."
+                << SNAP_LOG_SEND;
+        }
+        else
+        {
+            SNAP_LOG_RECOVERABLE_ERROR
+                << "the \""
+                << p.first
+                << "\" parameter cannot be duplicated (\""
+                << p.second.get_value()
+                << "\" versus \""
+                << it->second.get_value()
+                << "\")."
+                << SNAP_LOG_SEND;
+        }
+    }
+}
+
+
+void ipload::load_conf_file(
+      std::string const & filename
+    , advgetopt::conf_file::parameters_t config_params)
+{
+    advgetopt::conf_file_setup conf_setup(filename);
+    if(!conf_setup.is_valid())
+    {
+        return;
+    }
+    advgetopt::conf_file::pointer_t conf(advgetopt::conf_file::get_conf_file(conf_setup));
+
+    // any file can include some variables
+    //
+    // TODO: look into not allowing overrides
+    //
+    snapdev::NOT_USED(conf->section_to_variables("variables", f_variables));
+
+    // keep a copy of the sections so we can easily find the
+    // user defined sections/chains/rules objects
+    //
+    advgetopt::conf_file::sections_t sections(conf->get_sections());
+    f_sections.insert(sections.begin(), sections.end());
+
+    // retrieve all the parameters in our own variable
+    // here parameters are expected to be overwritten between files
+    //
+    advgetopt::conf_file::parameters_t const params(conf->get_parameters());
+    for(auto const & p : params)
+    {
+        config_params[p.first] = p.second;
+    }
+}
+
+
+void ipload::load_to_iptables()
+{
+}
+
+
+void ipload::show()
+{
+}
 
 
 // vim: ts=4 sw=4 et

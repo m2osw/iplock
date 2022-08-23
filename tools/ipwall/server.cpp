@@ -33,12 +33,12 @@
 #include    <snaplogger/options.h>
 
 
-// snapdev lib
+// snapdev
 //
 #include <snapdev/gethostname.h>
 
 
-// advgetopt lib
+// advgetopt
 //
 #include <advgetopt/exception.h>
 
@@ -177,7 +177,7 @@ advgetopt::options_environment const g_options_environment =
                      "where -<opt> is one or more of:",
     .f_help_footer = "%c",
     .f_version = IPLOCK_VERSION_STRING,
-    .f_license = "GNU GPL v2",
+    .f_license = "GNU GPL 3",
     .f_copyright = "Copyright (c) 2014-"
                    BOOST_PP_STRINGIZE(UTC_BUILD_YEAR)
                    " by Made to Order Software Corporation -- All Rights Reserved",

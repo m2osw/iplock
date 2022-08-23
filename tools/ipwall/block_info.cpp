@@ -22,14 +22,6 @@
 #include    "block_info.h"
 
 
-//// snapwebsites lib
-////
-//#include <snapwebsites/log.h>
-//#include <snapwebsites/process.h>
-//#include <snapwebsites/snap_cassandra.h>
-//#include <snapwebsites/snapwebsites.h>
-
-
 // cppprocess
 //
 #include <cppprocess/io_capture_pipe.h>
@@ -44,27 +36,6 @@
 //
 #include    <libaddr/addr_parser.h>
 #include    <libaddr/exception.h>
-
-
-//// advgetopt lib
-////
-//#include <advgetopt/exception.h>
-//
-//
-//// Qt lib
-////
-//#include <QDir>
-//
-//
-//// C++ lib
-////
-//#include <fstream>
-//#include <sstream>
-//
-//
-//// C lib
-////
-//#include <sys/stat.h>
 
 
 // last include

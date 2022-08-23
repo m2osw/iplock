@@ -32,21 +32,6 @@
 #include    <snapdev/not_used.h>
 
 
-// C++
-//
-//#include    <memory>
-
-
-// C lib
-//
-//#include <errno.h>
-//#include <signal.h>
-//#include <syslog.h>
-//#include <sys/resource.h>
-//#include <sys/stat.h>
-//#include <sys/types.h>
-
-
 // last include
 //
 #include    <snapdev/poison.h>

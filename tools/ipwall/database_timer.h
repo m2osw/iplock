@@ -18,41 +18,9 @@
 #pragma once
 
 
-//// self
-////
-//#include    ".h"
-
-
 // eventdispatcher
 //
 #include <eventdispatcher/timer.h>
-
-
-//// snapdev lib
-////
-//#include <snapdev/not_used.h>
-//
-//
-//// libaddr lib
-////
-//#include <libaddr/addr_exception.h>
-//#include <libaddr/addr_parser.h>
-//
-//
-//// advgetopt lib
-////
-//#include <advgetopt/exception.h>
-//
-//
-//// C++ lib
-////
-//#include <fstream>
-//#include <sstream>
-//
-//
-//// C lib
-////
-//#include <sys/stat.h>
 
 
 

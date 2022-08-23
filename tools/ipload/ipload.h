@@ -30,21 +30,42 @@
 
 // advgetopt
 //
-#include <advgetopt/advgetopt.h>
+#include    <advgetopt/advgetopt.h>
+#include    <advgetopt/conf_file.h>
 
 
 
 class ipload
 {
 public:
+    static constexpr int    COMMAND_LOAD   = 0x0001;
+    static constexpr int    COMMAND_SHOW   = 0x0002;
+    static constexpr int    COMMAND_VERIFY = 0x0004;
+
                             ipload(int argc, char * argv[]);
 
-    void                    run();
+    int                     run();
 
 private:
     void                    make_root();
+    bool                    load_data();
+    void                    load_to_iptables();
+    void                    show();
+    void                    load_config(std::string const & filename);
+    void                    load_conf_file(
+                                  std::string const & filename
+                                , advgetopt::conf_file::parameters_t config_params);
 
     advgetopt::getopt       f_opts;
+    bool                    f_verbose = false;
+    bool                    f_quiet = false;
+    int                     f_command = 0;
+    advgetopt::variables::pointer_t
+                            f_variables = advgetopt::variables::pointer_t();
+    advgetopt::conf_file::sections_t
+                            f_sections = advgetopt::conf_file::sections_t();
+    advgetopt::conf_file::parameters_t
+                            f_parameters = advgetopt::conf_file::parameters_t();
 };
 
 

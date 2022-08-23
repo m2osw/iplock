@@ -17,46 +17,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #pragma once
 
-//// self
-////
-//#include    "version.h"
-
-
 // eventdispatcher
 //
 #include <eventdispatcher/timer.h>
-
-
-//#include <snapwebsites/process.h>
-//#include <snapwebsites/snap_cassandra.h>
-//#include <snapwebsites/snapwebsites.h>
-//
-//
-//// snapdev lib
-////
-//#include <snapdev/not_used.h>
-//
-//
-//// libaddr lib
-////
-//#include <libaddr/addr_exception.h>
-//#include <libaddr/addr_parser.h>
-//
-//
-//// advgetopt lib
-////
-//#include <advgetopt/exception.h>
-//
-//
-//// C++ lib
-////
-//#include <fstream>
-//#include <sstream>
-//
-//
-//// C lib
-////
-//#include <sys/stat.h>
 
 
 

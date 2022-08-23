@@ -18,22 +18,9 @@
 #pragma once
 
 
-//// self
-////
-//#include "version.h"
-
-
 // cppprocess
 //
 #include    <cppprocess/process.h>
-
-
-//// snapwebsites lib
-////
-//#include <snapwebsites/log.h>
-//#include <snapwebsites/process.h>
-//#include <snapwebsites/snap_cassandra.h>
-//#include <snapwebsites/snapwebsites.h>
 
 
 // eventdispatcher
@@ -47,26 +34,9 @@
 #include    <snapdev/timespec_ex.h>
 
 
-//// libaddr lib
-////
-//#include <libaddr/addr_exception.h>
-//#include <libaddr/addr_parser.h>
-//
-//
-//// advgetopt lib
-////
-//#include <advgetopt/exception.h>
-
-
 // C++
 //
 #include <vector>
-//#include <sstream>
-
-
-//// C lib
-////
-//#include <sys/stat.h>
 
 
 

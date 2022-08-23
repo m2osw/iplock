@@ -40,17 +40,32 @@
 #include    "ipload.h"
 
 
+// snaplogger
+//
+#include    <snaplogger/message.h>
+
+
+// eventdispatcher
+//
+#include    <eventdispatcher/signal_handler.h>
+
+
+// libexcept
+//
+#include    <libexcept/file_inheritance.h>
+
+
 // advgetopt
 //
 #include    <advgetopt/exception.h>
 
 
-// C++ lib
+// C++
 //
 #include    <iostream>
 
 
-// snapdev lib
+// last include
 //
 #include    <snapdev/poison.h>
 
@@ -58,24 +73,29 @@
 
 int main(int argc, char * argv[])
 {
+    ed::signal_handler::create_instance();
+    libexcept::verify_inherited_files();
+    libexcept::collect_stack_trace();
+
     try
     {
         ipload l(argc, argv);
-
-        l.run();
-
-        exit(0);
+        return l.run();
     }
     catch(advgetopt::getopt_exit const & e)
     {
-        exit(e.code());
+        return e.code();
     }
     catch(std::exception const & e)
     {
-        std::cerr << "error:ipload: an exception occurred: " << e.what() << std::endl;
+        std::cerr << "error:ipload: an exception occurred: " << e.what() << '\n';
+    }
+    catch(...)
+    {
+        std::cerr << "error:ipload: received an unknown exception.\n";
     }
 
-    exit(1);
+    return 1;
 }
 
 

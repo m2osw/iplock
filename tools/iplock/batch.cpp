@@ -224,6 +224,14 @@ void batch::run()
     //
     rules << f_iplock_opts->get_string("batch_footer") << '\n';
     rules.flush();
+    if(!rules)
+    {
+        std::cerr
+            << "error:iplock: error(s) happened while generating rules file \""
+            << outfile
+            << "\". Please verify that iplock has enough permissions to create the file and that the destination folder exists.\n";
+        exit(1);
+    }
     rules.close();
 
     // Get batch command and call it with our new file as argument.

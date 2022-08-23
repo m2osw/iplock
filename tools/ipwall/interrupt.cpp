@@ -27,39 +27,9 @@
 // snaplogger
 //
 #include <snaplogger/message.h>
-//#include <snapwebsites/process.h>
-//#include <snapwebsites/snap_cassandra.h>
-//#include <snapwebsites/snapwebsites.h>
 
 
-//// snapdev
-////
-//#include <snapdev/not_used.h>
-//
-//
-//// libaddr lib
-////
-//#include <libaddr/addr_exception.h>
-//#include <libaddr/addr_parser.h>
-//
-//
-//// advgetopt lib
-////
-//#include <advgetopt/exception.h>
-//
-//
-//// Qt lib
-////
-//#include <QDir>
-//
-//
-//// C++ lib
-////
-//#include <fstream>
-//#include <sstream>
-
-
-// C lib
+// C
 //
 #include <signal.h>
 

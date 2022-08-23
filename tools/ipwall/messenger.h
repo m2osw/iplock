@@ -17,54 +17,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #pragma once
 
-//// self
-////
-//#include    "version.h"
-//
-//
-//// snapwebsites lib
-////
-//#include <snapwebsites/log.h>
-//#include <snapwebsites/process.h>
-//#include <snapwebsites/snap_cassandra.h>
-//#include <snapwebsites/snapwebsites.h>
-//
-//
-//// snapdev lib
-////
-//#include <snapdev/not_used.h>
-
-
 // fluid-settings
 //
 #include    <fluid-settings/fluid_settings_connection.h>
-
-
-// libaddr
-//
-//#include    <libaddr/addr.h>
-//#include    <libaddr/addr_parser.h>
-
-
-//// advgetopt lib
-////
-//#include <advgetopt/exception.h>
-//
-//
-//// Qt lib
-////
-//#include <QDir>
-//
-//
-//// C++ lib
-////
-//#include <fstream>
-//#include <sstream>
-//
-//
-//// C lib
-////
-//#include <sys/stat.h>
 
 
 

@@ -219,7 +219,7 @@ advgetopt::options_environment const g_iplock_options_environment =
                      "where -<opt> is one or more of:",
     .f_help_footer = nullptr,
     .f_version = IPLOCK_VERSION_STRING,
-    .f_license = "This software is licenced under the MIT",
+    .f_license = "GNU GPL 3",
     .f_copyright = "Copyright (c) 2007-" BOOST_PP_STRINGIZE(UTC_BUILD_YEAR) " by Made to Order Software Corporation",
     .f_build_date = UTC_BUILD_DATE,
     .f_build_time = UTC_BUILD_TIME,
