@@ -23,6 +23,7 @@ enable_language(CXX)
 project(iplock_project)
 
 find_package(AdvGetOpt        REQUIRED)
+find_package(AsRc             REQUIRED)
 find_package(Boost            REQUIRED COMPONENTS filesystem system)
 find_package(Communicatord    REQUIRED)
 find_package(CppProcess       REQUIRED)

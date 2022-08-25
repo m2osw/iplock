@@ -16,11 +16,57 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+AsRc(
+    OUTPUT
+        ${CMAKE_CURRENT_BINARY_DIR}/basic_ipv4.cpp
+
+    NAME
+        basic_ipv4
+
+    NAMESPACE
+        tools_ipload
+
+    INPUTS
+        basic_ipv4.rules
+)
+
+AsRc(
+    OUTPUT
+        ${CMAKE_CURRENT_BINARY_DIR}/basic_ipv6.cpp
+
+    NAME
+        basic_ipv6
+
+    NAMESPACE
+        tools_ipload
+
+    INPUTS
+        basic_ipv6.rules
+)
+
+AsRc(
+    OUTPUT
+        ${CMAKE_CURRENT_BINARY_DIR}/default_firewall.cpp
+
+    NAME
+        default_firewall
+
+    NAMESPACE
+        tools_ipload
+
+    INPUTS
+        default_firewall.conf
+)
+
 project(ipload)
 
 add_executable(${PROJECT_NAME}
     ipload.cpp
     main.cpp
+
+    ${CMAKE_CURRENT_BINARY_DIR}/basic_ipv4.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/basic_ipv6.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/default_firewall.cpp
 )
 
 target_include_directories(${PROJECT_NAME}

@@ -49,12 +49,15 @@ public:
 private:
     void                    make_root();
     bool                    load_data();
+    void                    load_basic();
     void                    load_to_iptables();
     void                    show();
     void                    load_config(std::string const & filename);
     void                    load_conf_file(
                                   std::string const & filename
                                 , advgetopt::conf_file::parameters_t config_params);
+    void                    add_params(advgetopt::conf_file::parameters_t config_params);
+    void                    create_defaults();
 
     advgetopt::getopt       f_opts;
     bool                    f_verbose = false;

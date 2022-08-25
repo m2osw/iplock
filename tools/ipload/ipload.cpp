@@ -29,6 +29,10 @@
 //
 #include    "ipload.h"
 
+#include    "default_firewall.h"
+#include    "basic_ipv4.h"
+#include    "basic_ipv6.h"
+
 
 // iplock
 //
@@ -53,6 +57,7 @@
 
 // snapdev
 //
+#include    <snapdev/file_contents.h>
 #include    <snapdev/glob_to_list.h>
 
 
@@ -113,6 +118,15 @@ advgetopt::option const g_options[] =
 
     // OPTIONS
     //
+    advgetopt::define_option(
+          advgetopt::Name("no-defaults")
+        , advgetopt::ShortName('N')
+        , advgetopt::Flags(advgetopt::option_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_OPTIONS
+                    , advgetopt::GETOPT_FLAG_COMMAND_LINE
+                    , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE>())
+        , advgetopt::Help("Prevent ipload from using defaults to setup the firewall.")
+    ),
     advgetopt::define_option(
           advgetopt::Name("quiet")
         , advgetopt::ShortName('q')
@@ -304,16 +318,24 @@ void ipload::make_root()
  */
 int ipload::run()
 {
-    // all iptables commands require the user to be root.
-    //
-    make_root();
-
     switch(f_command)
     {
     case COMMAND_LOAD:
+        // all iptables commands require the user to be root.
+        //
+        make_root();
+        load_basic();
         if(!load_data())
         {
-            return 1;
+            if(f_opts.is_defined("no-defaults"))
+            {
+                return 1;
+            }
+
+            // for our own protection we want a default firewall that blocks
+            // everything (including SSH...)
+            //
+            create_defaults();
         }
         load_to_iptables();
         break;
@@ -377,6 +399,32 @@ bool ipload::load_data()
 }
 
 
+void ipload::create_defaults()
+{
+    // the load_data() fails (no files, in most cases) then we want a
+    // fallback to block the firewall (because by default the Linux
+    // firewall is wide open)
+    //
+    snapdev::file_contents defaults("/tmp/default_firewall.conf", true);
+    defaults.contents(std::string(tools_ipload::default_firewall, tools_ipload::default_firewall_size));
+    if(!defaults.write_all())
+    {
+        SNAP_LOG_FATAL
+            << "could not create \""
+            << defaults.filename()
+            << "\" to install a default firewall."
+            << SNAP_LOG_SEND;
+        // TODO: we can still default back to a set of rules
+        //       we run manually...
+        return;
+    }
+
+    advgetopt::conf_file::parameters_t config_params;
+    load_conf_file(defaults.filename(), config_params);
+    add_params(config_params);
+}
+
+
 void ipload::load_config(std::string const & filename)
 {
     advgetopt::conf_file::parameters_t config_params;
@@ -389,6 +437,12 @@ void ipload::load_config(std::string const & filename)
         load_conf_file(e, config_params);
     }
 
+    add_params(config_params);
+}
+
+
+void ipload::add_params(advgetopt::conf_file::parameters_t config_params)
+{
     // now save all the parameters loaded from that one file and overrides
     // into our main list of parameters; here overrides are not allowed
     // except for the special case of "rules::<name>::enabled" for which
@@ -481,6 +535,63 @@ void ipload::load_conf_file(
     for(auto const & p : params)
     {
         config_params[p.first] = p.second;
+    }
+}
+
+
+void ipload::load_basic()
+{
+    // user doesn't want defaults?
+    //
+    if(f_opts.is_defined("no-defaults"))
+    {
+        return;
+    }
+
+    // avoid running this code more than once
+    //
+    std::string const flag("/run/iplock/basic.installed");
+    snapdev::file_contents installed(flag, true);
+    if(installed.exists())
+    {
+        return;
+    }
+    installed.contents("yes\n");
+    if(!installed.write_all())
+    {
+        SNAP_LOG_WARNING
+            << "could not create flag \""
+            << flag
+            << "\"."
+            << SNAP_LOG_SEND;
+    }
+
+    // install a default, very basic IPv4 firewall
+    //
+    {
+        FILE * p(popen("iptables-restore", "w"));
+        fwrite(tools_ipload::basic_ipv4, sizeof(char), tools_ipload::basic_ipv4_size, p);
+        int const r(pclose(p));
+        if(r != 0)
+        {
+            SNAP_LOG_RECOVERABLE_ERROR
+                << "the basic IPv4 firewall could not be loaded."
+                << SNAP_LOG_SEND;
+        }
+    }
+
+    // install a default, very basic IPv4 firewall
+    //
+    {
+        FILE * p(popen("ip6tables-restore", "w"));
+        fwrite(tools_ipload::basic_ipv6, sizeof(char), tools_ipload::basic_ipv6_size, p);
+        int const r(pclose(p));
+        if(r != 0)
+        {
+            SNAP_LOG_RECOVERABLE_ERROR
+                << "the basic IPv6 firewall could not be loaded."
+                << SNAP_LOG_SEND;
+        }
     }
 }
 
