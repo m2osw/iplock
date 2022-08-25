@@ -363,36 +363,42 @@ int ipload::run()
 
 bool ipload::load_data()
 {
-    std::string const path(f_opts.get_string("rules"));
+    std::string const paths(f_opts.get_string("rules"));
 
-    snapdev::glob_to_list<std::list<std::string>> glob;
-    if(!glob.read_path<
-             snapdev::glob_to_list_flag_t::GLOB_FLAG_IGNORE_ERRORS,
-             snapdev::glob_to_list_flag_t::GLOB_FLAG_PERIOD>(path + "/..."))
-    {
-        SNAP_LOG_ERROR
-            << "failed reading rules directory: \""
-            << path
-            << "\"."
-            << SNAP_LOG_SEND;
-        return false;
-    }
+    advgetopt::string_list_t path_list;
+    advgetopt::split_string(paths, path_list, {":"});
 
-    if(glob.empty())
+    for(auto const & path : path_list)
     {
-        SNAP_LOG_ERROR
-            << "no rules found under \""
-            << path
-            << "\"."
-            << SNAP_LOG_SEND;
-        return false;
-    }
+        snapdev::glob_to_list<std::list<std::string>> glob;
+        if(!glob.read_path<
+                 snapdev::glob_to_list_flag_t::GLOB_FLAG_IGNORE_ERRORS,
+                 snapdev::glob_to_list_flag_t::GLOB_FLAG_PERIOD>(path + "/..."))
+        {
+            SNAP_LOG_ERROR
+                << "failed reading rules directory: \""
+                << path
+                << "\"."
+                << SNAP_LOG_SEND;
+            return false;
+        }
 
-    // convert all the files in sets of config parameter loaded by advgetopt
-    //
-    for(auto const & n : glob)
-    {
-        load_config(n);
+        if(glob.empty())
+        {
+            SNAP_LOG_ERROR
+                << "no rules found under \""
+                << path
+                << "\"."
+                << SNAP_LOG_SEND;
+            return false;
+        }
+
+        // convert all the files in sets of config parameter loaded by advgetopt
+        //
+        for(auto const & n : glob)
+        {
+            load_config(n);
+        }
     }
 
     return true;
