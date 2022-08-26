@@ -55,7 +55,7 @@ private:
     void                    load_config(std::string const & filename);
     void                    load_conf_file(
                                   std::string const & filename
-                                , advgetopt::conf_file::parameters_t config_params);
+                                , advgetopt::conf_file::parameters_t & config_params);
     void                    add_params(advgetopt::conf_file::parameters_t config_params);
     void                    create_defaults();
 

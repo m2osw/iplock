@@ -143,7 +143,7 @@ advgetopt::option const g_options[] =
                       advgetopt::GETOPT_FLAG_GROUP_OPTIONS
                     , advgetopt::GETOPT_FLAG_COMMAND_LINE
                     , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE>())
-        , advgetopt::DefaultValue("/etc/iplock/ipload")
+        , advgetopt::DefaultValue("/usr/share/iplock/ipload:/etc/iplock/ipload")
         , advgetopt::Help("Path to the rules to load in iptables.")
     ),
     advgetopt::define_option(
@@ -363,6 +363,11 @@ int ipload::run()
 
 bool ipload::load_data()
 {
+    if(f_variables == nullptr)
+    {
+        f_variables = std::make_shared<advgetopt::variables>();
+    }
+
     std::string const paths(f_opts.get_string("rules"));
 
     advgetopt::string_list_t path_list;
@@ -373,32 +378,50 @@ bool ipload::load_data()
         snapdev::glob_to_list<std::list<std::string>> glob;
         if(!glob.read_path<
                  snapdev::glob_to_list_flag_t::GLOB_FLAG_IGNORE_ERRORS,
-                 snapdev::glob_to_list_flag_t::GLOB_FLAG_PERIOD>(path + "/..."))
+                 snapdev::glob_to_list_flag_t::GLOB_FLAG_RECURSIVE>(path + "/*.conf"))
         {
+            if(glob.get_last_error_errno() == ENOENT)
+            {
+                // the directory does not exist, just ignore that entry
+                //
+                continue;
+            }
             SNAP_LOG_ERROR
                 << "failed reading rules directory: \""
                 << path
-                << "\"."
+                << "/*.conf\"."
                 << SNAP_LOG_SEND;
             return false;
         }
 
         if(glob.empty())
         {
-            SNAP_LOG_ERROR
+            SNAP_LOG_VERBOSE
                 << "no rules found under \""
                 << path
                 << "\"."
                 << SNAP_LOG_SEND;
-            return false;
+            continue;
         }
 
         // convert all the files in sets of config parameter loaded by advgetopt
         //
         for(auto const & n : glob)
         {
+std::cerr << "<<<<<<<<<<<<<<<<<<<<< LOAD [" << n << "]\n";
             load_config(n);
         }
+    }
+
+std::cerr << "<<<<<<<<<<<<<<<<<<<<< FOUND [" << f_parameters.size() << "] PARAMS\n";
+    if(f_parameters.empty())
+    {
+        SNAP_LOG_FATAL
+            << "no chains/sections/rules found with path(s) \""
+            << paths
+            << "\"."
+            << SNAP_LOG_SEND;
+        return false;
     }
 
     return true;
@@ -449,6 +472,7 @@ void ipload::load_config(std::string const & filename)
 
 void ipload::add_params(advgetopt::conf_file::parameters_t config_params)
 {
+std::cerr << "+++++++++++++++++++++ ADD " << config_params.size() << " PARAMS\n";
     // now save all the parameters loaded from that one file and overrides
     // into our main list of parameters; here overrides are not allowed
     // except for the special case of "rules::<name>::enabled" for which
@@ -461,9 +485,11 @@ void ipload::add_params(advgetopt::conf_file::parameters_t config_params)
         {
             // not yet defined, we can just copy the value
             //
+std::cerr << "+++++++++++++++++++++ GOT " << p.first << " TO ADD\n";
             f_parameters[p.first] = p.second;
             continue;
         }
+std::cerr << "+++++++++++++++++++++ " << p.first << " IS A DUPLICATE\n";
 
         // it exists, we are allowed to diable an entry using the
         // 'enabled = false' technique, otherwise, it is an error
@@ -513,7 +539,7 @@ void ipload::add_params(advgetopt::conf_file::parameters_t config_params)
 
 void ipload::load_conf_file(
       std::string const & filename
-    , advgetopt::conf_file::parameters_t config_params)
+    , advgetopt::conf_file::parameters_t & config_params)
 {
     advgetopt::conf_file_setup conf_setup(filename);
     if(!conf_setup.is_valid())
