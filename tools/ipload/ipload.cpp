@@ -234,7 +234,11 @@ ipload::ipload(int argc, char * argv[])
 {
     snaplogger::add_logger_options(f_opts);
     f_opts.finish_parsing(argc, argv);
-    if(!snaplogger::process_logger_options(f_opts, "/etc/iplock/logger"))
+    if(!snaplogger::process_logger_options(
+                  f_opts
+                , "/etc/iplock/logger"
+                , std::cout
+                , !isatty(fileno(stdin))))
     {
         // exit on any error
         //
@@ -408,12 +412,10 @@ bool ipload::load_data()
         //
         for(auto const & n : glob)
         {
-std::cerr << "<<<<<<<<<<<<<<<<<<<<< LOAD [" << n << "]\n";
             load_config(n);
         }
     }
 
-std::cerr << "<<<<<<<<<<<<<<<<<<<<< FOUND [" << f_parameters.size() << "] PARAMS\n";
     if(f_parameters.empty())
     {
         SNAP_LOG_FATAL
@@ -472,7 +474,6 @@ void ipload::load_config(std::string const & filename)
 
 void ipload::add_params(advgetopt::conf_file::parameters_t config_params)
 {
-std::cerr << "+++++++++++++++++++++ ADD " << config_params.size() << " PARAMS\n";
     // now save all the parameters loaded from that one file and overrides
     // into our main list of parameters; here overrides are not allowed
     // except for the special case of "rules::<name>::enabled" for which
@@ -485,11 +486,9 @@ std::cerr << "+++++++++++++++++++++ ADD " << config_params.size() << " PARAMS\n"
         {
             // not yet defined, we can just copy the value
             //
-std::cerr << "+++++++++++++++++++++ GOT " << p.first << " TO ADD\n";
             f_parameters[p.first] = p.second;
             continue;
         }
-std::cerr << "+++++++++++++++++++++ " << p.first << " IS A DUPLICATE\n";
 
         // it exists, we are allowed to diable an entry using the
         // 'enabled = false' technique, otherwise, it is an error
