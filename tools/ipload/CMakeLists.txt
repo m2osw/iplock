@@ -61,8 +61,13 @@ AsRc(
 project(ipload)
 
 add_executable(${PROJECT_NAME}
+    chain.cpp
     ipload.cpp
     main.cpp
+    rule.cpp
+    section.cpp
+    section_reference.cpp
+    utils.cpp
 
     ${CMAKE_CURRENT_BINARY_DIR}/basic_ipv4.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/basic_ipv6.cpp

@@ -54,8 +54,8 @@ files to open or block the ports they manage.
 The following shows the list of supported tags (see details below):
 
     [chain::<chain-name>]
-    policy = accept | drop
-    type = return | drop
+    policy = ACCEPT | DROP
+    type = RETURN | DROP | USER-DEFINED
     log = <message>
 
     [section]
@@ -70,12 +70,14 @@ The following shows the list of supported tags (see details below):
     before = <rule-name>[, <rule-name>]*
     after = <rule-name>[, <rule-name>]*
     condition = <condition>
-    interfaces = <interface>[, <interface>]*
-    destination_interfaces = <interface>[, <interface>]*
+    source_interfaces = <interface>[, <interface>]*
     sources = <source>[, <source>]*
     except_sources = <source>[, <source>]*
+    source_ports = <port>[, <port>]*
+    destination_interfaces = <interface>[, <interface>]*
     destinations = <destination>[, <destination>]*
     except_destinations = <destination>[, <destination>]*
+    destination_ports = <port>[, <port>]*
     protocols = tcp, udp, icmp, etc.
     state = [!]new, [!]established, [!]related
     limit = <number>[, <number>]
@@ -115,7 +117,11 @@ to use to close the chain.
 A type set to `DROP` means the chain drops any packet that is not accepted
 by a rule within that chain. If the type is set to `RETURN`, then if none
 of the rules within that chain was set to `DROP`, then the filtering
-continues.
+continues after the point where that chain was inserted.
+
+Note that we also offer a `USER-DEFINED` type in which case no rule gets
+added automatically. Instead you are expected to handle the rule yourself
+by adding it to your chain in a footer section.
 
 **Default:** `DROP` since this is a stronger constraint.
 
@@ -205,7 +211,7 @@ This parameter allows you to sort your rules as expected in the final output.
 
 If the named rules are not defined, then that name is ignored.
 
-### `rule::<name>::interfaces`
+### `rule::<name>::source_interfaces`
 
 This parameter defines the list of interfaces that the rule applies to.
 
@@ -228,6 +234,22 @@ avoid having your own traffic forwarded.
 
 **Default:** none.
 
+### `rule::<name>::source_ports`
+
+This parameter defines a list of source ports allowed to connect. The
+number of ports is not limited. It will be broken up in group of 15 to
+create corresponding iptables rules.
+
+If you used the `except_sources`, then the ports are also exceptions.
+
+**Default:** none.
+
+### `rule::<name>::destination_interfaces`
+
+This parameter defines the list of interfaces that the rule applies to.
+
+**Default:** none, which means the rule applies to all interfaces.
+
 ### `rule::<name>::destinations`
 
 This parameter defines a list of IP addresses or domain names to use to
@@ -244,11 +266,29 @@ rule will be skipped.
 
 **Default:** none.
 
+### `rule::<name>::destination_ports`
+
+This parameter defines a list of ports to go with this rules. The number of
+ports is not limited. It will be split in lists of 15 per iptables rule.
+
+If you used the `except_destinations` parameters, then those ports are also
+exceptions.
+
+**Default:** none.
+
 ### `rule::<name>::protocol`
 
 This parameter defines which protocol is necessary to match this rule.
 
 **Default:** no protocol is matched meaning that all packets get checked.
+
+### `rule::<name>::state`
+
+The state of the packet (new, established, related, etc.)
+
+The state can be inverted using the `!` opeartor.
+
+**Default:** none. All states pass.
 
 ### `rule::<name>::limit`
 
@@ -304,6 +344,25 @@ We support the following actions:
    useful when you want to check a set of rules from multiple places.
    For example, we have a set of _bad TCP packets_ which we like to
    check on `INPUT` and `OUTPUT`.
+
+* LOG
+
+  The action is rarely used since in most cases you just enter a log message
+  with an existing action (see `rule::<name>::log`). However, there may be
+  cases where you only want to log a message and not otherwise do anything
+  with the rule. In that case, use this action.
+
+### `rule::<name>::log`
+
+A log message assotiated with the rule. It gets sent to the iptables logs
+if the rule matches.
+
+**WARNING:** This is to be used with parsimony. Do not add a log to each one
+of your rules. In most cases you want to add this to rules that you `REJECT`
+or `DROP`. Logging all your rules will likely fill up your disk space very
+quickly. It is, however, quite useful while debugging your firewall.
+
+**Default:** none.
 
 ### Variables (`[variable]` + `<name> = <value>`)
 
