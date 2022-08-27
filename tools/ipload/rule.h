@@ -39,9 +39,14 @@ enum class action_t
     ACTION_UNDEFINED,
     ACTION_ACCEPT,
     ACTION_CALL,
+    ACTION_DNAT,
     ACTION_DROP,
     ACTION_LOG,
+    ACTION_MASQUERADE,
+    ACTION_REDIRECT,
     ACTION_REJECT,
+    ACTION_RETURN,
+    ACTION_SNAT,
 };
 
 
@@ -52,7 +57,7 @@ public:
     typedef std::vector<pointer_t>      vector_t;
 
                                         rule(
-                                              advgetopt::conf_file::parameters_t::iterator name
+                                              advgetopt::conf_file::parameters_t::iterator & it
                                             , advgetopt::conf_file::parameters_t const & config_params
                                             , advgetopt::variables::pointer_t variables);
 
@@ -77,13 +82,27 @@ public:
 
     advgetopt::string_list_t const &    get_protocols() const;
     advgetopt::string_list_t const &    get_states() const;
+    bool                                includes_state(std::string const & name) const;
     advgetopt::string_list_t const &    get_limits() const;
 
     action_t                            get_action() const;
+    std::string                         get_action_name() const;
     std::string const &                 get_log() const;
+
+    void                                set_log_introducer(std::string const & introducer);
+    std::string                         to_iptables_rules(std::string const & chain_name);
 
 private:
     void                                parse_action(std::string const & action);
+    void                                to_iptables_destination_interfaces(std::string & result, std::string const & line);
+    void                                to_iptables_protocols(std::string & result, std::string const & line);
+    void                                to_iptables_sources(std::string & result, std::string const & line);
+    void                                to_iptables_source_ports(std::string & result, std::string const & line);
+    void                                to_iptables_destinations(std::string & result, std::string const & line);
+    void                                to_iptables_destination_ports(std::string & result, std::string const & line);
+    void                                to_iptables_limits(std::string & result, std::string const & line);
+    void                                to_iptables_states(std::string & result, std::string const & line);
+    void                                to_iptables_target(std::string & result, std::string const & line);
 
     std::string                         f_name = std::string();
     bool                                f_valid = true;
@@ -111,6 +130,7 @@ private:
     action_t                            f_action = action_t::ACTION_UNDEFINED;
     std::string                         f_action_param = std::string();     // REJECT [<type>] or CALL <chain-name>
     std::string                         f_log = std::string();
+    std::string                         f_log_introducer = "[iptables]";
 };
 
 

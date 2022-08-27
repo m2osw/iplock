@@ -27,11 +27,15 @@
  * using the advgetopt library.
  */
 
+// self
+//
+#include    "table.h"
+
 
 // advgetopt
 //
 #include    <advgetopt/advgetopt.h>
-#include    <advgetopt/conf_file.h>
+//#include    <advgetopt/conf_file.h>
 
 
 
@@ -58,10 +62,20 @@ private:
                                 , advgetopt::conf_file::parameters_t & config_params);
     void                    add_params(advgetopt::conf_file::parameters_t config_params);
     void                    create_defaults();
+    bool                    convert();
+    bool                    process_parameters();
+    bool                    process_chains();
+    bool                    process_sections(section::vector_t sections);
+    bool                    process_rules(rule::vector_t rules);
+    bool                    generate_tables(std::ostream & out);
+    bool                    generate_chain_name(std::ostream & out, chain::pointer_t c);
+    bool                    generate_chain(std::ostream & out, chain::pointer_t c);
+    bool                    generate_rules(std::ostream & out, chain::pointer_t c, section_reference::pointer_t s);
 
     advgetopt::getopt       f_opts;
     bool                    f_verbose = false;
     bool                    f_quiet = false;
+    bool                    f_show_comments = false;
     int                     f_command = 0;
     advgetopt::variables::pointer_t
                             f_variables = advgetopt::variables::pointer_t();
@@ -69,6 +83,10 @@ private:
                             f_sections = advgetopt::conf_file::sections_t();
     advgetopt::conf_file::parameters_t
                             f_parameters = advgetopt::conf_file::parameters_t();
+    table::vector_t         f_tables = table::vector_t();
+    chain::map_t            f_chains = chain::map_t();
+    std::string             f_log_introducer = "[iptables]";
+    std::string             f_output = std::string();
 };
 
 

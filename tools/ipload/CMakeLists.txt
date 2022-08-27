@@ -67,6 +67,7 @@ add_executable(${PROJECT_NAME}
     rule.cpp
     section.cpp
     section_reference.cpp
+    table.cpp
     utils.cpp
 
     ${CMAKE_CURRENT_BINARY_DIR}/basic_ipv4.cpp

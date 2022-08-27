@@ -32,19 +32,9 @@
 #include    "utils.h"
 
 
-//// iplock
-////
-//#include    <iplock/version.h>
+// iplock
 //
-//
-//// libaddr
-////
-//#include    <libaddr/addr_parser.h>
-//
-//
-//// advgetopt
-////
-//#include    <advgetopt/exception.h>
+#include    <iplock/exception.h>
 
 
 // snaplogger
@@ -55,18 +45,6 @@
 // snapdev
 //
 #include    <snapdev/join_strings.h>
-
-
-//// boost
-////
-//#include    <boost/preprocessor/stringize.hpp>
-//
-//
-//// C++
-////
-////#include    <iostream>
-////#include    <fstream>
-////#include    <sstream>
 
 
 // C
@@ -83,13 +61,27 @@
 
 
 section::section(
-          advgetopt::conf_file::parameters_t::iterator name
+          advgetopt::conf_file::parameters_t::iterator & it
         , advgetopt::conf_file::parameters_t const & config_params
         , advgetopt::variables::pointer_t variables)
 {
-    std::string const complete_namespace("section::");
-    ++name;
-    for(auto it(name); it != config_params.end(); ++it)
+    // parse all the parameters we can find
+    //
+    advgetopt::string_list_t name_list;
+    advgetopt::split_string(it->first, name_list, {"::"});
+    if(name_list.size() != 2)
+    {
+        throw iplock::logic_error("the section name is expected to be exactly two names: \"section::<name>\"");
+    }
+
+    // this is the name of the section
+    //
+    // it is used by the ipload tool to sort the sections between each others
+    //
+    f_name = name_list[1];
+
+    std::string const complete_namespace("section::" + f_name + "::");
+    for(++it; it != config_params.end(); ++it)
     {
         if(strncmp(it->first.c_str(), complete_namespace.c_str(), complete_namespace.length()) != 0)
         {
@@ -191,8 +183,6 @@ section::section(
             << SNAP_LOG_SEND;
         f_valid = false;
     }
-
-    // TODO: test contradictory states
 }
 
 

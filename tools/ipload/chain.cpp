@@ -37,31 +37,9 @@
 #include    <iplock/exception.h>
 
 
-//// advgetopt
-////
-//#include    <advgetopt/exception.h>
-
-
 // snaplogger
 //
 #include    <snaplogger/message.h>
-
-
-// snapdev
-//
-//#include    <snapdev/join_strings.h>
-
-
-//// boost
-////
-//#include    <boost/preprocessor/stringize.hpp>
-//
-//
-//// C++
-////
-////#include    <iostream>
-////#include    <fstream>
-////#include    <sstream>
 
 
 // C
@@ -79,6 +57,16 @@
 
 
 
+// TODO: the list of system chains varies depening on the table
+//
+std::set<std::string> g_system_chain_names =
+{
+    "FORWARD",
+    "INPUT",
+    "OUTPUT",
+    "POSTROUTING",
+    "PREROUTING",
+};
 
 
 
@@ -87,20 +75,20 @@
  *
  * This function saves the name of the iptable chain in this object.
  *
- * \param[in] name  The iterator to the chain name.
+ * \param[in] it  The iterator to the chain name.
  */
 chain::chain(
-          advgetopt::conf_file::parameters_t::iterator name
+          advgetopt::conf_file::parameters_t::iterator & it
         , advgetopt::conf_file::parameters_t const & config_params
         , advgetopt::variables::pointer_t variables)
 {
     // parse all the parameters we can find
     //
     advgetopt::string_list_t name_list;
-    advgetopt::split_string(name->first, name_list, {"::"});
+    advgetopt::split_string(it->first, name_list, {"::"});
     if(name_list.size() != 2)
     {
-        throw iplock::logic_error("the chain name is expected to be exactly two parameters: \"chain::<name>\"");
+        throw iplock::logic_error("the chain name is expected to be exactly two names: \"chain::<name>\"");
     }
 
     // this is the name of the chain
@@ -110,9 +98,10 @@ chain::chain(
     //
     f_name = name_list[1];
 
+    f_is_system_chain = g_system_chain_names.find(f_name) != g_system_chain_names.end();
+
     std::string const complete_namespace("chain::" + f_name + "::");
-    ++name;
-    for(auto it(name); it != config_params.end(); ++it)
+    for(++it; it != config_params.end(); ++it)
     {
         if(strncmp(it->first.c_str(), complete_namespace.c_str(), complete_namespace.length()) != 0)
         {
@@ -213,6 +202,8 @@ bool chain::is_valid() const
 
 void chain::add_section_reference(section_reference::pointer_t sr)
 {
+    f_section_references_by_name[sr->get_name()] = sr;
+
     advgetopt::string_list_t const & before(sr->get_before());
     advgetopt::string_list_t const & after(sr->get_after());
 
@@ -271,6 +262,76 @@ void chain::add_section_reference(section_reference::pointer_t sr)
 section_reference::vector_t const & chain::get_section_references() const
 {
     return f_section_references;
+}
+
+
+bool chain::add_rule(rule::pointer_t r)
+{
+    auto it(f_section_references_by_name.find(r->get_section()));
+    if(it == f_section_references_by_name.end())
+    {
+        SNAP_LOG_RECOVERABLE_ERROR
+            << "section \""
+            << r->get_section()
+            << "\" not found. Cannot add rule \""
+            << r->get_name()
+            << "\" to chain \""
+            << f_name
+            << "\"."
+            << SNAP_LOG_SEND;
+        f_valid = false;
+        return false;
+    }
+
+    it->second->add_rule(r);
+
+    return true;
+}
+
+
+std::string chain::get_name() const
+{
+    return f_name;
+}
+
+
+bool chain::is_system_chain() const
+{
+    return f_is_system_chain;
+}
+
+
+policy_t chain::get_policy() const
+{
+    return f_policy;
+}
+
+
+std::string chain::get_policy_name() const
+{
+    switch(f_policy)
+    {
+    case policy_t::POLICY_ACCEPT:
+        return "ACCEPT";
+
+    case policy_t::POLICY_DROP:
+        return "DROP";
+
+    }
+
+    throw iplock::logic_error("the f_policy parameter was somehow set to an unrecognized value.");
+}
+
+
+type_t chain::get_type() const
+{
+    return f_type;
+}
+
+
+std::string chain::get_log() const
+{
+    return f_log;
 }
 
 

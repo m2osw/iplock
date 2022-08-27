@@ -38,6 +38,7 @@ class section_reference
 public:
     typedef std::shared_ptr<section_reference>  pointer_t;
     typedef std::vector<pointer_t>              vector_t;
+    typedef std::map<std::string, pointer_t>    map_t;
 
                                         section_reference(
                                               section::pointer_t s);

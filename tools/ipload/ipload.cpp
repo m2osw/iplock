@@ -36,6 +36,7 @@
 
 // iplock
 //
+#include    <iplock/exception.h>
 #include    <iplock/version.h>
 
 
@@ -118,6 +119,14 @@ advgetopt::option const g_options[] =
 
     // OPTIONS
     //
+    advgetopt::define_option(
+          advgetopt::Name("comment")
+        , advgetopt::Flags(advgetopt::option_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_OPTIONS
+                    , advgetopt::GETOPT_FLAG_COMMAND_LINE
+                    , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE>())
+        , advgetopt::Help("Add comments to the output of the --show command (although iptable-restore does not support those).")
+    ),
     advgetopt::define_option(
           advgetopt::Name("no-defaults")
         , advgetopt::ShortName('N')
@@ -341,6 +350,10 @@ int ipload::run()
             //
             create_defaults();
         }
+        if(!convert())
+        {
+            return 1;
+        }
         load_to_iptables();
         break;
 
@@ -349,11 +362,20 @@ int ipload::run()
         {
             return 1;
         }
+        f_show_comments = f_opts.is_defined("comment");
+        if(!convert())
+        {
+            return 1;
+        }
         show();
         break;
 
     case COMMAND_VERIFY:
         if(!load_data())
+        {
+            return 1;
+        }
+        if(!convert())
         {
             return 1;
         }
@@ -624,6 +646,413 @@ void ipload::load_basic()
                 << SNAP_LOG_SEND;
         }
     }
+}
+
+
+/** \brief Convert the rules in an iptables script.
+ *
+ * This function goes through the list of parameters and generates a set of
+ * tables, chains, sections, and rules to build the iptables script which
+ * we can then load with the iptables-restore command (and equivalent for
+ * IPv6).
+ *
+ * The command is broken up in several parts:
+ *
+ * 1. transform the parameters in objects
+ * 2. generate a list of all the chains (they need to be defined)
+ * 3. generate a list of rules for each chain, the order does not matter so
+ *    we use the map (i.e. alphabetic order)
+ * 4. generate the COMMIT command
+ *
+ * \return true if the conversion succeeded, false otherwise.
+ */
+bool ipload::convert()
+{
+    std::stringstream out;
+
+    if(!process_parameters())
+    {
+        return false;
+    }
+
+    if(!generate_tables(out))
+    {
+        return false;
+    }
+
+    f_output = out.str();
+
+    return true;
+}
+
+
+bool ipload::process_parameters()
+{
+    bool valid(true);
+    section::vector_t sections;
+    rule::vector_t rules;
+
+    auto p(f_parameters.begin());
+    while(p != f_parameters.end())
+    {
+        if(p->first == "log_introducer")
+        {
+            f_log_introducer = p->second;
+            while(f_log_introducer.back() == ' ')
+            {
+                f_log_introducer.pop_back();
+            }
+            ++p;
+            continue;
+        }
+
+        advgetopt::string_list_t names;
+        advgetopt::split_string(p->first, names, {"::"});
+        if(names.empty())
+        {
+            throw iplock::logic_error("somehow the split_string returned an empty list?");
+        }
+
+        if(names[0] == "table")
+        {
+            if(names.size() != 2)
+            {
+                // expected table::<name>
+                //
+                SNAP_LOG_ERROR
+                    << "the first table parameter is expected to be \"table::<name>\"."
+                    << SNAP_LOG_SEND;
+                valid = false;
+                ++p;
+                continue;
+            }
+            table::pointer_t tbl(std::make_shared<table>(p, f_parameters, f_variables));
+            for(auto const & t : f_tables)
+            {
+                if(t->get_prefix() == tbl->get_prefix())
+                {
+                    SNAP_LOG_ERROR
+                        << "each table must use a different prefix: \""
+                        << t->get_name()
+                        << "\" and \""
+                        << tbl->get_name()
+                        << "\" have the same prefix \""
+                        << t->get_prefix()
+                        << "\". Only one table can use the empty (a.k.a. \"default\") prefix."
+                        << SNAP_LOG_SEND;
+                    valid = false;
+                }
+            }
+            f_tables.push_back(tbl);
+        }
+        else if(names[0] == "chain")
+        {
+            if(names.size() != 2)
+            {
+                // expected chain::<name>
+                //
+                SNAP_LOG_ERROR
+                    << "the first chain parameter is expected to be \"chain::<name>\"."
+                    << SNAP_LOG_SEND;
+                valid = false;
+                ++p;
+                continue;
+            }
+            chain::pointer_t c(std::make_shared<chain>(p, f_parameters, f_variables));
+            f_chains[c->get_name()] = c;
+        }
+        else if(names[0] == "section")
+        {
+            if(names.size() != 2)
+            {
+                // expected section::<name>
+                //
+                SNAP_LOG_ERROR
+                    << "the first section parameter is expected to be \"section::<name>\"."
+                    << SNAP_LOG_SEND;
+                valid = false;
+                ++p;
+                continue;
+            }
+            sections.push_back(std::make_shared<section>(p, f_parameters, f_variables));
+        }
+        else if(names[0] == "rule")
+        {
+            if(names.size() != 2)
+            {
+                // expected rule::<name>
+                //
+                SNAP_LOG_ERROR
+                    << "the first rule parameter is expected to be \"rule::<name>\"."
+                    << SNAP_LOG_SEND;
+                valid = false;
+                ++p;
+                continue;
+            }
+            rules.push_back(std::make_shared<rule>(p, f_parameters, f_variables));
+        }
+        else
+        {
+            SNAP_LOG_RECOVERABLE_ERROR
+                << "unrecognized parameter \""
+                << names[0]
+                << "\"."
+                << SNAP_LOG_SEND;
+            ++p;
+            continue;
+        }
+    }
+
+    if(!process_chains())
+    {
+        valid = false;
+    }
+
+    if(!process_sections(sections))
+    {
+        valid = false;
+    }
+
+    if(!process_rules(rules))
+    {
+        valid = false;
+    }
+
+    return valid;
+}
+
+
+bool ipload::process_chains()
+{
+    bool valid(true);
+    for(auto const & c : f_chains)
+    {
+        std::string const & name(c.first);
+        std::size_t len(0);
+        table::pointer_t tbl;
+        for(auto const & t : f_tables)
+        {
+            std::string const & prefix(t->get_prefix());
+
+            // the prefix already includes the '_' separator unless empty
+            //
+            if(strncmp(name.c_str(), prefix.c_str(), prefix.length()) == 0)
+            {
+                // this is a match!
+                //
+                if(prefix.length() > len)
+                {
+                    tbl = t;
+                    len = prefix.length();
+                }
+            }
+        }
+        if(tbl == nullptr)
+        {
+            SNAP_LOG_ERROR
+                << "could not find a table for chain \""
+                << name
+                << "\"."
+                << SNAP_LOG_SEND;
+            valid = false;
+        }
+        else
+        {
+            tbl->add_chain(c.second);
+        }
+    }
+
+    return valid;
+}
+
+
+bool ipload::process_sections(section::vector_t sections)
+{
+    bool valid(true);
+
+    for(auto const & c : f_chains)
+    {
+        for(auto const & s : sections)
+        {
+            c.second->add_section_reference(std::make_shared<section_reference>(s));
+            if(!c.second->is_valid())
+            {
+                valid = false;
+            }
+        }
+    }
+
+    return valid;
+}
+
+
+bool ipload::process_rules(rule::vector_t rules)
+{
+    bool valid(true);
+
+    for(auto const & r : rules)
+    {
+        advgetopt::string_list_t const & chain_names(r->get_chains());
+        for(auto const & name : chain_names)
+        {
+            auto it(f_chains.find(name));
+            if(it == f_chains.end())
+            {
+                SNAP_LOG_ERROR
+                    << "could not find a chain \""
+                    << name
+                    << "\" for rule \""
+                    << r->get_name()
+                    << "\"."
+                    << SNAP_LOG_SEND;
+                valid = false;
+            }
+            else if(!it->second->add_rule(r))
+            {
+                valid = false;
+            }
+        }
+    }
+
+    return valid;
+}
+
+
+
+
+bool ipload::generate_tables(std::ostream & out)
+{
+    for(auto const & t : f_tables)
+    {
+        out << "*" << t->get_name() << "\n"
+            << "\n";
+
+        chain::vector_t const & chains(t->get_chains());
+
+        // first we want a list of chains at the start of the filter
+        // definition; we first print iptables internal names, mainly
+        // for organization, then user defined chains
+        //
+        for(auto const & c : chains)
+        {
+            if(!c->is_system_chain())
+            {
+                continue;
+            }
+            if(!generate_chain_name(out, c))
+            {
+                return false;
+            }
+        }
+        for(auto const & c : chains)
+        {
+            if(c->is_system_chain())
+            {
+                continue;
+            }
+            if(!generate_chain_name(out, c))
+            {
+                return false;
+            }
+        }
+        out << "\n";
+
+        // now output the rules for each chain in this table
+        // as above, we first output the system defined chains, then the
+        // user defined chains
+        //
+        for(auto const & c : chains)
+        {
+            if(!c->is_system_chain())
+            {
+                continue;
+            }
+            if(!generate_chain(out, c))
+            {
+                return false;
+            }
+        }
+        for(auto const & c : chains)
+        {
+            if(c->is_system_chain())
+            {
+                continue;
+            }
+            if(!generate_chain(out, c))
+            {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+
+bool ipload::generate_chain_name(std::ostream & out, chain::pointer_t c)
+{
+    out << ":"
+        << c->get_name()
+        << ' '
+        << (c->is_system_chain() ? c->get_policy_name() : "-")
+        << " [0:0]\n";
+
+    return true;
+}
+
+
+bool ipload::generate_chain(std::ostream & out, chain::pointer_t c)
+{
+    // the sections are there to group rules; in themselves they do not
+    // generate anything in the output (except if we want to add comments
+    // when the --show option is used)
+    //
+    section_reference::vector_t refs(c->get_section_references());
+    for(auto const & s : refs)
+    {
+        if(!generate_rules(out, c, s))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+bool ipload::generate_rules(std::ostream & out, chain::pointer_t c, section_reference::pointer_t s)
+{
+    bool valid(true);
+
+    rule::vector_t const & list(s->get_rules());
+    for(auto const & r : list)
+    {
+#ifdef _DEBUG
+        // we are expected to add the rules to chains using the list of chains
+        // therefore here the find() should always find the chain in the list
+        //
+        advgetopt::string_list_t const & chains(r->get_chains());
+        if(std::find(chains.begin(), chains.end(), c->get_name()) == chains.end())
+        {
+            throw iplock::logic_error(
+                      "chain \""
+                    + c->get_name()
+                    + "\" not found in rule \""
+                    + r->get_name()
+                    + "\" list of chains.");
+        }
+#endif
+
+        r->set_log_introducer(f_log_introducer);
+        out << r->to_iptables_rules(c->get_name());
+
+        if(!r->is_valid())
+        {
+            valid = false;
+        }
+    }
+
+    return valid;
 }
 
 

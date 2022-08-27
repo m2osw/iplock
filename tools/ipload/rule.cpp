@@ -37,14 +37,9 @@
 #include    <iplock/exception.h>
 
 
-//// libaddr
-////
-//#include    <libaddr/addr_parser.h>
+// advgetopt
 //
-//
-//// advgetopt
-////
-//#include    <advgetopt/exception.h>
+#include    <advgetopt/validator_integer.h>
 
 
 // snaplogger
@@ -55,18 +50,7 @@
 // snapdev
 //
 #include    <snapdev/join_strings.h>
-
-
-//// boost
-////
-//#include    <boost/preprocessor/stringize.hpp>
-//
-//
-//// C++
-////
-////#include    <iostream>
-////#include    <fstream>
-////#include    <sstream>
+#include    <snapdev/not_reached.h>
 
 
 // C
@@ -84,17 +68,17 @@
 
 
 rule::rule(
-          advgetopt::conf_file::parameters_t::iterator name
+          advgetopt::conf_file::parameters_t::iterator & it
         , advgetopt::conf_file::parameters_t const & config_params
         , advgetopt::variables::pointer_t variables)
 {
     // parse all the parameters we can find
     //
     advgetopt::string_list_t name_list;
-    advgetopt::split_string(name->first, name_list, {"::"});
+    advgetopt::split_string(it->first, name_list, {"::"});
     if(name_list.size() != 2)
     {
-        throw iplock::logic_error("the rule name is expected to be exactly two parameters: \"rule>::<name>\"");
+        throw iplock::logic_error("the rule name is expected to be exactly two names: \"rule::<name>\"");
     }
 
     // this is the name of the rule
@@ -104,8 +88,7 @@ rule::rule(
     f_name = name_list[1];
 
     std::string const complete_namespace("rule::" + f_name + "::");
-    ++name;
-    for(auto it(name); it != config_params.end(); ++it)
+    for(++it; it != config_params.end(); ++it)
     {
         if(strncmp(it->first.c_str(), complete_namespace.c_str(), complete_namespace.length()) != 0)
         {
@@ -205,6 +188,13 @@ rule::rule(
             if(param_name == "limits")
             {
                 advgetopt::split_string(value, f_limits, {","});
+                if(f_limits.size() > 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "a rule limit must be 0, 1, or 2 numbers."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
             }
             else if(param_name == "log")
             {
@@ -247,6 +237,41 @@ rule::rule(
             else if(param_name == "states")
             {
                 advgetopt::split_string(value, f_states, {","});
+                list_to_lower(f_states);
+
+                int state_groups(0);
+                if(includes_state("new")
+                || includes_state("syn"))
+                {
+                    state_groups |= 1;
+                }
+                if(includes_state("old")
+                || includes_state("!syn"))
+                {
+                    state_groups |= 2;
+                }
+                if(includes_state("related")
+                || includes_state("established"))
+                {
+                    state_groups |= 4;
+                }
+                switch(state_groups)
+                {
+                case 1:
+                case 2:
+                case 4:
+                    break;
+
+                default:
+                    SNAP_LOG_ERROR
+                        << "the specified states ("
+                        << value
+                        << ") pertain to separate exclusive groups and they cannot be used together in the same rule."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                    break;
+
+                }
             }
             else
             {
@@ -267,6 +292,14 @@ rule::rule(
                 << "\"."
                 << SNAP_LOG_SEND;
         }
+    }
+
+    if(f_action == action_t::ACTION_UNDEFINED)
+    {
+        SNAP_LOG_ERROR
+            << "a rule action must be defined."
+            << SNAP_LOG_SEND;
+        f_valid = false;
     }
 
     if(!f_except_sources.empty()
@@ -375,6 +408,22 @@ void rule::parse_action(std::string const & action)
                 }
                 return;
             }
+            else if(a == "dnat")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"DNAT\" action requires the destination parameter."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_DNAT;
+                    f_action_param = action_param[1];
+                }
+                return;
+            }
             break;
 
         case 'l':
@@ -390,6 +439,24 @@ void rule::parse_action(std::string const & action)
                 else
                 {
                     f_action = action_t::ACTION_LOG;
+                }
+                return;
+            }
+            break;
+
+        case 'm':
+            if(a == "masquerade")
+            {
+                if(action_param.size() != 1)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"MASQUERADE\" action does not support a parameter."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_MASQUERADE;
                 }
                 return;
             }
@@ -415,8 +482,56 @@ void rule::parse_action(std::string const & action)
                 }
                 return;
             }
+            else if(a == "redirect")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"REDIRECT\" action requires a port parameter."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_REDIRECT;
+                    f_action_param = action_param[1];
+                }
+                return;
+            }
+            else if(a == "return")
+            {
+                if(action_param.size() != 1)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"RETURN\" action does not support a parameter."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_RETURN;
+                }
+                return;
+            }
             break;
 
+        case 's':
+            if(a == "snat")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"SNAT\" action requires the source parameter."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_SNAT;
+                    f_action_param = action_param[1];
+                }
+                return;
+            }
         }
     }
 
@@ -531,6 +646,12 @@ advgetopt::string_list_t const & rule::get_states() const
 }
 
 
+bool rule::includes_state(std::string const & name) const
+{
+    return std::find(f_states.begin(), f_states.end(), name) != f_states.end();
+}
+
+
 advgetopt::string_list_t const & rule::get_limits() const
 {
     return f_limits;
@@ -543,9 +664,477 @@ action_t rule::get_action() const
 }
 
 
+std::string rule::get_action_name() const
+{
+    switch(f_action)
+    {
+    case action_t::ACTION_UNDEFINED:
+        throw iplock::logic_error("action still undefined");
+
+    case action_t::ACTION_ACCEPT:
+        return "ACCEPT";
+
+    case action_t::ACTION_CALL:
+        return std::string();
+
+    case action_t::ACTION_DNAT:
+        return "DNAT";
+
+    case action_t::ACTION_DROP:
+        return "DROP";
+
+    case action_t::ACTION_LOG:
+        return "LOG";
+
+    case action_t::ACTION_MASQUERADE:
+        return "MASQUERADE";
+
+    case action_t::ACTION_REDIRECT:
+        return "REDIRECT";
+
+    case action_t::ACTION_REJECT:
+        return "REJECT";
+
+    case action_t::ACTION_RETURN:
+        return "RETURN";
+
+    case action_t::ACTION_SNAT:
+        return "SNAT";
+
+    }
+
+    snapdev::NOT_REACHED();
+}
+
+
 std::string const & rule::get_log() const
 {
     return f_log;
+}
+
+
+void rule::set_log_introducer(std::string const & introducer)
+{
+    f_log_introducer = introducer;
+}
+
+
+/** \brief Generate the iptables rules.
+ *
+ * This function recursively goes through all the data found in this rule
+ * and generate the corresponding code for the iptables-restore command.
+ *
+ * \todo
+ * Work on generating rules for both: iptables and ip6tables.
+ * If the chain does not allow source interfaces, do not generate the "-i".
+ * If the chain does not allow source interfaces, do not generate the "-o".
+ *
+ * \param[in] chain_name  The name of the chain for which this rule is being
+ * generated.
+ *
+ * \return The iptables rules as a script for iptables-restore.
+ */
+std::string rule::to_iptables_rules(std::string const & chain_name)
+{
+    std::string result;
+    std::string line;
+
+    line += "-A " + chain_name;
+
+    if(f_source_interfaces.empty())
+    {
+        to_iptables_destination_interfaces(result, line);
+    }
+    else
+    {
+        for(auto const & s : f_source_interfaces)
+        {
+            to_iptables_destination_interfaces(result, line + " -i " + s);
+        }
+    }
+
+    return result;
+}
+
+
+void rule::to_iptables_destination_interfaces(std::string & result, std::string const & line)
+{
+    if(f_destination_interfaces.empty())
+    {
+        to_iptables_protocols(result, line);
+    }
+    else
+    {
+        for(auto const & s : f_destination_interfaces)
+        {
+            to_iptables_protocols(result, line + " -o " + s);
+        }
+    }
+}
+
+
+void rule::to_iptables_protocols(std::string & result, std::string const & line)
+{
+    if(f_protocols.empty())
+    {
+        to_iptables_sources(result, line);
+    }
+    else
+    {
+        for(auto const & s : f_protocols)
+        {
+            std::string l(line + " -p " + s);
+            if(includes_state("established")
+            || includes_state("related"))
+            {
+                l += " -m state --state ESTABLISHED,RELATED";
+            }
+            if(f_source_ports.size() > 1
+            || f_destination_ports.size() > 1)
+            {
+                l += " -m multiport";
+            }
+            to_iptables_sources(result, l + " -m " + s);
+        }
+    }
+}
+
+
+void rule::to_iptables_sources(std::string & result, std::string const & line)
+{
+    if(f_sources.empty())
+    {
+        if(f_except_sources.empty())
+        {
+            to_iptables_source_ports(result, line);
+        }
+        else
+        {
+            for(auto const & s : f_except_sources)
+            {
+                to_iptables_source_ports(result, line + " ! -s " + s);
+            }
+        }
+    }
+    else
+    {
+        for(auto const & s : f_sources)
+        {
+            to_iptables_source_ports(result, line + " -s " + s);
+        }
+    }
+}
+
+
+void rule::to_iptables_source_ports(std::string & result, std::string const & line)
+{
+    if(f_source_ports.empty())
+    {
+        to_iptables_destinations(result, line);
+    }
+    else
+    {
+        if(f_source_ports.size() == 1)
+        {
+            // for just one port, use --sport
+            //
+            to_iptables_destinations(result, line + " --sport " + f_source_ports[0]);
+        }
+        else
+        {
+            // the maximum number of ports with -m multiport is 15 so here
+            // we have to generate blocks of 15 or less
+            //
+            for(std::size_t idx(0); idx < f_source_ports.size(); idx += 15)
+            {
+                std::string l(line + " --sports ");
+                std::size_t const max(std::min(idx + 15, f_source_ports.size()));
+                for(std::size_t p(idx); p < max; ++p)
+                {
+                    if(p != idx)
+                    {
+                        l += ',';
+                    }
+                    l += f_source_ports[p];
+                }
+                to_iptables_destinations(result, l);
+            }
+        }
+    }
+}
+
+
+void rule::to_iptables_destinations(std::string & result, std::string const & line)
+{
+    if(f_destinations.empty())
+    {
+        if(f_except_destinations.empty())
+        {
+            to_iptables_destination_ports(result, line);
+        }
+        else
+        {
+            for(auto const & s : f_except_destinations)
+            {
+                to_iptables_destination_ports(result, line + " ! -d " + s);
+            }
+        }
+    }
+    else
+    {
+        for(auto const & s : f_destinations)
+        {
+            to_iptables_destination_ports(result, line + " -d " + s);
+        }
+    }
+}
+
+
+void rule::to_iptables_destination_ports(std::string & result, std::string const & line)
+{
+    if(f_destination_ports.empty())
+    {
+        to_iptables_limits(result, line);
+    }
+    else
+    {
+        if(f_destination_ports.size() == 1)
+        {
+            // for just one port, use --dport
+            //
+            to_iptables_limits(result, line + " --dport " + f_destination_ports[0]);
+        }
+        else
+        {
+            // the maximum number of ports with -m multiport is 15 so here
+            // we have to generate blocks of 15 or less
+            //
+            for(std::size_t idx(0); idx < f_destination_ports.size(); idx += 15)
+            {
+                std::string l(line + " --dports ");
+                std::size_t const max(std::min(idx + 15, f_destination_ports.size()));
+                for(std::size_t p(idx); p < max; ++p)
+                {
+                    if(p != idx)
+                    {
+                        l += ',';
+                    }
+                    l += f_destination_ports[p];
+                }
+                to_iptables_limits(result, l);
+            }
+        }
+    }
+}
+
+
+void rule::to_iptables_limits(std::string & result, std::string const & line)
+{
+    if(f_limits.empty())
+    {
+        to_iptables_states(result, line);
+    }
+    else
+    {
+        // the limits are numbers optionally preceeded by operators
+        //
+        // the first is: [ '<=' | '<' | '>' ] number
+        //
+        // the second is: [ '<-' | '->' ] number
+        //
+        bool less_equal(true);
+        std::int64_t count(0);
+        {
+            char const * s(f_limits[0].c_str());
+            if(*s == '<')
+            {
+                ++s;
+                if(*s == '=')
+                {
+                    ++s;
+                }
+            }
+            else if(*s == '>')
+            {
+                less_equal = false;
+                ++s;
+            }
+            if(!advgetopt::validator_integer::convert_string(s, count))
+            {
+                SNAP_LOG_ERROR
+                    << "the first number in the rule limit must be a valid integer number preceeeded by one of '<', '<=', '>' or no operator. \""
+                    << f_limits[0]
+                    << "\" is not valid."
+                    << SNAP_LOG_SEND;
+                f_valid = false;
+            }
+            else if(count <= 0)
+            {
+                SNAP_LOG_ERROR
+                    << "the first number in the rule limit must be a positive number. \""
+                    << f_limits[0]
+                    << "\" is not valid."
+                    << SNAP_LOG_SEND;
+                f_valid = false;
+            }
+        }
+
+        bool source_group(true);
+        std::int64_t mask(-1);
+        if(f_limits.size() == 2)
+        {
+            char const * s(f_limits[1].c_str());
+            if(*s == '-')
+            {
+                ++s;
+                if(*s == '>')
+                {
+                    ++s;
+                }
+                else
+                {
+                    SNAP_LOG_ERROR
+                        << "the second number in the rule limit can be preceeded by '->' or '<-'. \""
+                        << f_limits[1]
+                        << "\" is not valid."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+            }
+            else if(*s == '<')
+            {
+                source_group = false;
+                ++s;
+                if(*s == '-')
+                {
+                    ++s;
+                }
+                else
+                {
+                    SNAP_LOG_ERROR
+                        << "the second number in the rule limit can be preceeded by '->' or '<-'. \""
+                        << f_limits[1]
+                        << "\" is not valid."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+            }
+            if(!advgetopt::validator_integer::convert_string(s, mask))
+            {
+                SNAP_LOG_ERROR
+                    << "the second number in the rule limit must be a valid integer number preceeeded by one of '<-', '->', or no operator. \""
+                    << f_limits[1]
+                    << "\" is not valid."
+                    << SNAP_LOG_SEND;
+                f_valid = false;
+            }
+            else if(mask < 0 || mask > 128) // make it IPv4 or IPv6 max.
+            {
+                SNAP_LOG_ERROR
+                    << "the second number in the rule limit must be between 0 and 128. \""
+                    << f_limits[1]
+                    << "\" is not valid."
+                    << SNAP_LOG_SEND;
+                f_valid = false;
+            }
+        }
+
+        std::string l(line);
+        if(less_equal)
+        {
+            l += " --connlimit-upto " + std::to_string(count);
+        }
+        else
+        {
+            l += " --connlimit-above " + std::to_string(count);
+        }
+        if(mask != -1)
+        {
+            l += " --connlimit-mask " + std::to_string(mask);
+        }
+        if(!source_group)
+        {
+            l += " --connlimit-daddr";
+        }
+
+        to_iptables_states(result, l);
+    }
+}
+
+
+void rule::to_iptables_states(std::string & result, std::string const & line)
+{
+    std::string l(line);
+
+    if(includes_state("new")
+    || includes_state("syn"))
+    {
+        l += " --syn";
+    }
+    else if(includes_state("old")
+         || includes_state("!syn"))
+    {
+        l += " ! --syn";
+    }
+
+    to_iptables_target(result, line);
+}
+
+
+void rule::to_iptables_target(std::string & result, std::string const & line)
+{
+    // the LOG action must appear first
+    //
+    if(!f_log.empty())
+    {
+        result += line
+                + " -j LOG --log-prefix \""
+                + f_log_introducer
+                + ' '
+                + f_log
+                + ":\" --log-uid";
+    }
+
+    if(f_action == action_t::ACTION_LOG)
+    {
+        // user only wanted a LOG, so we're done
+        //
+        return;
+    }
+
+    result += line + " -j " + get_action_name();
+
+    switch(f_action)
+    {
+    case action_t::ACTION_CALL:
+        // we need to add the name of the user chain to call
+        //
+        result += f_action_param;
+        break;
+
+    case action_t::ACTION_DNAT:
+        result += " --to-destination " + f_action_param;
+        break;
+
+    case action_t::ACTION_REDIRECT:
+        result += " --to-port " + f_action_param;
+        break;
+
+    case action_t::ACTION_REJECT:
+        if(!f_action_param.empty())
+        {
+            result += " --reject-with " + f_action_param;
+        }
+        break;
+
+    case action_t::ACTION_SNAT:
+        result += " --to-source " + f_action_param;
+        break;
+
+    default:
+        break;
+
+    }
 }
 
 

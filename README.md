@@ -53,13 +53,15 @@ files to open or block the ports they manage.
 
 The following shows the list of supported tags (see details below):
 
-    [chain::<chain-name>]
+    [table::<table-name>]
+    prefix = <prefix>
+
+    [chain::<table-prefix>_<chain-name>]
     policy = ACCEPT | DROP
     type = RETURN | DROP | USER-DEFINED
     log = <message>
 
-    [section]
-    name = <section-name>
+    [section::<section-name>]
     before = <section-name>[, <section-name>]*
     after = <section-name>[, <section-name>]*
     default = true | false
@@ -95,9 +97,29 @@ The `log` variable means that we add a `-j LOG` rule before the other
 rule(s). In iptables parlance, this is an action. We simplify for you
 having a single rule implementing both features at once.
 
-### `chain::<chain-name>::policy`
+### `table::<table-name>::prefix`
+
+Define a prefix referencing the table from within the chain names.
+
+If the chain name starts with this prefix, then it is added to this table.
+The ending `'_'` is not expected to be included in the prefix. It is still
+safe to have it here.
+
+The prefix should be the same as the table name: `filter`, `nat`, etc.
+
+The `<table-name>` parameter should be a valid name that the iptables system
+understands.
+
+### `chain::<table-prefix>_<chain-name>::policy`
 
 This parameter defines the default policy of a system chain.
+
+The name is composed of a table prefix (i.e. `"nat"`) and a chain name
+(i.e. `INPUT`). This is done this way to distinguish between chains of the
+same name appearing in different tables (i.e. `"nat_INPUT"` and
+`"filter_INPUT"`). In most cases, the filter table is not given a prefix
+because that's where you get the most rules. In that case the chain name
+does not include the `"<table-prefix>_"`.
 
 With Ubuntu, the default is to `ACCEPT` any traffic. You can change the
 policy to `DROP` instead. This means traffic that was not accepted by
@@ -107,7 +129,7 @@ Only built-in chains can be assigned a policy.
 
 **Default:** policy is set to `DROP` by default since it is more constrained.
 
-### `chain::<name>::type`
+### `chain::<table-prefix>_<chain-name>::type`
 
 This parameter defines the type of the chain.
 
@@ -125,7 +147,7 @@ by adding it to your chain in a footer section.
 
 **Default:** `DROP` since this is a stronger constraint.
 
-### `chain::<name>::log`
+### `chain::<table-prefix>_<chain-name>::log`
 
 This parameter defines a log message. This message is printed only if
 the `RETURN` or `DROP` rule found at the end is encountered.
@@ -284,20 +306,59 @@ This parameter defines which protocol is necessary to match this rule.
 
 ### `rule::<name>::state`
 
-The state of the packet (new, established, related, etc.)
+The state of the packet for its target to be accepted by the rule.
 
-The state can be inverted using the `!` opeartor.
+We currently support:
+
+* `new` or `syn`
+
+  The packet must be considered "new", this means it is a TCP connection
+  attempt. It is not available with UDP.
+
+* `old` or `!syn`
+
+  The opposite of the `new` state. This means the packet must not be a
+  TCP connection attempt. It is not available with UDP.
+
+* `established` or `related`
+
+  Right now, these two are viewed as synomyms. It is used to accept packets
+  that represent an established connection and let them go through early on.
+  This works with TCP and UDP.
 
 **Default:** none. All states pass.
 
 ### `rule::<name>::limit`
 
-This parameter defines the maximum number of connections accepted
-by this rule. The parameter accepts one or two numbers. The first number
-represents the maximum number of connections from the sources and the
-second represents the maximum number of connections from the destinations.
+This parameter defines two numbers.
 
-Note that a separate iptable rule is necessary for each limit.
+* Number of allowed connections
+
+The first number can be preceeded with `<=` (or just `<`) to represents the
+minimum number of connections (i.e. `--connlimit-upto`). In most cases, this
+is used with the `ACCEPT` target. It is also often used to enter a user
+defined chain.
+
+If no operator or the '>` operator is used, then it represents the maximum
+number of connections (i.e. `--connlimit-above`). This rule is most often
+used with a `REJECT`. It can also be used with a `DROP`.
+
+The second number is optional. If defined, it represents a mask applied
+against the matching host. It creates a group and the counters count the
+number of connections within that entire group.
+
+The second number can be preceeded by the `->` operator, in which case
+the group is generated using the destination IP address (rarely used).
+The default is to use the source address. Optionally, you can make this
+explicit using the `<-` operator.
+
+Example:
+
+    limit = >32,->24
+
+Becomes
+
+    --connlimit-above 32 --connlimit-mask 24 --connlimit-daddr
 
 **Default:** no limit enforced.
 

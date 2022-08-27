@@ -29,52 +29,10 @@
 //
 #include    "section_reference.h"
 
-//#include    "default_firewall.h"
-//#include    "basic_ipv4.h"
-//#include    "basic_ipv6.h"
-//
-//
-//// iplock
-////
-//#include    <iplock/version.h>
-//
-//
-//// libaddr
-////
-//#include    <libaddr/addr_parser.h>
-//
-//
-//// advgetopt
-////
-//#include    <advgetopt/exception.h>
-
 
 // snaplogger
 //
 #include    <snaplogger/message.h>
-
-
-//// snapdev
-////
-//#include    <snapdev/file_contents.h>
-//#include    <snapdev/glob_to_list.h>
-//
-//
-//// boost
-////
-//#include    <boost/preprocessor/stringize.hpp>
-//
-//
-//// C++
-////
-////#include    <iostream>
-////#include    <fstream>
-////#include    <sstream>
-//
-//
-//// C
-////
-//#include    <unistd.h>
 
 
 // last include

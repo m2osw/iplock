@@ -39,9 +39,11 @@ class section
 public:
     typedef std::shared_ptr<section>    pointer_t;
     typedef std::vector<pointer_t>      vector_t;
+    typedef std::map<std::string, pointer_t>
+                                        map_t;
 
                                         section(
-                                              advgetopt::conf_file::parameters_t::iterator name
+                                              advgetopt::conf_file::parameters_t::iterator & it
                                             , advgetopt::conf_file::parameters_t const & config_params
                                             , advgetopt::variables::pointer_t variables);
 

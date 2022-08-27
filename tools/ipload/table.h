@@ -30,59 +30,33 @@
 
 // self
 //
-#include    "section_reference.h"
+#include    "chain.h"
 
 
 
-enum class policy_t
-{
-    POLICY_ACCEPT,
-    POLICY_DROP,
-};
-
-
-enum class type_t
-{
-    TYPE_RETURN,
-    TYPE_DROP,
-    TYPE_USER_DEFINED,
-};
-
-
-class chain
+class table
 {
 public:
-    typedef std::shared_ptr<chain>              pointer_t;
-    typedef std::vector<pointer_t>              vector_t;
-    typedef std::map<std::string, pointer_t>    map_t;
+    typedef std::shared_ptr<table>  pointer_t;
+    typedef std::vector<pointer_t>  vector_t;
 
-                                    chain(
+                                    table(
                                           advgetopt::conf_file::parameters_t::iterator & it
                                         , advgetopt::conf_file::parameters_t const & config_params
                                         , advgetopt::variables::pointer_t variables);
 
     bool                            is_valid() const;
-    void                            add_section_reference(section_reference::pointer_t section_reference);
-    section_reference::vector_t const &
-                                    get_section_references() const;
-    bool                            add_rule(rule::pointer_t r);
-
     std::string                     get_name() const;
-    policy_t                        get_policy() const;
-    std::string                     get_policy_name() const;
-    type_t                          get_type() const;
-    std::string                     get_log() const;
-    bool                            is_system_chain() const;
+    std::string                     get_prefix() const;
+
+    void                            add_chain(chain::pointer_t c);
+    chain::vector_t const &         get_chains() const;
 
 private:
+    bool                            f_valid = false;
     std::string                     f_name = std::string();
-    policy_t                        f_policy = policy_t::POLICY_DROP;
-    type_t                          f_type = type_t::TYPE_DROP; // this should be RETURN for a user defined chain
-    std::string                     f_log = std::string();
-    section_reference::vector_t     f_section_references = section_reference::vector_t();
-    section_reference::map_t        f_section_references_by_name = section_reference::map_t();
-    bool                            f_valid = true;
-    bool                            f_is_system_chain = false;
+    std::string                     f_prefix = std::string();
+    chain::vector_t                 f_chains = chain::vector_t();
 };
 
 
