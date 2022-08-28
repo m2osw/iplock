@@ -67,6 +67,8 @@ add_executable(${PROJECT_NAME}
     rule.cpp
     section.cpp
     section_reference.cpp
+    state_parser.cpp
+    state_result.cpp
     table.cpp
     utils.cpp
 

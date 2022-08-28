@@ -32,6 +32,7 @@
 #include    "default_firewall.h"
 #include    "basic_ipv4.h"
 #include    "basic_ipv6.h"
+#include    "utils.h"
 
 
 // iplock
@@ -60,6 +61,7 @@
 //
 #include    <snapdev/file_contents.h>
 #include    <snapdev/glob_to_list.h>
+#include    <snapdev/string_replace_many.h>
 
 
 // boost
@@ -575,12 +577,6 @@ void ipload::load_conf_file(
     //
     snapdev::NOT_USED(conf->section_to_variables("variables", f_variables));
 
-    // keep a copy of the sections so we can easily find the
-    // user defined sections/chains/rules objects
-    //
-    advgetopt::conf_file::sections_t sections(conf->get_sections());
-    f_sections.insert(sections.begin(), sections.end());
-
     // retrieve all the parameters in our own variable
     // here parameters are expected to be overwritten between files
     //
@@ -695,7 +691,7 @@ bool ipload::process_parameters()
     auto p(f_parameters.begin());
     while(p != f_parameters.end())
     {
-        if(p->first == "log_introducer")
+        if(p->first == "log-introducer") // dashes are changed to '-' by advgetopt
         {
             f_log_introducer = p->second;
             while(f_log_introducer.back() == ' ')
@@ -715,12 +711,12 @@ bool ipload::process_parameters()
 
         if(names[0] == "table")
         {
-            if(names.size() != 2)
+            if(names.size() != 3)
             {
-                // expected table::<name>
+                // expected table::<name>::<parameter>
                 //
                 SNAP_LOG_ERROR
-                    << "the first table parameter is expected to be \"table::<name>\"."
+                    << "the first table parameter is expected to be \"table::<name>::<parameter>\"."
                     << SNAP_LOG_SEND;
                 valid = false;
                 ++p;
@@ -747,28 +743,32 @@ bool ipload::process_parameters()
         }
         else if(names[0] == "chain")
         {
-            if(names.size() != 2)
+            if(names.size() != 3)
             {
-                // expected chain::<name>
+                // expected chain::<name>::<parameter>
                 //
                 SNAP_LOG_ERROR
-                    << "the first chain parameter is expected to be \"chain::<name>\"."
+                    << "the first chain parameter ("
+                    << p->first
+                    << ") is expected to be \"chain::<name>::<parameter>\"."
                     << SNAP_LOG_SEND;
                 valid = false;
                 ++p;
                 continue;
             }
             chain::pointer_t c(std::make_shared<chain>(p, f_parameters, f_variables));
-            f_chains[c->get_name()] = c;
+            f_chains[snapdev::string_replace_many(c->get_name(), {{"-","_"}})] = c;
         }
         else if(names[0] == "section")
         {
-            if(names.size() != 2)
+            if(names.size() != 3)
             {
-                // expected section::<name>
+                // expected section::<name>::<parameter>
                 //
                 SNAP_LOG_ERROR
-                    << "the first section parameter is expected to be \"section::<name>\"."
+                    << "the first section parameter ("
+                    << p->first
+                    << ") is expected to be \"section::<name>\"."
                     << SNAP_LOG_SEND;
                 valid = false;
                 ++p;
@@ -778,12 +778,14 @@ bool ipload::process_parameters()
         }
         else if(names[0] == "rule")
         {
-            if(names.size() != 2)
+            if(names.size() != 3)
             {
-                // expected rule::<name>
+                // expected rule::<name>::<parameter>
                 //
                 SNAP_LOG_ERROR
-                    << "the first rule parameter is expected to be \"rule::<name>\"."
+                    << "the first rule parameter ("
+                    << p->first
+                    << ") is expected to be \"rule::<name>\"."
                     << SNAP_LOG_SEND;
                 valid = false;
                 ++p;
@@ -828,7 +830,7 @@ bool ipload::process_chains()
     for(auto const & c : f_chains)
     {
         std::string const & name(c.first);
-        std::size_t len(0);
+        std::int64_t len(-1);
         table::pointer_t tbl;
         for(auto const & t : f_tables)
         {
@@ -840,7 +842,7 @@ bool ipload::process_chains()
             {
                 // this is a match!
                 //
-                if(prefix.length() > len)
+                if(static_cast<std::int64_t>(prefix.length()) > len)
                 {
                     tbl = t;
                     len = prefix.length();
@@ -924,8 +926,7 @@ bool ipload::generate_tables(std::ostream & out)
 {
     for(auto const & t : f_tables)
     {
-        out << "*" << t->get_name() << "\n"
-            << "\n";
+        out << "*" << t->get_name() << "\n";
 
         chain::vector_t const & chains(t->get_chains());
 
@@ -955,7 +956,6 @@ bool ipload::generate_tables(std::ostream & out)
                 return false;
             }
         }
-        out << "\n";
 
         // now output the rules for each chain in this table
         // as above, we first output the system defined chains, then the
@@ -1032,7 +1032,10 @@ bool ipload::generate_rules(std::ostream & out, chain::pointer_t c, section_refe
         // therefore here the find() should always find the chain in the list
         //
         advgetopt::string_list_t const & chains(r->get_chains());
-        if(std::find(chains.begin(), chains.end(), c->get_name()) == chains.end())
+        std::string const chain_name(snapdev::string_replace_many(
+                  c->get_name()
+                , {{"-", "_"}}));
+        if(std::find(chains.begin(), chains.end(), chain_name) == chains.end())
         {
             throw iplock::logic_error(
                       "chain \""
@@ -1063,6 +1066,7 @@ void ipload::load_to_iptables()
 
 void ipload::show()
 {
+    std::cout << f_output;
 }
 
 

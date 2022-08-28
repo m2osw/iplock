@@ -28,6 +28,11 @@
  */
 
 
+// self
+//
+#include    "state_result.h"
+
+
 // advgetopt
 //
 #include    <advgetopt/conf_file.h>
@@ -81,8 +86,7 @@ public:
     advgetopt::string_list_t const &    get_destination_ports() const;
 
     advgetopt::string_list_t const &    get_protocols() const;
-    advgetopt::string_list_t const &    get_states() const;
-    bool                                includes_state(std::string const & name) const;
+    state_result::vector_t const &      get_states() const;
     advgetopt::string_list_t const &    get_limits() const;
 
     action_t                            get_action() const;
@@ -95,6 +99,7 @@ public:
 private:
     void                                parse_action(std::string const & action);
     void                                to_iptables_destination_interfaces(std::string & result, std::string const & line);
+    void                                to_iptables_interfaces(std::string & result, std::string const & line);
     void                                to_iptables_protocols(std::string & result, std::string const & line);
     void                                to_iptables_sources(std::string & result, std::string const & line);
     void                                to_iptables_source_ports(std::string & result, std::string const & line);
@@ -113,6 +118,10 @@ private:
     advgetopt::string_list_t            f_after = advgetopt::string_list_t();
     std::string                         f_condition = std::string();        // TBD: what is that already?! a JS expression against our variables?
 
+    std::string                         f_generating_for_chain_name = std::string();
+
+    advgetopt::string_list_t            f_interfaces = advgetopt::string_list_t();
+
     advgetopt::string_list_t            f_source_interfaces = advgetopt::string_list_t();
     advgetopt::string_list_t            f_sources = advgetopt::string_list_t();
     advgetopt::string_list_t            f_except_sources = advgetopt::string_list_t();
@@ -124,7 +133,7 @@ private:
     advgetopt::string_list_t            f_destination_ports = advgetopt::string_list_t();
 
     advgetopt::string_list_t            f_protocols = advgetopt::string_list_t();
-    advgetopt::string_list_t            f_states = advgetopt::string_list_t();
+    state_result::vector_t              f_states = state_result::vector_t();
     advgetopt::string_list_t            f_limits = advgetopt::string_list_t();
 
     action_t                            f_action = action_t::ACTION_UNDEFINED;

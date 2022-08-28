@@ -115,9 +115,9 @@ table::table(
     //
     advgetopt::string_list_t name_list;
     advgetopt::split_string(it->first, name_list, {"::"});
-    if(name_list.size() != 2)
+    if(name_list.size() != 3)
     {
-        throw iplock::logic_error("the table name is expected to be exactly two names: \"table::<name>\"");
+        throw iplock::logic_error("the table name is expected to be exactly two names: \"table::<name>::<parameter>\"");
     }
 
     // this is the name of the chain
@@ -139,7 +139,7 @@ table::table(
     }
 
     std::string const complete_namespace("table::" + f_name + "::");
-    for(++it; it != config_params.end(); ++it)
+    for(; it != config_params.end(); ++it)
     {
         if(strncmp(it->first.c_str(), complete_namespace.c_str(), complete_namespace.length()) != 0)
         {

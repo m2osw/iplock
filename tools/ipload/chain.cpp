@@ -42,6 +42,16 @@
 #include    <snaplogger/message.h>
 
 
+// snapdev
+//
+#include    <snapdev/string_replace_many.h>
+
+
+// C++
+//
+#include    <iostream>
+
+
 // C
 //
 #include    <string.h>
@@ -86,9 +96,9 @@ chain::chain(
     //
     advgetopt::string_list_t name_list;
     advgetopt::split_string(it->first, name_list, {"::"});
-    if(name_list.size() != 2)
+    if(name_list.size() != 3)
     {
-        throw iplock::logic_error("the chain name is expected to be exactly two names: \"chain::<name>\"");
+        throw iplock::logic_error("the chain name \"" + it->first + "\" is expected to be exactly three names: \"chain::<name>::<parameter>\"");
     }
 
     // this is the name of the chain
@@ -101,7 +111,7 @@ chain::chain(
     f_is_system_chain = g_system_chain_names.find(f_name) != g_system_chain_names.end();
 
     std::string const complete_namespace("chain::" + f_name + "::");
-    for(++it; it != config_params.end(); ++it)
+    for(; it != config_params.end(); ++it)
     {
         if(strncmp(it->first.c_str(), complete_namespace.c_str(), complete_namespace.length()) != 0)
         {
@@ -214,13 +224,20 @@ void chain::add_section_reference(section_reference::pointer_t sr)
         std::size_t idx(f_section_references.size());
         while(idx > 0)
         {
+            --idx;
             std::string const & name(f_section_references[idx]->get_name());
+{
+std::cerr << "--- search [" << name << "]\n";
+for(auto const & a : after)
+{
+std::cerr << "    +--> [" << a << "]\n";
+}
+}
             if(std::find(after.begin(), after.end(), name) != after.end())
             {
-                min_idx = idx + 1;
+                min_idx = idx;
                 break;
             }
-            --idx;
         }
     }
 
@@ -229,7 +246,7 @@ void chain::add_section_reference(section_reference::pointer_t sr)
         std::string const & name(f_section_references[idx]->get_name());
         if(std::find(before.begin(), before.end(), name) != before.end())
         {
-            if(idx < min_idx)
+            if(idx <= min_idx)
             {
                 // TODO: I think we could check whether it would be possible
                 //       to swap idx and min_idx so the insert is possible...
@@ -240,7 +257,7 @@ void chain::add_section_reference(section_reference::pointer_t sr)
                     << "\" was required to be before \""
                     << name
                     << "\" and after \""
-                    << f_section_references[min_idx - 1]
+                    << f_section_references[min_idx]
                     << "\" at the same, only those sections are not sorted in such a way that this is currently possible."
                     << SNAP_LOG_SEND;
                 f_valid = false;
@@ -267,12 +284,23 @@ section_reference::vector_t const & chain::get_section_references() const
 
 bool chain::add_rule(rule::pointer_t r)
 {
-    auto it(f_section_references_by_name.find(r->get_section()));
+    std::string const name(snapdev::string_replace_many(r->get_section(), {{"_","-"}}));
+    auto it(f_section_references_by_name.find(name));
     if(it == f_section_references_by_name.end())
     {
+        for(auto const & s : f_section_references_by_name)
+        {
+            if(s.second->get_default())
+            {
+                // this is the default, add the rule there
+                //
+                s.second->add_rule(r);
+                return true;
+            }
+        }
         SNAP_LOG_RECOVERABLE_ERROR
             << "section \""
-            << r->get_section()
+            << name
             << "\" not found. Cannot add rule \""
             << r->get_name()
             << "\" to chain \""

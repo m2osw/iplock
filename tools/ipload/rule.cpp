@@ -29,6 +29,7 @@
 //
 #include    "rule.h"
 
+#include    "state_parser.h"
 #include    "utils.h"
 
 
@@ -51,6 +52,7 @@
 //
 #include    <snapdev/join_strings.h>
 #include    <snapdev/not_reached.h>
+#include    <snapdev/string_replace_many.h>
 
 
 // C
@@ -64,9 +66,6 @@
 
 
 
-
-
-
 rule::rule(
           advgetopt::conf_file::parameters_t::iterator & it
         , advgetopt::conf_file::parameters_t const & config_params
@@ -76,9 +75,9 @@ rule::rule(
     //
     advgetopt::string_list_t name_list;
     advgetopt::split_string(it->first, name_list, {"::"});
-    if(name_list.size() != 2)
+    if(name_list.size() != 3)
     {
-        throw iplock::logic_error("the rule name is expected to be exactly two names: \"rule::<name>\"");
+        throw iplock::logic_error("the rule name \"" + it->first + "\" is expected to be exactly three names: \"rule::<name>::<parameter>\"");
     }
 
     // this is the name of the rule
@@ -88,7 +87,7 @@ rule::rule(
     f_name = name_list[1];
 
     std::string const complete_namespace("rule::" + f_name + "::");
-    for(++it; it != config_params.end(); ++it)
+    for(; it != config_params.end(); ++it)
     {
         if(strncmp(it->first.c_str(), complete_namespace.c_str(), complete_namespace.length()) != 0)
         {
@@ -134,10 +133,10 @@ rule::rule(
             break;
 
         case 'c':
-            if(param_name == "chains")
+            if(param_name == "chain"
+            || param_name == "chains")
             {
                 advgetopt::split_string(value, f_chains, {","});
-                list_to_lower(f_chains);
             }
             else if(param_name == "condition")
             {
@@ -150,16 +149,19 @@ rule::rule(
             break;
 
         case 'd':
-            if(param_name == "destination_intefaces")
+            if(param_name == "destination-interface"
+            || param_name == "destination-interfaces")
             {
                 advgetopt::split_string(value, f_destination_interfaces, {","});
                 list_to_lower(f_destination_interfaces);
             }
-            else if(param_name == "destinations")
+            else if(param_name == "destination"
+                 || param_name == "destinations")
             {
                 advgetopt::split_string(value, f_destinations, {","});
             }
-            else if(param_name == "destination_ports")
+            else if(param_name == "destination-port"
+                 || param_name == "destination-ports")
             {
                 advgetopt::split_string(value, f_destination_ports, {","});
             }
@@ -170,11 +172,13 @@ rule::rule(
             break;
 
         case 'e':
-            if(param_name == "except_destinations")
+            if(param_name == "except-destination"
+            || param_name == "except-destinations")
             {
                 advgetopt::split_string(value, f_except_destinations, {","});
             }
-            else if(param_name == "except_sources")
+            else if(param_name == "except-source"
+                 || param_name == "except-sources")
             {
                 advgetopt::split_string(value, f_except_sources, {","});
             }
@@ -184,8 +188,22 @@ rule::rule(
             }
             break;
 
+        case 'i':
+            if(param_name == "interface"
+            || param_name == "interfaces")
+            {
+                advgetopt::split_string(value, f_interfaces, {","});
+                list_to_lower(f_interfaces);
+            }
+            else
+            {
+                found = false;
+            }
+            break;
+
         case 'l':
-            if(param_name == "limits")
+            if(param_name == "limit"
+            || param_name == "limits")
             {
                 advgetopt::split_string(value, f_limits, {","});
                 if(f_limits.size() > 2)
@@ -207,7 +225,8 @@ rule::rule(
             break;
 
         case 'p':
-            if(param_name == "protocols")
+            if(param_name == "protocol"
+            || param_name == "protocols")
             {
                 advgetopt::split_string(value, f_protocols, {","});
             }
@@ -222,55 +241,37 @@ rule::rule(
             {
                 f_section = value;
             }
-            else if(param_name == "source_intefaces")
+            else if(param_name == "source-interface"
+                 || param_name == "source-interfaces")
             {
                 advgetopt::split_string(value, f_source_interfaces, {","});
+                list_to_lower(f_source_interfaces);
             }
-            else if(param_name == "sources")
+            else if(param_name == "source"
+                 || param_name == "sources")
             {
                 advgetopt::split_string(value, f_sources, {","});
             }
-            else if(param_name == "source_ports")
+            else if(param_name == "source-port"
+                 || param_name == "source-ports")
             {
                 advgetopt::split_string(value, f_source_ports, {","});
             }
-            else if(param_name == "states")
+            else if(param_name == "state"
+                 || param_name == "states")
             {
-                advgetopt::split_string(value, f_states, {","});
-                list_to_lower(f_states);
-
-                int state_groups(0);
-                if(includes_state("new")
-                || includes_state("syn"))
+                state_parser state(value.c_str());
+                if(state.parse())
                 {
-                    state_groups |= 1;
+                    f_states = state.get_results();
                 }
-                if(includes_state("old")
-                || includes_state("!syn"))
+                else
                 {
-                    state_groups |= 2;
-                }
-                if(includes_state("related")
-                || includes_state("established"))
-                {
-                    state_groups |= 4;
-                }
-                switch(state_groups)
-                {
-                case 1:
-                case 2:
-                case 4:
-                    break;
-
-                default:
-                    SNAP_LOG_ERROR
-                        << "the specified states ("
+                    SNAP_LOG_RECOVERABLE_ERROR
+                        << "invalid states in \""
                         << value
-                        << ") pertain to separate exclusive groups and they cannot be used together in the same rule."
+                        << "\"."
                         << SNAP_LOG_SEND;
-                    f_valid = false;
-                    break;
-
                 }
             }
             else
@@ -306,7 +307,9 @@ rule::rule(
     && !f_sources.empty())
     {
         SNAP_LOG_ERROR
-            << "a rule cannot have \"sources\" and \"except-sources\" at the same time."
+            << "rule \""
+            << f_name
+            << "\" cannot have \"sources\" and \"except_sources\" at the same time."
             << SNAP_LOG_SEND;
         f_valid = false;
     }
@@ -321,14 +324,25 @@ rule::rule(
     if(!common.empty())
     {
         SNAP_LOG_ERROR
-            << "a rule cannot before and after the same rule(s): "
+            << "rule \""
+            << f_name
+            << "\" cannot before and after the same rule(s): "
             << snapdev::join_strings(common, ", ")
             << "."
             << SNAP_LOG_SEND;
         f_valid = false;
     }
 
-    // TODO: test contradictory states
+    if((!f_source_interfaces.empty() || !f_destination_interfaces.empty())
+    && !f_interfaces.empty())
+    {
+        SNAP_LOG_ERROR
+            << "rule \""
+            << f_name
+            << "\" cannot use 'source_interfaces' and 'destination_interfaces' along with 'interfaces'."
+            << SNAP_LOG_SEND;
+        f_valid = false;
+    }
 }
 
 
@@ -640,15 +654,9 @@ advgetopt::string_list_t const & rule::get_protocols() const
 }
 
 
-advgetopt::string_list_t const & rule::get_states() const
+state_result::vector_t const & rule::get_states() const
 {
     return f_states;
-}
-
-
-bool rule::includes_state(std::string const & name) const
-{
-    return std::find(f_states.begin(), f_states.end(), name) != f_states.end();
 }
 
 
@@ -736,6 +744,8 @@ void rule::set_log_introducer(std::string const & introducer)
  */
 std::string rule::to_iptables_rules(std::string const & chain_name)
 {
+    f_generating_for_chain_name = chain_name;
+
     std::string result;
     std::string line;
 
@@ -761,13 +771,67 @@ void rule::to_iptables_destination_interfaces(std::string & result, std::string 
 {
     if(f_destination_interfaces.empty())
     {
-        to_iptables_protocols(result, line);
+        to_iptables_interfaces(result, line);
     }
     else
     {
         for(auto const & s : f_destination_interfaces)
         {
-            to_iptables_protocols(result, line + " -o " + s);
+            to_iptables_interfaces(result, line + " -o " + s);
+        }
+    }
+}
+
+
+void rule::to_iptables_interfaces(std::string & result, std::string const & line)
+{
+    if(f_interfaces.empty())
+    {
+        to_iptables_protocols(result, line);
+    }
+    else
+    {
+        // in this case, we may use -i, -o, or both depending on the table
+        //
+        // for user defined tables, we use both even if not allowed; it is
+        // up to the user to fix the issue if it should only be a source or
+        // a destination
+        //
+        constexpr int IN_OUT_IN  = 0x01;
+        constexpr int IN_OUT_OUT = 0x02;
+        int in_out(0);
+        if(f_generating_for_chain_name == "OUTPUT")
+        {
+            in_out |= IN_OUT_OUT;
+        }
+        else if(f_generating_for_chain_name == "FORWARD")
+        {
+            in_out |= IN_OUT_IN | IN_OUT_OUT;
+        }
+        switch(in_out)
+        {
+        case IN_OUT_IN:
+        case 0:     // for all others, the input is the default
+            for(auto const & s : f_interfaces)
+            {
+                to_iptables_protocols(result, line + " -i " + s);
+            }
+            break;
+
+        case IN_OUT_OUT:
+            for(auto const & s : f_interfaces)
+            {
+                to_iptables_protocols(result, line + " -o " + s);
+            }
+            break;
+
+        case IN_OUT_IN | IN_OUT_OUT:
+            for(auto const & s : f_interfaces)
+            {
+                to_iptables_protocols(result, line + " -i " + s + " -o " + s);
+            }
+            break;
+
         }
     }
 }
@@ -781,11 +845,20 @@ void rule::to_iptables_protocols(std::string & result, std::string const & line)
     }
     else
     {
+        bool is_established_related(false);
+        for(auto const & s : f_states)
+        {
+            if(s.is_valid()
+            && s.get_established_related())
+            {
+                is_established_related = true;
+                break;
+            }
+        }
         for(auto const & s : f_protocols)
         {
             std::string l(line + " -p " + s);
-            if(includes_state("established")
-            || includes_state("related"))
+            if(is_established_related)
             {
                 l += " -m state --state ESTABLISHED,RELATED";
             }
@@ -1064,20 +1137,22 @@ void rule::to_iptables_limits(std::string & result, std::string const & line)
 
 void rule::to_iptables_states(std::string & result, std::string const & line)
 {
-    std::string l(line);
-
-    if(includes_state("new")
-    || includes_state("syn"))
+    if(f_states.empty())
     {
-        l += " --syn";
+        to_iptables_target(result, line);
     }
-    else if(includes_state("old")
-         || includes_state("!syn"))
+    else
     {
-        l += " ! --syn";
-    }
+        for(auto const & s : f_states)
+        {
+            if(!s.is_valid())
+            {
+                continue;
+            }
 
-    to_iptables_target(result, line);
+            to_iptables_target(result, line + s.to_iptables_options());
+        }
+    }
 }
 
 
@@ -1087,12 +1162,25 @@ void rule::to_iptables_target(std::string & result, std::string const & line)
     //
     if(!f_log.empty())
     {
+        // the total length of the prefix is 29 or less
+        //
+        std::string prefix(
+                  f_log_introducer
+                + ' '
+                + f_log);
+        prefix = snapdev::string_replace_many(
+                  prefix
+                , {{"\"", "'"}});
+        if(prefix.length() > 28)
+        {
+            prefix = prefix.substr(0, 28);
+        }
+        prefix += ':';
+
         result += line
                 + " -j LOG --log-prefix \""
-                + f_log_introducer
-                + ' '
-                + f_log
-                + ":\" --log-uid";
+                + prefix
+                + "\" --log-uid\n";
     }
 
     if(f_action == action_t::ACTION_LOG)
@@ -1135,6 +1223,7 @@ void rule::to_iptables_target(std::string & result, std::string const & line)
         break;
 
     }
+    result += '\n';
 }
 
 

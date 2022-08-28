@@ -69,9 +69,9 @@ section::section(
     //
     advgetopt::string_list_t name_list;
     advgetopt::split_string(it->first, name_list, {"::"});
-    if(name_list.size() != 2)
+    if(name_list.size() != 3)
     {
-        throw iplock::logic_error("the section name is expected to be exactly two names: \"section::<name>\"");
+        throw iplock::logic_error("the section \"" + it->first + "\" name is expected to be exactly three names: \"section::<name>::<parameter>\"");
     }
 
     // this is the name of the section
@@ -81,7 +81,7 @@ section::section(
     f_name = name_list[1];
 
     std::string const complete_namespace("section::" + f_name + "::");
-    for(++it; it != config_params.end(); ++it)
+    for(; it != config_params.end(); ++it)
     {
         if(strncmp(it->first.c_str(), complete_namespace.c_str(), complete_namespace.length()) != 0)
         {

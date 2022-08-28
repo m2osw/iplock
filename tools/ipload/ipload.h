@@ -79,8 +79,6 @@ private:
     int                     f_command = 0;
     advgetopt::variables::pointer_t
                             f_variables = advgetopt::variables::pointer_t();
-    advgetopt::conf_file::sections_t
-                            f_sections = advgetopt::conf_file::sections_t();
     advgetopt::conf_file::parameters_t
                             f_parameters = advgetopt::conf_file::parameters_t();
     table::vector_t         f_tables = table::vector_t();

@@ -81,8 +81,8 @@ The following shows the list of supported tags (see details below):
     except_destinations = <destination>[, <destination>]*
     destination_ports = <port>[, <port>]*
     protocols = tcp, udp, icmp, etc.
-    state = [!]new, [!]established, [!]related
-    limit = <number>[, <number>]
+    state = <flag> | <flag> | ..., [!] ( <flag> | <flag> | ... ), !<flag>
+    limit = [<|<=|>]<number>[, [<-|->]<number>]
     action = <action>
     log = <message>
 
@@ -96,6 +96,20 @@ rules are created to handle one entry.
 The `log` variable means that we add a `-j LOG` rule before the other
 rule(s). In iptables parlance, this is an action. We simplify for you
 having a single rule implementing both features at once.
+
+Some of the rules parameters support plural and singular names when one
+or more can be specified.
+
+Sections do not exist in iptables. We use such to automatically sort rules
+in _groups_. We can more easily sort rules in the correct order for the
+final list of rules to upload to the iptables.
+
+The sections support a name. By placing a rule in a section, it is simply
+added at the end. You can also force your rule(s) to appear before or after
+another rule if necessary.
+
+Note that sections are not specific to a chain. Rules appearing in different
+chains can be placed in the same section.
 
 ### `table::<table-name>::prefix`
 
@@ -154,19 +168,7 @@ the `RETURN` or `DROP` rule found at the end is encountered.
 
 **Default:** no message.
 
-### `section::name`
-
-Sections define groups of rules so we can more easily sort rules in the
-correct order for the final list of rules to upload to the iptables.
-
-The sections support a name. By placing a rule in a section, it is simply
-added at the end. You can also force your rule(s) to appear before or after
-another rule if necessary.
-
-Note that sections are not specific to a chain. Rules appearing in different
-chains can be placed in the same section.
-
-### `section::before`
+### `section::<name>::before`
 
 Define the name of a section that we want to appear before. In the final
 list of rules, all the rules in this section will appear before the
@@ -175,7 +177,7 @@ rules found in the section named in this parameter.
 Multiple names can be included. Separate each name with a comma. Spaces
 are ignored.
 
-### `section::after`
+### `section::<name>::after`
 
 Define the name of a section that we want to appear after. In the final
 list of rules, all the rules in this section will appear after the
@@ -184,7 +186,7 @@ rules found in the section named in this parameter.
 Multiple names can be included. Separate each name with a comma. Spaces
 are ignored.
 
-### `section::default`
+### `section::<name>::default`
 
 Mark this section as the default one. You are expected to set this parameter
 to true.
@@ -196,7 +198,7 @@ to add all the rules that were not assigned a section name.
 If none of the sections were marked as the default section and some rules do
 not specifically name a section, then an error is generated.
 
-### `rule::<name>::chains`
+### `rule::<name>::chain` or `rule::<name>::chains`
 
 This parameter defines the list of chains that are to receive this rule.
 
@@ -204,6 +206,10 @@ Chain names include built-in chains (INPUT, OUTPUT, etc.) and user defined
 chains. User defined chains do not need to be pre-defined. The tool will
 automatically create them as required and apply defaults as defined in
 each `chain::...` variable.
+
+The name of chains is case sensitive. So it must be `INPUT` if you want to
+add to the built-in `INPUT` chain. It is customary to use lowercase of user
+defined chains to avoid any future potential clashes.
 
 **Default:** none, this is a required parameter, you need to have at least one
 chain to which the `<name>` rule applies.
@@ -233,13 +239,13 @@ This parameter allows you to sort your rules as expected in the final output.
 
 If the named rules are not defined, then that name is ignored.
 
-### `rule::<name>::source_interfaces`
+### `rule::<name>::source_interface` or `rule::<name>::source_interfaces`
 
 This parameter defines the list of interfaces that the rule applies to.
 
 **Default:** none, which means the rule applies to all interfaces.
 
-### `rule::<name>::sources`
+### `rule::<name>::source` or `rule::<name>::sources`
 
 This parameter defines a list of IP addresses or domain names to use to
 filter the incoming network traffic.
@@ -247,7 +253,7 @@ filter the incoming network traffic.
 **Default:** no source is checked and the rule is accepted whatever
 the source is.
 
-### `rule::<name>::except_sources`
+### `rule::<name>::except_source` or `rule::<name>::except_sources`
 
 This parameter defines a list of IP addresses or domain names to not
 match when this rule is checked. If the source matches, then that rule
@@ -256,7 +262,7 @@ avoid having your own traffic forwarded.
 
 **Default:** none.
 
-### `rule::<name>::source_ports`
+### `rule::<name>::source_port` or `rule::<name>::source_ports`
 
 This parameter defines a list of source ports allowed to connect. The
 number of ports is not limited. It will be broken up in group of 15 to
@@ -266,13 +272,13 @@ If you used the `except_sources`, then the ports are also exceptions.
 
 **Default:** none.
 
-### `rule::<name>::destination_interfaces`
+### `rule::<name>::destination_interface` or `rule::<name>::destination_interfaces`
 
 This parameter defines the list of interfaces that the rule applies to.
 
 **Default:** none, which means the rule applies to all interfaces.
 
-### `rule::<name>::destinations`
+### `rule::<name>::destination` or `rule::<name>::destinations`
 
 This parameter defines a list of IP addresses or domain names to use to
 filter the outgoing network traffic.
@@ -280,7 +286,7 @@ filter the outgoing network traffic.
 **Default:** no destination is checked and the rule is accepted whatever
 the destination is.
 
-### `rule::<name>::except_destinations`
+### `rule::<name>::except_destination` or `rule::<name>::except_destinations`
 
 This parameter defines a list of IP addresses or domain names to not
 match when this rule is checked. If the destination matches, then that
@@ -288,7 +294,7 @@ rule will be skipped.
 
 **Default:** none.
 
-### `rule::<name>::destination_ports`
+### `rule::<name>::destination_port` or `rule::<name>::destination_ports`
 
 This parameter defines a list of ports to go with this rules. The number of
 ports is not limited. It will be split in lists of 15 per iptables rule.
@@ -298,27 +304,90 @@ exceptions.
 
 **Default:** none.
 
-### `rule::<name>::protocol`
+### `rule::<name>::protocol` or `rule::<name>::protocols`
 
 This parameter defines which protocol is necessary to match this rule.
 
 **Default:** no protocol is matched meaning that all packets get checked.
 
-### `rule::<name>::state`
+### `rule::<name>::state` or `rule::<name>::states`
 
-The state of the packet for its target to be accepted by the rule.
+The state or type of the packet for its target to be accepted by the rule.
+
+We currently support states for:
+
+* Connection state (`-m state --state ...`)
+* TCP flags (`--tcpflags`)
+* ICMP types (`--icmp-type`)
+
+You can use a set of states within one rule by separating each state with a
+`|` character. You can use the '!' operator to negate a flag or `!(...)` to
+negate a series of flags. Note that the `established` and `related` cannot
+be negated (the '!' against these two are ignored). You can separate
+flag names and operators by any number of spaces.
+
+Separate sets are defined between commas (i.e. commas mean that the states
+are going to be used in separate rules).
+
+The supported syntax looks like so:
+
+    start: mask_compare
+         | start ',' mask_compare
+
+    mask_compare: flag_list
+                | flag_list '=' flag_list
+
+    flag_list: flag_name
+             | flag_list '|' flag_name
+
+    flag_name: 'syn'
+             | 'ack'
+             | 'fin'
+             | 'rst'
+             | 'urg'
+             | 'psh'
+             | 'new'
+             | 'old'
+             | 'all'
+             | 'none'
+             | 'established'
+             | 'related'
+             | 'timestamp-request'
+             | 'any'
+             | '(' flag_list ')'
+             | '!' flag_name
+
+Example:
+
+    new, ack|fin, established|!(syn|ack|urg), !syn
+
+Warning: the `!` operator is probably not working as expected. If applied to
+a single flag, it still applies to the whole set of flags. So the following
+are equivalent:
+
+    !(syn|ack|urg)
+    !syn|ack|urg
+
+Only there isn't an easy way I can think of at the moment to prevent the
+second syntax. I may later create a node for each entry found in the
+expression and reconsiliate the results at the end. Then it would be possible
+to detect such inconsistencies (and invalid uses such as `!related`).
 
 We currently support:
 
-* `new` or `syn`
+* `new`
 
   The packet must be considered "new", this means it is a TCP connection
   attempt. It is not available with UDP.
 
-* `old` or `!syn`
+  This is equivalent to `--syn` in the iptables parlance.
 
-  The opposite of the `new` state. This means the packet must not be a
+* `old`
+
+  The opposite of the "new" state. This means the packet must not be a
   TCP connection attempt. It is not available with UDP.
+
+  This is equivalent to `! --syn` in the iptables parlance.
 
 * `established` or `related`
 
@@ -326,9 +395,63 @@ We currently support:
   that represent an established connection and let them go through early on.
   This works with TCP and UDP.
 
-**Default:** none. All states pass.
+  In most cases, you want to use `!new` along these flags:
 
-### `rule::<name>::limit`
+      state = establised | related | !new
+
+* `syn`
+
+  The TCP SYN signal.
+
+* `ack`
+
+  The TCP ACK signal.
+
+* `fin`
+
+  The TCP FIN signal
+
+* `rst`
+
+  The TCP RST signal.
+
+* `urg`
+
+  The TCP URG signal
+
+* `psh`
+
+  The TCP PSH signal
+
+* `all`
+
+  This represents all the TCP signals. This is useful for the mask.
+
+* `none`
+
+  This represents none of the TCP signals.
+
+* `(...)`
+
+  Group a set of flags. This is useful to negate a set of TCP flags.
+  (i.e. `!(syn|ack)`).
+
+* `!<flag>`
+
+  Negate a TCP flag. Note that this flag has no meaning against flags that
+  are not TCP flags. (i.e. `established`, `related`, etc.)
+
+* `timestamp-request`
+
+  An `--icmp-type` to match against.
+
+* `any`
+
+  An `--icmp-type` to match against.
+
+**Default:** none. Whatever the state, the rule passes.
+
+### `rule::<name>::limit` or `rule::<name>::limits`
 
 This parameter defines two numbers.
 
