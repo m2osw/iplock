@@ -1050,7 +1050,7 @@ bool ipload::generate_rules(std::ostream & out, chain::pointer_t c, section_refe
 #endif
 
         r->set_log_introducer(f_log_introducer);
-        out << r->to_iptables_rules(c->get_name());
+        out << r->to_iptables_rules(advgetopt::option_with_underscores(c->get_name()));
 
         if(!r->is_valid())
         {
