@@ -119,6 +119,7 @@ private:
     std::string                         f_condition = std::string();        // TBD: what is that already?! a JS expression against our variables?
 
     std::string                         f_generating_for_chain_name = std::string();
+    std::string                         f_generating_for_protocol = std::string();
 
     advgetopt::string_list_t            f_interfaces = advgetopt::string_list_t();
 

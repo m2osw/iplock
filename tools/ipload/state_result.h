@@ -90,7 +90,7 @@ public:
     std::string         get_icmp_type() const;
     void                set_icmp_type(std::string type);
 
-    std::string         to_iptables_options() const;
+    std::string         to_iptables_options(std::string const & protocol) const;
 
     bool                operator == (state_result const & rhs) const;
 

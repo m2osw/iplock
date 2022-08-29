@@ -1067,7 +1067,7 @@ void ipload::load_to_iptables()
         int const r(pclose(p));
         if(r != 0)
         {
-            SNAP_LOG_RECOVERABLE_ERROR
+            SNAP_LOG_ERROR
                 << "the IPv4 firewall could not be loaded."
                 << SNAP_LOG_SEND;
         }

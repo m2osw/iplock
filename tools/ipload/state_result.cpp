@@ -195,7 +195,7 @@ void state_result::set_icmp_type(std::string type)
 }
 
 
-std::string state_result::to_iptables_options() const
+std::string state_result::to_iptables_options(std::string const & protocol) const
 {
     if(!f_valid)
     {
@@ -209,37 +209,46 @@ std::string state_result::to_iptables_options() const
     //    return " -m state --state ESTABLISHED,RELATED";
     //}
 
-    if(!f_icmp_type.empty())
+    if(protocol == "icmp")
     {
-        return " --icmp-type timestamp-request";
-    }
-
-    if(f_tcp_compare != TCP_UNDEFINED)
-    {
-        if(f_tcp_mask == TCP_SYN | TCP_RST | TCP_ACK | TCP_FIN
-        && f_tcp_compare == TCP_SYN)
+        if(!f_icmp_type.empty())
         {
-            if(f_tcp_negate)
-            {
-                return " ! --syn";
-            }
-            return " --syn";
+            return " --icmp-type timestamp-request";
         }
+        return std::string();
     }
 
-    // not a specific TCP flags so output the whole thing
-    //
-    std::string result;
-    if(f_tcp_negate)
+    if(protocol == "tcp")
     {
-        result += " !";
-    }
-    result += " --tcp-flags ";
-    result += tcp_flags_to_string(f_tcp_mask);
-    result += ' ';
-    result += tcp_flags_to_string(f_tcp_compare);
+        if(f_tcp_compare != TCP_UNDEFINED)
+        {
+            if(f_tcp_mask == TCP_SYN | TCP_RST | TCP_ACK | TCP_FIN
+            && f_tcp_compare == TCP_SYN)
+            {
+                if(f_tcp_negate)
+                {
+                    return " ! --syn";
+                }
+                return " --syn";
+            }
+        }
 
-    return result;
+        // not a specific TCP flags so output the whole thing
+        //
+        std::string result;
+        if(f_tcp_negate)
+        {
+            result += " !";
+        }
+        result += " --tcp-flags ";
+        result += tcp_flags_to_string(f_tcp_mask);
+        result += ' ';
+        result += tcp_flags_to_string(f_tcp_compare);
+
+        return result;
+    }
+
+    return std::string();
 }
 
 

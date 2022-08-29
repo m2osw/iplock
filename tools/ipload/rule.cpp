@@ -841,6 +841,7 @@ void rule::to_iptables_protocols(std::string & result, std::string const & line)
 {
     if(f_protocols.empty())
     {
+        f_generating_for_protocol = "";
         to_iptables_sources(result, line);
     }
     else
@@ -867,6 +868,7 @@ void rule::to_iptables_protocols(std::string & result, std::string const & line)
             {
                 l += " -m multiport";
             }
+            f_generating_for_protocol = s;
             to_iptables_sources(result, l + " -m " + s);
         }
     }
@@ -1150,7 +1152,7 @@ void rule::to_iptables_states(std::string & result, std::string const & line)
                 continue;
             }
 
-            to_iptables_target(result, line + s.to_iptables_options());
+            to_iptables_target(result, line + s.to_iptables_options(f_generating_for_protocol));
         }
     }
 }
