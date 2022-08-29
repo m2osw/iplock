@@ -1047,7 +1047,7 @@ bool ipload::generate_chain(std::ostream & out, chain::pointer_t c)
     case type_t::TYPE_RETURN:
         out << "-A "
             << advgetopt::option_with_underscores(c->get_name())
-            << " -j DROP\n";
+            << " -j RETURN\n";
         break;
 
     case type_t::TYPE_DROP:

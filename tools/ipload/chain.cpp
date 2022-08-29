@@ -178,7 +178,7 @@ chain::chain(
                 }
                 else if(value == "reject")
                 {
-                    f_type = type_t::TYPE_DROP;
+                    f_type = type_t::TYPE_REJECT;
                 }
                 else if(value == "user_defined")
                 {
