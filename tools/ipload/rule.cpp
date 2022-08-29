@@ -959,7 +959,16 @@ void rule::to_iptables_destinations(std::string & result, std::string const & li
     {
         for(auto const & s : f_destinations)
         {
-            to_iptables_destination_ports(result, line + " -d " + s);
+            if(s == "any")
+            {
+                // TODO: once I have ip6tables we need to use '::' here
+                //
+                to_iptables_destination_ports(result, line + " -d 0.0.0.0");
+            }
+            else
+            {
+                to_iptables_destination_ports(result, line + " -d " + s);
+            }
         }
     }
 }
