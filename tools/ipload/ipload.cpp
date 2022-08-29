@@ -983,6 +983,8 @@ bool ipload::generate_tables(std::ostream & out)
                 return false;
             }
         }
+
+        out << "COMMIT\n";
     }
 
     return true;
