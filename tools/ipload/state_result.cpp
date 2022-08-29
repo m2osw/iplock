@@ -213,7 +213,7 @@ std::string state_result::to_iptables_options(std::string const & protocol) cons
     {
         if(!f_icmp_type.empty())
         {
-            return " --icmp-type timestamp-request";
+            return " --icmp-type " + f_icmp_type;
         }
         return std::string();
     }
