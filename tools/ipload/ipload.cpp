@@ -1061,6 +1061,17 @@ bool ipload::generate_rules(std::ostream & out, chain::pointer_t c, section_refe
 
 void ipload::load_to_iptables()
 {
+    {
+        FILE * p(popen("iptables-restore", "w"));
+        fwrite(f_output.c_str(), sizeof(char), f_output.length(), p);
+        int const r(pclose(p));
+        if(r != 0)
+        {
+            SNAP_LOG_RECOVERABLE_ERROR
+                << "the IPv4 firewall could not be loaded."
+                << SNAP_LOG_SEND;
+        }
+    }
 }
 
 
