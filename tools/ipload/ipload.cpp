@@ -49,6 +49,7 @@
 // advgetopt
 //
 #include    <advgetopt/exception.h>
+#include    <advgetopt/utils.h>
 
 
 // snaplogger
@@ -994,7 +995,7 @@ bool ipload::generate_tables(std::ostream & out)
 bool ipload::generate_chain_name(std::ostream & out, chain::pointer_t c)
 {
     out << ":"
-        << c->get_name()
+        << advgetopt::option_with_underscores(c->get_name())
         << ' '
         << (c->is_system_chain() ? c->get_policy_name() : "-")
         << " [0:0]\n";
