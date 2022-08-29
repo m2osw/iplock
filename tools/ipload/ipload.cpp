@@ -1019,6 +1019,55 @@ bool ipload::generate_chain(std::ostream & out, chain::pointer_t c)
         }
     }
 
+    std::string const log(c->get_log());
+    if(!log.empty())
+    {
+        std::string prefix(
+                  f_log_introducer
+                + ' '
+                + log);
+        prefix = snapdev::string_replace_many(
+                  prefix
+                , {{"\"", "'"}});
+        if(prefix.length() > 28)
+        {
+            prefix = prefix.substr(0, 28);
+        }
+        prefix += ':';
+
+        out << "-A "
+            << advgetopt::option_with_underscores(c->get_name())
+            << " -j LOG --log-prefix \""
+            << prefix
+            << "\" --log-uid\n";
+    }
+
+    switch(c->get_type())
+    {
+    case type_t::TYPE_RETURN:
+        out << "-A "
+            << advgetopt::option_with_underscores(c->get_name())
+            << " -j DROP\n";
+        break;
+
+    case type_t::TYPE_DROP:
+        out << "-A "
+            << advgetopt::option_with_underscores(c->get_name())
+            << " -j DROP\n";
+        break;
+
+    case type_t::TYPE_REJECT:
+        out << "-A "
+            << advgetopt::option_with_underscores(c->get_name())
+            << " -j REJECT\n";
+        break;
+
+    case type_t::TYPE_USER_DEFINED:
+        // the user wants to end the chain
+        break;
+
+    }
+
     return true;
 }
 

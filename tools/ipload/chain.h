@@ -45,6 +45,7 @@ enum class type_t
 {
     TYPE_RETURN,
     TYPE_DROP,
+    TYPE_REJECT,
     TYPE_USER_DEFINED,
 };
 

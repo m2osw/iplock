@@ -176,9 +176,21 @@ chain::chain(
                 {
                     f_type = type_t::TYPE_DROP;
                 }
+                else if(value == "reject")
+                {
+                    f_type = type_t::TYPE_DROP;
+                }
                 else if(value == "user_defined")
                 {
                     f_type = type_t::TYPE_USER_DEFINED;
+                }
+                else
+                {
+                    SNAP_LOG_RECOVERABLE_ERROR
+                        << "unknown chain type \""
+                        << value
+                        << "\"."
+                        << SNAP_LOG_SEND;
                 }
             }
             else
