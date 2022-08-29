@@ -238,13 +238,6 @@ void chain::add_section_reference(section_reference::pointer_t sr)
         {
             --idx;
             std::string const & name(f_section_references[idx]->get_name());
-{
-std::cerr << "--- search [" << name << "]\n";
-for(auto const & a : after)
-{
-std::cerr << "    +--> [" << a << "]\n";
-}
-}
             if(std::find(after.begin(), after.end(), name) != after.end())
             {
                 min_idx = idx;
