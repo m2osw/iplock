@@ -19,17 +19,17 @@
 ##
 ## iplock helper scripts
 ##
-project(iplock-scripts)
+project(scripts)
 
 install(
-    TARGETS
+    PROGRAMS
         count-unwanted
         remove-dups
         showfw
         unblock-all
         unblock-ip
 
-    RUNTIME DESTINATION
+    DESTINATION
         bin
 )
 

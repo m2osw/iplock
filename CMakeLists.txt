@@ -48,6 +48,7 @@ add_subdirectory(iplock)        # library
 add_subdirectory(tools)         # tools and daemon
 add_subdirectory(doc)           # documentation
 add_subdirectory(conf)          # configuration
+add_subdirectory(scripts)       # scripts
 add_subdirectory(tests)         # tests of library
 
 
