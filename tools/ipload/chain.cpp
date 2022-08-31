@@ -106,11 +106,11 @@ chain::chain(
     // it is used by the ipload tool to know in which iptables chain to save
     // rules that reference this chain
     //
-    f_name = name_list[1];
+    f_name = advgetopt::option_with_underscores(name_list[1]);
 
     f_is_system_chain = g_system_chain_names.find(f_name) != g_system_chain_names.end();
 
-    std::string const complete_namespace("chain::" + f_name + "::");
+    std::string const complete_namespace("chain::" + name_list[1] + "::");
     for(; it != config_params.end(); ++it)
     {
         if(strncmp(it->first.c_str(), complete_namespace.c_str(), complete_namespace.length()) != 0)
@@ -226,19 +226,27 @@ void chain::add_section_reference(section_reference::pointer_t sr)
 {
     f_section_references_by_name[sr->get_name()] = sr;
 
+    std::string const & name(sr->get_name());
     advgetopt::string_list_t const & before(sr->get_before());
     advgetopt::string_list_t const & after(sr->get_after());
 
     // compute the minimum position first
     //
-    std::size_t min_idx(0);
+    std::string other_name;
+    std::int64_t min_idx(-1);
     {
         std::size_t idx(f_section_references.size());
         while(idx > 0)
         {
             --idx;
-            std::string const & name(f_section_references[idx]->get_name());
-            if(std::find(after.begin(), after.end(), name) != after.end())
+            other_name = f_section_references[idx]->get_name();
+            if(std::find(after.begin(), after.end(), other_name) != after.end())
+            {
+                min_idx = idx;
+                break;
+            }
+            advgetopt::string_list_t const & other_before(f_section_references[idx]->get_before());
+            if(std::find(other_before.begin(), other_before.end(), name) != other_before.end())
             {
                 min_idx = idx;
                 break;
@@ -246,33 +254,46 @@ void chain::add_section_reference(section_reference::pointer_t sr)
         }
     }
 
+    std::int64_t found(-1);
     for(std::size_t idx(0); idx < f_section_references.size(); ++idx)
     {
-        std::string const & name(f_section_references[idx]->get_name());
-        if(std::find(before.begin(), before.end(), name) != before.end())
+        other_name = f_section_references[idx]->get_name();
+        if(std::find(before.begin(), before.end(), other_name) != before.end())
         {
-            if(idx <= min_idx)
-            {
-                // TODO: I think we could check whether it would be possible
-                //       to swap idx and min_idx so the insert is possible...
-                //
-                SNAP_LOG_ERROR
-                    << "section named \""
-                    << sr->get_name()
-                    << "\" was required to be before \""
-                    << name
-                    << "\" and after \""
-                    << f_section_references[min_idx]
-                    << "\" at the same, only those sections are not sorted in such a way that this is currently possible."
-                    << SNAP_LOG_SEND;
-                f_valid = false;
-            }
-            else
-            {
-                f_section_references.insert(f_section_references.begin() + idx, sr);
-            }
-            return;
+            found = idx;
+            break;
         }
+        advgetopt::string_list_t const & other_after(f_section_references[idx]->get_after());
+        if(std::find(other_after.begin(), other_after.end(), name) != other_after.end())
+        {
+            found = idx;
+            break;
+        }
+    }
+
+    if(found != -1)
+    {
+        if(found <= min_idx)
+        {
+            // TODO: I think we could check whether it would be possible
+            //       to swap idx and min_idx so the insert is possible...
+            //
+            SNAP_LOG_ERROR
+                << "section named \""
+                << sr->get_name()
+                << "\" was required to be before \""
+                << name
+                << "\" and after \""
+                << f_section_references[min_idx]
+                << "\" at the same, only those sections are not sorted in such a way that this is currently possible."
+                << SNAP_LOG_SEND;
+            f_valid = false;
+        }
+        else
+        {
+            f_section_references.insert(f_section_references.begin() + found, sr);
+        }
+        return;
     }
 
     // not inserted yet, add at the end

@@ -78,9 +78,9 @@ section::section(
     //
     // it is used by the ipload tool to sort the sections between each others
     //
-    f_name = name_list[1];
+    f_name = advgetopt::option_with_underscores(name_list[1]);
 
-    std::string const complete_namespace("section::" + f_name + "::");
+    std::string const complete_namespace("section::" + name_list[1] + "::");
     for(; it != config_params.end(); ++it)
     {
         if(strncmp(it->first.c_str(), complete_namespace.c_str(), complete_namespace.length()) != 0)

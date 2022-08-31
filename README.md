@@ -72,6 +72,7 @@ The following shows the list of supported tags (see details below):
     before = <rule-name>[, <rule-name>]*
     after = <rule-name>[, <rule-name>]*
     condition = <condition>
+    interfaces = <interface>[, <interface>]*
     source_interfaces = <interface>[, <interface>]*
     sources = <source>[, <source>]*
     except_sources = <source>[, <source>]*
@@ -80,7 +81,7 @@ The following shows the list of supported tags (see details below):
     destinations = <destination>[, <destination>]*
     except_destinations = <destination>[, <destination>]*
     destination_ports = <port>[, <port>]*
-    protocols = tcp, udp, icmp, etc.
+    protocols = tcp, udp, icmp, ...
     state = <flag> | <flag> | ..., [!] ( <flag> | <flag> | ... ), !<flag>
     limit = [<|<=|>]<number>[, [<-|->]<number>]
     action = <action>
@@ -238,6 +239,43 @@ The name of one or more rules that must be added before this one.
 This parameter allows you to sort your rules as expected in the final output.
 
 If the named rules are not defined, then that name is ignored.
+
+### `rule::<name>::condition` or `rule::<name>::conditions`
+
+This parameter is used to conditionally exclude the rule.
+
+At the moment, I do not have a functional as2js script parser and execution
+environment. So I limit the functionality to one equality like so:
+
+    "..." == "..."
+    "..." != "..."
+
+The `"..."` can be literals or variables. For example, to use that rule only
+if a `private_interface` variable is defined you can write:
+
+    condition = '"${private_interface}" != ""'
+
+If this is `true`, then the rule is generated. Otherwise it is ignored.
+
+**WARNING:** You must quote the condition otherwise the start and end quotes
+get removed and the expression is thus invalid. If some of your variables
+include quotes, you will probably not be able to test them properly with this
+version.
+
+No condition (or an empty condition) is equivalent to `true`.
+
+### `rule::<name>::interface` or `rule::<name>::interfaces`
+
+This parameter defines the list of interfaces that the rule applies to.
+Since this parameter does not specify a source or a destination, it can
+be used with rules that have `INPUT` and `OUTPUT` as chains. The ipload
+code will know whether to use the "-i" or "-o" option.
+
+Note that works with the `FORWARD` chain. However, it is very unlikely
+that is what you want since 99.9% of the time, the input and output
+interfaces are different (i.e. `eth1` to `eth2`). In that case you want
+to define both: the `source_interface` and the `destination_interface`
+parameters.
 
 ### `rule::<name>::source_interface` or `rule::<name>::source_interfaces`
 

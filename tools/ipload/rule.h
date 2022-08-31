@@ -73,7 +73,7 @@ public:
     std::string const &                 get_section() const;
     advgetopt::string_list_t const &    get_before() const;
     advgetopt::string_list_t const &    get_after() const;
-    std::string const &                 get_condition() const;        // TBD: what is that already?!
+    bool                                get_condition() const;
 
     advgetopt::string_list_t const &    get_source_interfaces() const;
     advgetopt::string_list_t const &    get_sources() const;
@@ -108,6 +108,7 @@ private:
     void                                to_iptables_limits(std::string & result, std::string const & line);
     void                                to_iptables_states(std::string & result, std::string const & line);
     void                                to_iptables_target(std::string & result, std::string const & line);
+    bool                                parse_expression(std::string const & expression);
 
     std::string                         f_name = std::string();
     bool                                f_valid = true;
@@ -116,7 +117,7 @@ private:
     std::string                         f_section = std::string();
     advgetopt::string_list_t            f_before = advgetopt::string_list_t();
     advgetopt::string_list_t            f_after = advgetopt::string_list_t();
-    std::string                         f_condition = std::string();        // TBD: what is that already?! a JS expression against our variables?
+    bool                                f_condition = true;
 
     std::string                         f_generating_for_chain_name = std::string();
     std::string                         f_generating_for_protocol = std::string();

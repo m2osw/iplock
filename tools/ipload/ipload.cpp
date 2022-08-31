@@ -927,6 +927,10 @@ bool ipload::generate_tables(std::ostream & out)
 {
     for(auto const & t : f_tables)
     {
+        if(f_show_comments)
+        {
+            out << "# Table: " << t->get_name() << "\n";
+        }
         out << "*" << t->get_name() << "\n";
 
         chain::vector_t const & chains(t->get_chains());
@@ -935,6 +939,10 @@ bool ipload::generate_tables(std::ostream & out)
         // definition; we first print iptables internal names, mainly
         // for organization, then user defined chains
         //
+        if(f_show_comments)
+        {
+            out << "\n# Chains\n";
+        }
         for(auto const & c : chains)
         {
             if(!c->is_system_chain())
@@ -986,6 +994,13 @@ bool ipload::generate_tables(std::ostream & out)
         }
 
         out << "COMMIT\n";
+
+        if(f_show_comments)
+        {
+            // add an empty line after the COMMIT when comments are turned on
+            //
+            out << "\n";
+        }
     }
 
     return true;
@@ -995,7 +1010,7 @@ bool ipload::generate_tables(std::ostream & out)
 bool ipload::generate_chain_name(std::ostream & out, chain::pointer_t c)
 {
     out << ":"
-        << advgetopt::option_with_underscores(c->get_name())
+        << c->get_name()
         << ' '
         << (c->is_system_chain() ? c->get_policy_name() : "-")
         << " [0:0]\n";
@@ -1010,10 +1025,15 @@ bool ipload::generate_chain(std::ostream & out, chain::pointer_t c)
     // generate anything in the output (except if we want to add comments
     // when the --show option is used)
     //
+    if(f_show_comments)
+    {
+        out << "\n# Chain: " << c->get_name() << "\n";
+    }
+    int count(0);
     section_reference::vector_t refs(c->get_section_references());
     for(auto const & s : refs)
     {
-        if(!generate_rules(out, c, s))
+        if(!generate_rules(out, c, s, count))
         {
             return false;
         }
@@ -1036,7 +1056,7 @@ bool ipload::generate_chain(std::ostream & out, chain::pointer_t c)
         prefix += ':';
 
         out << "-A "
-            << advgetopt::option_with_underscores(c->get_name())
+            << c->get_name()
             << " -j LOG --log-prefix \""
             << prefix
             << "\" --log-uid\n";
@@ -1046,19 +1066,19 @@ bool ipload::generate_chain(std::ostream & out, chain::pointer_t c)
     {
     case type_t::TYPE_RETURN:
         out << "-A "
-            << advgetopt::option_with_underscores(c->get_name())
+            << c->get_name()
             << " -j RETURN\n";
         break;
 
     case type_t::TYPE_DROP:
         out << "-A "
-            << advgetopt::option_with_underscores(c->get_name())
+            << c->get_name()
             << " -j DROP\n";
         break;
 
     case type_t::TYPE_REJECT:
         out << "-A "
-            << advgetopt::option_with_underscores(c->get_name())
+            << c->get_name()
             << " -j REJECT\n";
         break;
 
@@ -1072,7 +1092,7 @@ bool ipload::generate_chain(std::ostream & out, chain::pointer_t c)
 }
 
 
-bool ipload::generate_rules(std::ostream & out, chain::pointer_t c, section_reference::pointer_t s)
+bool ipload::generate_rules(std::ostream & out, chain::pointer_t c, section_reference::pointer_t s, int & count)
 {
     bool valid(true);
 
@@ -1098,8 +1118,20 @@ bool ipload::generate_rules(std::ostream & out, chain::pointer_t c, section_refe
         }
 #endif
 
+        // if condition did not match, ignore that rule
+        //
+        if(!r->get_condition())
+        {
+            continue;
+        }
+
+        if(f_show_comments && f_verbose)
+        {
+            ++count;
+            out << "# Rule " << count << ": " << s->get_name() << '.' << r->get_name() << "\n";
+        }
         r->set_log_introducer(f_log_introducer);
-        out << r->to_iptables_rules(advgetopt::option_with_underscores(c->get_name()));
+        out << r->to_iptables_rules(c->get_name());
 
         if(!r->is_valid())
         {

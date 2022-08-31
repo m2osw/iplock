@@ -81,12 +81,13 @@ rule::rule(
     }
 
     // this is the name of the rule
-    // it is used by the ipload tool to sort the rules between each others
-    // with the list of names in the before & after parameters
     //
-    f_name = name_list[1];
+    // it is used by the ipload tool to sort the rules between each others
+    // using the list of names in the before & after parameters
+    //
+    f_name = advgetopt::option_with_underscores(name_list[1]);
 
-    std::string const complete_namespace("rule::" + f_name + "::");
+    std::string const complete_namespace("rule::" + name_list[1] + "::");
     for(; it != config_params.end(); ++it)
     {
         if(strncmp(it->first.c_str(), complete_namespace.c_str(), complete_namespace.length()) != 0)
@@ -138,9 +139,10 @@ rule::rule(
             {
                 advgetopt::split_string(value, f_chains, {","});
             }
-            else if(param_name == "condition")
+            else if(param_name == "condition"
+                 || param_name == "conditions")
             {
-                f_condition = value;
+                f_condition = parse_expression(value);
             }
             else
             {
@@ -558,6 +560,137 @@ void rule::parse_action(std::string const & action)
 }
 
 
+bool rule::parse_expression(std::string const & expression)
+{
+    if(expression.empty())
+    {
+        return true;
+    }
+
+    char const * s(expression.c_str());
+    char quote(s[0]);
+    if(quote != '"'
+    && quote != '\'')
+    {
+        SNAP_LOG_ERROR
+            << "expression ["
+            << expression
+            << "] does not start with a valid quote (\" or ')."
+            << SNAP_LOG_SEND;
+        f_valid = false;
+        return true;
+    }
+
+    ++s;
+    char const *first_start(s);
+    for(; *s != quote; ++s)
+    {
+        if(*s == '\0')
+        {
+            SNAP_LOG_ERROR
+                << "expression ["
+                << expression
+                << "] closing quote is missing."
+                << SNAP_LOG_SEND;
+            f_valid = false;
+            return true;
+        }
+    }
+    char const *first_end(s);
+
+    ++s;    // skip quote
+
+    while(isspace(*s))
+    {
+        ++s;
+    }
+
+    bool equal(true);
+    if(*s == '!')
+    {
+        equal = false;
+    }
+    else if(*s != '=')
+    {
+        SNAP_LOG_ERROR
+            << "expression ["
+            << expression
+            << "] operator missing (expected == or !=)."
+            << SNAP_LOG_SEND;
+        f_valid = false;
+        return true;
+    }
+    ++s;
+    if(*s != '=')
+    {
+        SNAP_LOG_ERROR
+            << "expression ["
+            << expression
+            << "] operator missing (expected == or !=)."
+            << SNAP_LOG_SEND;
+        f_valid = false;
+        return true;
+    }
+    ++s;   // skip second '='
+
+    while(isspace(*s))
+    {
+        ++s;
+    }
+
+    quote = s[0];
+    if(quote != '"'
+    && quote != '\'')
+    {
+        SNAP_LOG_ERROR
+            << "second string in ["
+            << expression
+            << "] does not start with a valid quote (\" or ')."
+            << SNAP_LOG_SEND;
+        f_valid = false;
+        return true;
+    }
+
+    ++s;
+    char const * second_start(s);
+    for(; *s != quote; ++s)
+    {
+        if(*s == '\0')
+        {
+            SNAP_LOG_ERROR
+                << "second string in ["
+                << expression
+                << "] closing quote is missing."
+                << SNAP_LOG_SEND;
+            f_valid = false;
+            return true;
+        }
+    }
+    char const * second_end(s);
+
+    ++s;    // skip quote
+
+    while(isspace(*s) || *s == ';')
+    {
+        ++s;
+    }
+
+    if(*s != '\0')
+    {
+            SNAP_LOG_ERROR
+                << "expression ["
+                << expression
+                << "] has spurious data at the end."
+                << SNAP_LOG_SEND;
+            f_valid = false;
+            return true;
+    }
+
+    return (std::string_view(first_start, first_end - first_start)
+        == std::string_view(second_start, second_end - second_start)) == equal;
+}
+
+
 bool rule::is_valid() const
 {
     return f_valid;
@@ -594,7 +727,7 @@ advgetopt::string_list_t const & rule::get_after() const
 }
 
 
-std::string const & rule::get_condition() const
+bool rule::get_condition() const
 {
     return f_condition;
 }
@@ -802,11 +935,11 @@ void rule::to_iptables_interfaces(std::string & result, std::string const & line
         int in_out(0);
         if(f_generating_for_chain_name == "OUTPUT")
         {
-            in_out |= IN_OUT_OUT;
+            in_out = IN_OUT_OUT;
         }
         else if(f_generating_for_chain_name == "FORWARD")
         {
-            in_out |= IN_OUT_IN | IN_OUT_OUT;
+            in_out = IN_OUT_IN | IN_OUT_OUT;
         }
         switch(in_out)
         {

@@ -70,7 +70,11 @@ private:
     bool                    generate_tables(std::ostream & out);
     bool                    generate_chain_name(std::ostream & out, chain::pointer_t c);
     bool                    generate_chain(std::ostream & out, chain::pointer_t c);
-    bool                    generate_rules(std::ostream & out, chain::pointer_t c, section_reference::pointer_t s);
+    bool                    generate_rules(
+                                  std::ostream & out
+                                , chain::pointer_t c
+                                , section_reference::pointer_t s
+                                , int & count);
 
     advgetopt::getopt       f_opts;
     bool                    f_verbose = false;
