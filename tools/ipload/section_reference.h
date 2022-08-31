@@ -45,7 +45,7 @@ public:
 
     bool                                is_valid() const;
 
-    void                                add_rule(rule::pointer_t r);
+    bool                                add_rule(rule::pointer_t r);
     rule::vector_t const &              get_rules() const;
 
     std::string  const &                get_name() const;

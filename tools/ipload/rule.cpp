@@ -974,6 +974,17 @@ void rule::to_iptables_protocols(std::string & result, std::string const & line)
 {
     if(f_protocols.empty())
     {
+        if(!f_source_ports.empty()
+        || !f_destination_ports.empty())
+        {
+            SNAP_LOG_ERROR
+                << "usage of one or more ports requires rule \""
+                << f_name
+                << "\" to include a valid protocol."
+                << SNAP_LOG_SEND;
+            f_valid = false;
+        }
+
         f_generating_for_protocol = "";
         to_iptables_sources(result, line);
     }

@@ -63,7 +63,7 @@ bool section_reference::is_valid() const
 }
 
 
-void section_reference::add_rule(rule::pointer_t r)
+bool section_reference::add_rule(rule::pointer_t r)
 {
     std::string const & name(r->get_name());
     advgetopt::string_list_t const & before(r->get_before());
@@ -128,17 +128,18 @@ void section_reference::add_rule(rule::pointer_t r)
                 << "\" at the same, only those rules are not sorted in such a way that this is currently possible."
                 << SNAP_LOG_SEND;
             f_section->mark_invalid();
+            return false;
         }
-        else
-        {
-            f_rules.insert(f_rules.begin() + found, r);
-        }
-        return;
+
+        f_rules.insert(f_rules.begin() + found, r);
+        return true;
     }
 
     // not inserted yet, add at the end
     //
     f_rules.push_back(r);
+
+    return true;
 }
 
 

@@ -320,8 +320,7 @@ bool chain::add_rule(rule::pointer_t r)
             {
                 // this is the default, add the rule there
                 //
-                s.second->add_rule(r);
-                return true;
+                return s.second->add_rule(r);
             }
         }
         SNAP_LOG_RECOVERABLE_ERROR
@@ -337,9 +336,7 @@ bool chain::add_rule(rule::pointer_t r)
         return false;
     }
 
-    it->second->add_rule(r);
-
-    return true;
+    return it->second->add_rule(r);
 }
 
 
