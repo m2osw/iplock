@@ -70,13 +70,6 @@
 #include    <boost/preprocessor/stringize.hpp>
 
 
-// C++
-//
-//#include    <iostream>
-//#include    <fstream>
-//#include    <sstream>
-
-
 // C
 //
 #include    <stdlib.h>
