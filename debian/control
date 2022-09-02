@@ -34,7 +34,7 @@ Vcs-Browser: https://github.com/m2osw/iplock
 Package: iplock
 Section: utils
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ipset, ${shlibs:Depends}, ${misc:Depends}
 Suggests: iplock-doc
 Description: Advanced management of your iptables firewall.
  The iplock environment is a set of tools and a service used to manage your
