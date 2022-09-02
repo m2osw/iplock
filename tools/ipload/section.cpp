@@ -135,6 +135,10 @@ section::section(
                         << SNAP_LOG_SEND;
                 }
             }
+            else if(param_name == "description")
+            {
+                f_description = value;
+            }
             else
             {
                 found = false;
@@ -216,9 +220,39 @@ advgetopt::string_list_t const & section::get_after() const
 }
 
 
+void section::add_after(std::string const & after)
+{
+    f_after.push_back(after);
+}
+
+
 bool section::get_default() const
 {
     return f_default;
+}
+
+
+void section::add_dependency(pointer_t s)
+{
+    f_dependencies.push_back(s);
+}
+
+
+section::vector_t const & section::get_dependencies() const
+{
+    return f_dependencies;
+}
+
+
+int section::get_level() const
+{
+    return f_level;
+}
+
+
+void section::set_level(int level)
+{
+    f_level = level;
 }
 
 

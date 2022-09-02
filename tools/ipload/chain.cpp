@@ -90,7 +90,9 @@ std::set<std::string> g_system_chain_names =
 chain::chain(
           advgetopt::conf_file::parameters_t::iterator & it
         , advgetopt::conf_file::parameters_t const & config_params
-        , advgetopt::variables::pointer_t variables)
+        , advgetopt::variables::pointer_t variables
+        , bool verbose)
+    : f_verbose(verbose)
 {
     // parse all the parameters we can find
     //
@@ -126,6 +128,17 @@ chain::chain(
         bool found(true);
         switch(param_name[0])
         {
+        case 'd':
+            if(param_name == "description")
+            {
+                f_description = value;
+            }
+            else
+            {
+                found = false;
+            }
+            break;
+
         case 'l':
             if(param_name == "log")
             {
@@ -224,81 +237,30 @@ bool chain::is_valid() const
 
 void chain::add_section_reference(section_reference::pointer_t sr)
 {
+    // note: ipload sorts the sections first so here they get added
+    //       in the correct order
+    //
+    f_section_references.push_back(sr);
     f_section_references_by_name[sr->get_name()] = sr;
 
-    std::string const & name(sr->get_name());
-    advgetopt::string_list_t const & before(sr->get_before());
-    advgetopt::string_list_t const & after(sr->get_after());
-
-    // compute the minimum position first
-    //
-    std::string other_name;
-    std::int64_t min_idx(-1);
+    if(sr->get_default())
     {
-        std::size_t idx(f_section_references.size());
-        while(idx > 0)
+        if(f_default_section_references != nullptr)
         {
-            --idx;
-            other_name = f_section_references[idx]->get_name();
-            if(std::find(after.begin(), after.end(), other_name) != after.end())
-            {
-                min_idx = idx;
-                break;
-            }
-            advgetopt::string_list_t const & other_before(f_section_references[idx]->get_before());
-            if(std::find(other_before.begin(), other_before.end(), name) != other_before.end())
-            {
-                min_idx = idx;
-                break;
-            }
-        }
-    }
-
-    std::int64_t found(-1);
-    for(std::size_t idx(0); idx < f_section_references.size(); ++idx)
-    {
-        other_name = f_section_references[idx]->get_name();
-        if(std::find(before.begin(), before.end(), other_name) != before.end())
-        {
-            found = idx;
-            break;
-        }
-        advgetopt::string_list_t const & other_after(f_section_references[idx]->get_after());
-        if(std::find(other_after.begin(), other_after.end(), name) != other_after.end())
-        {
-            found = idx;
-            break;
-        }
-    }
-
-    if(found != -1)
-    {
-        if(found <= min_idx)
-        {
-            // TODO: I think we could check whether it would be possible
-            //       to swap idx and min_idx so the insert is possible...
-            //
             SNAP_LOG_ERROR
-                << "section named \""
+                << "found two sections marked as defaults: \""
+                << f_default_section_references->get_name()
+                << "\" and \""
                 << sr->get_name()
-                << "\" was required to be before \""
-                << name
-                << "\" and after \""
-                << f_section_references[min_idx]
-                << "\" at the same, only those sections are not sorted in such a way that this is currently possible."
+                << "\"."
                 << SNAP_LOG_SEND;
             f_valid = false;
         }
         else
         {
-            f_section_references.insert(f_section_references.begin() + found, sr);
+            f_default_section_references = sr;
         }
-        return;
     }
-
-    // not inserted yet, add at the end
-    //
-    f_section_references.push_back(sr);
 }
 
 
@@ -310,23 +272,31 @@ section_reference::vector_t const & chain::get_section_references() const
 
 bool chain::add_rule(rule::pointer_t r)
 {
-    std::string const name(snapdev::string_replace_many(r->get_section(), {{"_","-"}}));
+    std::string const name(r->get_section());
     auto it(f_section_references_by_name.find(name));
     if(it == f_section_references_by_name.end())
     {
-        for(auto const & s : f_section_references_by_name)
+        if(f_default_section_references != nullptr)
         {
-            if(s.second->get_default())
+            // this is the default, add the rule there
+            //
+            if(f_verbose)
             {
-                // this is the default, add the rule there
-                //
-                return s.second->add_rule(r);
+                SNAP_LOG_VERBOSE
+                    << "rule \""
+                    << r->get_name()
+                    << "\" has no \"section = ...\" parameter so it is being added to default section \""
+                    << f_default_section_references->get_name()
+                    << "\"."
+                    << SNAP_LOG_SEND;
             }
+            f_default_section_references->add_rule(r);
+            return true;
         }
         SNAP_LOG_RECOVERABLE_ERROR
             << "section \""
             << name
-            << "\" not found. Cannot add rule \""
+            << "\" not found and no section marked as the default section. Cannot add rule \""
             << r->get_name()
             << "\" to chain \""
             << f_name
@@ -336,7 +306,8 @@ bool chain::add_rule(rule::pointer_t r)
         return false;
     }
 
-    return it->second->add_rule(r);
+    it->second->add_rule(r);
+    return true;
 }
 
 

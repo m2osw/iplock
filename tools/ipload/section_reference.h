@@ -45,12 +45,18 @@ public:
 
     bool                                is_valid() const;
 
-    bool                                add_rule(rule::pointer_t r);
+    void                                add_rule(rule::pointer_t r);
+    void                                compute_dependencies();
+    int                                 count_levels(
+                                              rule::vector_t const & dependencies
+                                            , rule::pointer_t current_rule) const;
+    bool                                sort_rules();
     rule::vector_t const &              get_rules() const;
 
     std::string  const &                get_name() const;
     advgetopt::string_list_t const &    get_before() const;
     advgetopt::string_list_t const &    get_after() const;
+    void                                add_after(std::string const & name);
     bool                                get_default() const;
 
 private:

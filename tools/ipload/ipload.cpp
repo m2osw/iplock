@@ -79,6 +79,7 @@
 
 // C
 //
+#include    <stdlib.h>
 #include    <unistd.h>
 
 
@@ -112,6 +113,12 @@ advgetopt::option const g_options[] =
         , advgetopt::Flags(advgetopt::standalone_command_flags<
                       advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
         , advgetopt::Help("Show the rules. Like --load but instead of loading the rules to iptables, show them in your console.")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("show-dependencies")
+        , advgetopt::Flags(advgetopt::standalone_command_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
+        , advgetopt::Help("Show the rules dependency tree in a Makefile like format.")
     ),
     advgetopt::define_option(
           advgetopt::Name("verify")
@@ -196,7 +203,7 @@ advgetopt::group_description const g_group_descriptions[] =
 advgetopt::options_environment const g_options_environment =
 {
     .f_project_name = "ipload",
-    .f_group_name = nullptr,
+    .f_group_name = "iplock",
     .f_options = g_options,
     .f_options_files_directory = nullptr,
     .f_environment_variable_name = "IPLOAD_OPTIONS",
@@ -268,6 +275,10 @@ ipload::ipload(int argc, char * argv[])
     {
         f_command |= COMMAND_SHOW;
     }
+    if(f_opts.is_defined("show-dependencies"))
+    {
+        f_command |= COMMAND_SHOW_DEPENDENCIES;
+    }
     if(f_opts.is_defined("verify"))
     {
         f_command |= COMMAND_VERIFY;
@@ -277,12 +288,18 @@ ipload::ipload(int argc, char * argv[])
     {
     case COMMAND_LOAD:
     case COMMAND_SHOW:
+    case COMMAND_SHOW_DEPENDENCIES:
     case COMMAND_VERIFY:
+        break;
+
+    case COMMAND_SHOW | COMMAND_SHOW_DEPENDENCIES:
+        f_command = COMMAND_SHOW;
+        f_show_dependencies = true;
         break;
 
     case 0:
         SNAP_LOG_ERROR
-            << "you need to enter one of the supported commands: --load, --show, or --verify."
+            << "you need to enter one of the supported commands: --load, --show, --show-dependencies, or --verify."
             << SNAP_LOG_SEND;
         throw advgetopt::getopt_exit("command missing.", 1);
 
@@ -357,6 +374,10 @@ int ipload::run()
         {
             return 1;
         }
+        if(!create_sets())
+        {
+            return 1;
+        }
         load_to_iptables();
         break;
 
@@ -371,6 +392,21 @@ int ipload::run()
             return 1;
         }
         show();
+        break;
+
+    case COMMAND_SHOW_DEPENDENCIES:
+        if(!load_data())
+        {
+            return 1;
+        }
+        {
+            bool const r(convert());
+            show_dependencies();
+            if(!r)
+            {
+                return 1;
+            }
+        }
         break;
 
     case COMMAND_VERIFY:
@@ -757,7 +793,11 @@ bool ipload::process_parameters()
                 ++p;
                 continue;
             }
-            chain::pointer_t c(std::make_shared<chain>(p, f_parameters, f_variables));
+            chain::pointer_t c(std::make_shared<chain>(
+                                      p
+                                    , f_parameters
+                                    , f_variables
+                                    , f_verbose));
             f_chains[snapdev::string_replace_many(c->get_name(), {{"-","_"}})] = c;
         }
         else if(names[0] == "section")
@@ -806,6 +846,11 @@ bool ipload::process_parameters()
         }
     }
 
+    if(!sort_sections(sections))
+    {
+        valid = false;
+    }
+
     if(!process_chains())
     {
         valid = false;
@@ -820,6 +865,171 @@ bool ipload::process_parameters()
     {
         valid = false;
     }
+
+    if(!sort_rules())
+    {
+        valid = false;
+    }
+
+    return valid;
+}
+
+
+int ipload::count_levels(section::vector_t const & dependencies, section::pointer_t current_section)
+{
+    int cnt(1);
+    for(auto const & d : dependencies)
+    {
+        if(d == current_section)
+        {
+            SNAP_LOG_ERROR
+                << "detected a dependency loop for "
+                << current_section->get_name()
+                << SNAP_LOG_SEND;
+            return cnt;
+        }
+        cnt = std::max(cnt, count_levels(d->get_dependencies(), current_section) + 1);
+    }
+    return cnt;
+}
+
+
+bool ipload::sort_sections(section::vector_t & sections)
+{
+    bool valid(true);
+
+    // first add the "before" names to the "after" of the _other_ section
+    //
+    // (i.e. it becomes a "target: dependencies..." like in a Makefile)
+    //
+    for(auto & s : sections)
+    {
+        advgetopt::string_list_t before(s->get_before());
+        for(auto const & name : before)
+        {
+            auto it(std::find_if(
+                  sections.begin()
+                , sections.end()
+                , [name](auto const & other)
+                    {
+                        return other->get_name() == name;
+                    }));
+            if(it != sections.end())
+            {
+                (*it)->add_after(s->get_name());
+            }
+            else
+            {
+                SNAP_LOG_ERROR
+                    << "could not find section named \""
+                    << name
+                    << "\"."
+                    << SNAP_LOG_SEND;
+                valid = false;
+            }
+        }
+    }
+
+    // next we want to build a tree, a node depending on another is lower
+    // in the tree; here is an example:
+    //
+    //    1. first the "makefile" like content
+    //
+    //    a: b
+    //    b:
+    //    c: a
+    //    d: b
+    //    e: a b c d
+    //
+    //    2. the raw tree
+    //
+    //        _ b _<-------+
+    //        /| |\        |
+    //       /     \       |
+    //      a       d      |
+    //      ^       ^      |
+    //      |\_____ |      |
+    //      |      \|      |
+    //      c<------e------+
+    //
+    //    3. the cleaned up tree
+    //       (note that technically we do not need to do that, just could
+    //       the number of levels is enough to solve the issue)
+    //
+    //        _ b _                level 1
+    //        /| |\                .
+    //       /     \               .
+    //      a       d              level 2
+    //      ^       ^              .
+    //      |       |              .
+    //      |       |              .
+    //      c_      |              level 3
+    //      |\      |              .
+    //        \     |              .
+    //         +----e              level 4
+    //
+    //    4. generate the output, one level at a time
+    //
+    //      b
+    //      a
+    //      d
+    //      c
+    //      e
+    //
+    for(auto & s : sections)
+    {
+        advgetopt::string_list_t after(s->get_after());
+        for(auto const & name : after)
+        {
+            auto it(std::find_if(
+                  sections.begin()
+                , sections.end()
+                , [name](auto const & other)
+                    {
+                        return other->get_name() == name;
+                    }));
+            if(it == sections.end())
+            {
+                // no such target, ignore
+                //
+                continue;
+            }
+
+            s->add_dependency(*it);
+        }
+    }
+
+    int max_level(0);
+    for(auto & s : sections)
+    {
+        int const level(count_levels(s->get_dependencies(), s));
+        s->set_level(level);
+        max_level = std::max(level, max_level);
+    }
+
+    section::vector_t ordered;
+    for(int l(1); l <= max_level; ++l)
+    {
+        for(auto it(sections.begin()); it != sections.end(); ++it)
+        {
+            it = std::find_if(
+                      it
+                    , sections.end()
+                    , [l](auto q)
+                    {
+                        return l == q->get_level();
+                    });
+            if(it == sections.end())
+            {
+                break;
+            }
+            ordered.push_back(*it);
+        }
+    }
+
+    // save the ordered list back in the input vector
+    //
+    sections = std::move(ordered);
 
     return valid;
 }
@@ -869,7 +1079,7 @@ bool ipload::process_chains()
 }
 
 
-bool ipload::process_sections(section::vector_t sections)
+bool ipload::process_sections(section::vector_t const & sections)
 {
     bool valid(true);
 
@@ -993,6 +1203,10 @@ bool ipload::generate_tables(std::ostream & out)
             }
         }
 
+        if(f_show_comments)
+        {
+            out << "\n# Commit\n";
+        }
         out << "COMMIT\n";
 
         if(f_show_comments)
@@ -1039,7 +1253,17 @@ bool ipload::generate_chain(std::ostream & out, chain::pointer_t c)
         }
     }
 
+    // close the chain with a LOG & a rule depending on its type
+    //
     std::string const log(c->get_log());
+
+    if(f_show_comments
+    && (c->get_type() != type_t::TYPE_USER_DEFINED
+            || !log.empty()))
+    {
+        out << "# Close with Chain Type:\n";
+    }
+
     if(!log.empty())
     {
         std::string prefix(
@@ -1143,6 +1367,105 @@ bool ipload::generate_rules(std::ostream & out, chain::pointer_t c, section_refe
 }
 
 
+bool ipload::sort_rules()
+{
+    // to go through all the rules we go through the tables/chains/sections
+    //
+    bool valid(true);
+    for(auto const & t : f_tables)
+    {
+        chain::vector_t const & chains(t->get_chains());
+        for(auto const & c : chains)
+        {
+            section_reference::vector_t refs(c->get_section_references());
+            for(auto const & s : refs)
+            {
+                if(!s->sort_rules())
+                {
+                    valid = false;
+                }
+            }
+        }
+    }
+
+    return valid;
+}
+
+
+bool ipload::create_sets()
+{
+    // use a set to know whether we already added a set in case the same
+    // set is referenced multiple times
+    //
+    std::set<std::string> found;
+    std::string command;
+    bool valid(true);
+    for(auto const & t : f_tables)
+    {
+        chain::vector_t const & chains(t->get_chains());
+        for(auto const & c : chains)
+        {
+            section_reference::vector_t refs(c->get_section_references());
+            for(auto const & s : refs)
+            {
+                rule::vector_t const & rules(s->get_rules());
+                for(auto const & r : rules)
+                {
+                    advgetopt::string_list_t const & sets(r->get_set());
+                    for(auto const & name : sets)
+                    {
+                        if(found.find(name) == found.end())
+                        {
+                            found.insert(name);
+                            if(command.empty())
+                            {
+                                if(!f_variables->has_variable("create_set"))
+                                {
+                                    SNAP_LOG_ERROR
+                                        << "some of your rules are usings ipset but the \"create_set\" variable is not defined."
+                                        << SNAP_LOG_SEND;
+                                    return false;
+                                }
+                                command = f_variables->get_variable("create_set");
+                                if(command.empty())
+                                {
+                                    SNAP_LOG_ERROR
+                                        << "found a \"create_set\" variable, but it is empty."
+                                        << SNAP_LOG_SEND;
+                                    return false;
+                                }
+                            }
+                            std::string const cmd(snapdev::string_replace_many(
+                                      command
+                                    , {{"[name]", name}}));
+                            int const exit_code(system(cmd.c_str()));
+                            if(exit_code != 0)
+                            {
+                                int const e(errno);
+                                SNAP_LOG_ERROR
+                                    << "an error occurred trying to create ipset \""
+                                    << name
+                                    << "\" (exit code: "
+                                    << exit_code
+                                    << ", errno: "
+                                    << e
+                                    << ", "
+                                    << strerror(e)
+                                    << ")."
+                                    << SNAP_LOG_SEND;
+                                valid = false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return valid;
+}
+
+
 void ipload::load_to_iptables()
 {
     {
@@ -1163,6 +1486,42 @@ void ipload::show()
 {
     std::cout << f_output;
 }
+
+
+void ipload::show_dependencies()
+{
+    for(auto const & t : f_tables)
+    {
+        std::cout << "###\n### Table: " << t->get_name() << "\n###\n\n";
+        chain::vector_t const & chains(t->get_chains());
+        for(auto const & c : chains)
+        {
+            std::cout << "\n##\n## Chain: " << c->get_name() << "\n##\n";
+            section_reference::vector_t refs(c->get_section_references());
+            for(auto const & s : refs)
+            {
+                rule::vector_t const & list(s->get_rules());
+                if(!list.empty()
+                || f_verbose)
+                {
+                    std::cout << "# Section: " << s->get_name() << "\n";
+                }
+                for(auto const & r : list)
+                {
+                    std::cout << r->get_name() << ':';
+                    advgetopt::string_list_t after(r->get_after());
+                    for(auto const & a : after)
+                    {
+                        std::cout << ' ' << a;
+                    }
+                    std::cout << '\n';
+                }
+            }
+        }
+        std::cout << '\n';
+    }
+}
+
 
 
 // vim: ts=4 sw=4 et

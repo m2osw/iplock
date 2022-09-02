@@ -53,12 +53,20 @@ public:
     std::string const &                 get_name() const;
     advgetopt::string_list_t const &    get_before() const;
     advgetopt::string_list_t const &    get_after() const;
+    void                                add_after(std::string const & after);
     bool                                get_default() const;
+    void                                add_dependency(pointer_t s);
+    vector_t const &                    get_dependencies() const;
+    int                                 get_level() const;
+    void                                set_level(int level);
 
 private:
     std::string                         f_name = std::string();
+    std::string                         f_description = std::string();
     advgetopt::string_list_t            f_before = advgetopt::string_list_t();
     advgetopt::string_list_t            f_after = advgetopt::string_list_t();
+    vector_t                            f_dependencies = vector_t();
+    int                                 f_level = 0;
     bool                                f_default = false;
     bool                                f_valid = true;
 };

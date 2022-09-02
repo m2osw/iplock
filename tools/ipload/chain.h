@@ -60,13 +60,15 @@ public:
                                     chain(
                                           advgetopt::conf_file::parameters_t::iterator & it
                                         , advgetopt::conf_file::parameters_t const & config_params
-                                        , advgetopt::variables::pointer_t variables);
+                                        , advgetopt::variables::pointer_t variables
+                                        , bool verbose);
 
     bool                            is_valid() const;
     void                            add_section_reference(section_reference::pointer_t section_reference);
     section_reference::vector_t const &
                                     get_section_references() const;
     bool                            add_rule(rule::pointer_t r);
+    void                            computer_dependencies();
 
     std::string                     get_name() const;
     policy_t                        get_policy() const;
@@ -77,13 +79,16 @@ public:
 
 private:
     std::string                     f_name = std::string();
+    std::string                     f_description = std::string();
     policy_t                        f_policy = policy_t::POLICY_DROP;
     type_t                          f_type = type_t::TYPE_DROP; // this should be RETURN for a user defined chain
     std::string                     f_log = std::string();
     section_reference::vector_t     f_section_references = section_reference::vector_t();
+    section_reference::pointer_t    f_default_section_references = section_reference::pointer_t();
     section_reference::map_t        f_section_references_by_name = section_reference::map_t();
     bool                            f_valid = true;
     bool                            f_is_system_chain = false;
+    bool                            f_verbose = false;
 };
 
 

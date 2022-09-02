@@ -6,5 +6,7 @@
 * Break the iplock class in separate files (easier to maintain and test).
 * Consider using snaplogger in the iplock tool? (the tool generally runs on its own so saving errors in a log file is probably going to be better)
 * Move the sitter firewall plugin to this project.
+* Added a vim syntax file for the firewall .conf files.
+* Add safeguard to prevent blocking our own IPs (i.e. if a rule is DROP or REJECT and the rule matches one of our local IP).
 * Write tests.
 

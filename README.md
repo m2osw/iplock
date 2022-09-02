@@ -169,6 +169,10 @@ the `RETURN` or `DROP` rule found at the end is encountered.
 
 **Default:** no message.
 
+### `section::<name>::description`
+
+The description of the section for documentation purposes.
+
 ### `section::<name>::before`
 
 Define the name of a section that we want to appear before. In the final
@@ -198,6 +202,14 @@ to add all the rules that were not assigned a section name.
 
 If none of the sections were marked as the default section and some rules do
 not specifically name a section, then an error is generated.
+
+### `rule::<name>::description`
+
+Enter a description for this rule.
+
+At the moment nothing is done with this description. It will be displayed
+in graphical editors once such are made available. It is customary to put
+the value between double quotes although it is not a requirement.
 
 ### `rule::<name>::chain` or `rule::<name>::chains`
 
@@ -276,6 +288,19 @@ that is what you want since 99.9% of the time, the input and output
 interfaces are different (i.e. `eth1` to `eth2`). In that case you want
 to define both: the `source_interface` and the `destination_interface`
 parameters.
+
+### `rule::<name>::set`
+
+The name of set can be specified. This rule generates a test that executes
+the given action when the source IP address matches one of the set IP
+addresses.
+
+At the moment, we only supporrt the simplest type of set. It allows you to
+test up to 65535 addresses at lightning speed (compared to adding so many
+addresses in your iptables directly).
+
+ipload will automatically create the set if it does not yet exist. The
+iptables require the set to exist to properly load such a rule.
 
 ### `rule::<name>::source_interface` or `rule::<name>::source_interfaces`
 

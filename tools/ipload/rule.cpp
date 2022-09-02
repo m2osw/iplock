@@ -52,6 +52,7 @@
 //
 #include    <snapdev/join_strings.h>
 #include    <snapdev/not_reached.h>
+#include    <snapdev/remove_duplicates.h>
 #include    <snapdev/string_replace_many.h>
 
 
@@ -112,7 +113,16 @@ rule::rule(
             {
                 advgetopt::split_string(value, f_after, {","});
                 list_to_lower(f_after);
-                std::sort(f_after.begin(), f_after.end());
+                snapdev::remove_duplicates(f_after);
+                if(std::binary_search(f_after.begin(), f_after.end(), f_name))
+                {
+                    SNAP_LOG_ERROR
+                        << "a rule cannot depend on itself (found \""
+                        << f_name
+                        << "\" in its \"before=...\" parameter."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
             }
             else
             {
@@ -125,7 +135,16 @@ rule::rule(
             {
                 advgetopt::split_string(value, f_before, {","});
                 list_to_lower(f_before);
-                std::sort(f_before.begin(), f_before.end());
+                snapdev::remove_duplicates(f_before);
+                if(std::binary_search(f_before.begin(), f_before.end(), f_name))
+                {
+                    SNAP_LOG_ERROR
+                        << "a rule cannot depend on itself (found \""
+                        << f_name
+                        << "\" in its \"before=...\" parameter."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
             }
             else
             {
@@ -166,6 +185,10 @@ rule::rule(
                  || param_name == "destination-ports")
             {
                 advgetopt::split_string(value, f_destination_ports, {","});
+            }
+            else if(param_name == "description")
+            {
+                f_description = value;
             }
             else
             {
@@ -239,7 +262,11 @@ rule::rule(
             break;
 
         case 's':
-            if(param_name == "section")
+            if(param_name == "set")
+            {
+                advgetopt::split_string(value, f_set, {","});
+            }
+            else if(param_name == "section")
             {
                 f_section = value;
             }
@@ -727,9 +754,26 @@ advgetopt::string_list_t const & rule::get_after() const
 }
 
 
+void rule::add_after(std::string const & after)
+{
+    // avoid duplicates
+    //
+    if(std::find(f_after.begin(), f_after.end(), after) == f_after.end())
+    {
+        f_after.push_back(after);
+    }
+}
+
+
 bool rule::get_condition() const
 {
     return f_condition;
+}
+
+
+advgetopt::string_list_t const & rule::get_set() const
+{
+    return f_set;
 }
 
 
@@ -857,6 +901,30 @@ std::string const & rule::get_log() const
 void rule::set_log_introducer(std::string const & introducer)
 {
     f_log_introducer = introducer;
+}
+
+
+void rule::add_dependency(pointer_t r)
+{
+    f_dependencies.push_back(r);
+}
+
+
+rule::vector_t const & rule::get_dependencies() const
+{
+    return f_dependencies;
+}
+
+
+int rule::get_level() const
+{
+    return f_level;
+}
+
+
+void rule::set_level(int level)
+{
+    f_level = level;
 }
 
 
@@ -1122,7 +1190,7 @@ void rule::to_iptables_destination_ports(std::string & result, std::string const
 {
     if(f_destination_ports.empty())
     {
-        to_iptables_limits(result, line);
+        to_iptables_set(result, line);
     }
     else
     {
@@ -1130,7 +1198,7 @@ void rule::to_iptables_destination_ports(std::string & result, std::string const
         {
             // for just one port, use --dport
             //
-            to_iptables_limits(result, line + " --dport " + f_destination_ports[0]);
+            to_iptables_set(result, line + " --dport " + f_destination_ports[0]);
         }
         else
         {
@@ -1149,8 +1217,24 @@ void rule::to_iptables_destination_ports(std::string & result, std::string const
                     }
                     l += f_destination_ports[p];
                 }
-                to_iptables_limits(result, l);
+                to_iptables_set(result, l);
             }
+        }
+    }
+}
+
+
+void rule::to_iptables_set(std::string & result, std::string const & line)
+{
+    if(f_set.empty())
+    {
+        to_iptables_limits(result, line);
+    }
+    else
+    {
+        for(auto const & s : f_set)
+        {
+            to_iptables_limits(result, line + " -m set --match-set " + s + " src");
         }
     }
 }

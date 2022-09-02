@@ -42,9 +42,10 @@
 class ipload
 {
 public:
-    static constexpr int    COMMAND_LOAD   = 0x0001;
-    static constexpr int    COMMAND_SHOW   = 0x0002;
-    static constexpr int    COMMAND_VERIFY = 0x0004;
+    static constexpr int    COMMAND_LOAD              = 0x0001;
+    static constexpr int    COMMAND_SHOW              = 0x0002;
+    static constexpr int    COMMAND_SHOW_DEPENDENCIES = 0x0004;
+    static constexpr int    COMMAND_VERIFY            = 0x0008;
 
                             ipload(int argc, char * argv[]);
 
@@ -54,8 +55,10 @@ private:
     void                    make_root();
     bool                    load_data();
     void                    load_basic();
+    bool                    create_sets();
     void                    load_to_iptables();
     void                    show();
+    void                    show_dependencies();
     void                    load_config(std::string const & filename);
     void                    load_conf_file(
                                   std::string const & filename
@@ -64,8 +67,9 @@ private:
     void                    create_defaults();
     bool                    convert();
     bool                    process_parameters();
+    bool                    sort_sections(section::vector_t & sections);
     bool                    process_chains();
-    bool                    process_sections(section::vector_t sections);
+    bool                    process_sections(section::vector_t const & sections);
     bool                    process_rules(rule::vector_t rules);
     bool                    generate_tables(std::ostream & out);
     bool                    generate_chain_name(std::ostream & out, chain::pointer_t c);
@@ -75,11 +79,14 @@ private:
                                 , chain::pointer_t c
                                 , section_reference::pointer_t s
                                 , int & count);
+    bool                    sort_rules();
+    int                     count_levels(section::vector_t const & dependencies, section::pointer_t section);
 
     advgetopt::getopt       f_opts;
     bool                    f_verbose = false;
     bool                    f_quiet = false;
     bool                    f_show_comments = false;
+    bool                    f_show_dependencies = false;
     int                     f_command = 0;
     advgetopt::variables::pointer_t
                             f_variables = advgetopt::variables::pointer_t();

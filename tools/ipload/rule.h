@@ -73,8 +73,10 @@ public:
     std::string const &                 get_section() const;
     advgetopt::string_list_t const &    get_before() const;
     advgetopt::string_list_t const &    get_after() const;
+    void                                add_after(std::string const & after);
     bool                                get_condition() const;
 
+    advgetopt::string_list_t const &    get_set() const;
     advgetopt::string_list_t const &    get_source_interfaces() const;
     advgetopt::string_list_t const &    get_sources() const;
     advgetopt::string_list_t const &    get_except_sources() const;
@@ -92,8 +94,13 @@ public:
     action_t                            get_action() const;
     std::string                         get_action_name() const;
     std::string const &                 get_log() const;
-
     void                                set_log_introducer(std::string const & introducer);
+
+    void                                add_dependency(pointer_t s);
+    vector_t const &                    get_dependencies() const;
+    int                                 get_level() const;
+    void                                set_level(int level);
+
     std::string                         to_iptables_rules(std::string const & chain_name);
 
 private:
@@ -105,18 +112,22 @@ private:
     void                                to_iptables_source_ports(std::string & result, std::string const & line);
     void                                to_iptables_destinations(std::string & result, std::string const & line);
     void                                to_iptables_destination_ports(std::string & result, std::string const & line);
+    void                                to_iptables_set(std::string & result, std::string const & line);
     void                                to_iptables_limits(std::string & result, std::string const & line);
     void                                to_iptables_states(std::string & result, std::string const & line);
     void                                to_iptables_target(std::string & result, std::string const & line);
     bool                                parse_expression(std::string const & expression);
 
     std::string                         f_name = std::string();
+    std::string                         f_description = std::string();
     bool                                f_valid = true;
 
     advgetopt::string_list_t            f_chains = advgetopt::string_list_t();
     std::string                         f_section = std::string();
     advgetopt::string_list_t            f_before = advgetopt::string_list_t();
     advgetopt::string_list_t            f_after = advgetopt::string_list_t();
+    vector_t                            f_dependencies = vector_t();
+    int                                 f_level = 0;
     bool                                f_condition = true;
 
     std::string                         f_generating_for_chain_name = std::string();
@@ -124,6 +135,7 @@ private:
 
     advgetopt::string_list_t            f_interfaces = advgetopt::string_list_t();
 
+    advgetopt::string_list_t            f_set = advgetopt::string_list_t();
     advgetopt::string_list_t            f_source_interfaces = advgetopt::string_list_t();
     advgetopt::string_list_t            f_sources = advgetopt::string_list_t();
     advgetopt::string_list_t            f_except_sources = advgetopt::string_list_t();
