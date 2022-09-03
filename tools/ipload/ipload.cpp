@@ -255,6 +255,7 @@ constexpr std::string_view      g_prompt_start = "Are you sure you want to reset
 constexpr std::string_view      g_prompt_end = "\" without the quotes to go ahead:\n";
 constexpr std::string_view      g_prompt = snapdev::join_string_views<g_prompt_start, YES_I_AM_SURE, g_prompt_end>;
 
+constexpr std::string_view      g_flag = "/run/iplock/basic.installed";
 
 
 
@@ -726,8 +727,7 @@ void ipload::load_basic()
 
     // avoid running this code more than once
     //
-    std::string const flag("/run/iplock/basic.installed");
-    snapdev::file_contents installed(flag, true);
+    snapdev::file_contents installed(g_flag.data(), true);
     if(installed.exists())
     {
         return;
@@ -737,7 +737,7 @@ void ipload::load_basic()
     {
         SNAP_LOG_WARNING
             << "could not create flag \""
-            << flag
+            << g_flag
             << "\"."
             << SNAP_LOG_SEND;
     }
@@ -1662,6 +1662,11 @@ bool ipload::remove_from_iptables()
                 valid = false;
             }
         }
+    }
+
+    if(valid)
+    {
+        unlink(g_flag.data());
     }
 
     return valid;
