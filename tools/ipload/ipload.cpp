@@ -104,7 +104,7 @@ advgetopt::option const g_options[] =
     ),
     advgetopt::define_option(
           advgetopt::Name("load")
-        , advgetopt::ShortName('l')
+        , advgetopt::ShortName('L')
         , advgetopt::Flags(advgetopt::command_flags<
                       advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
         , advgetopt::Help("Load or reload all the rules.")
@@ -139,7 +139,7 @@ advgetopt::option const g_options[] =
     ),
     advgetopt::define_option(
           advgetopt::Name("verify")
-        , advgetopt::ShortName('v')
+        , advgetopt::ShortName('V')
         , advgetopt::Flags(advgetopt::standalone_command_flags<
                       advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
         , advgetopt::Help("Verify the rules. Like --load but without the final step of actually loading the rules in iptables.")
