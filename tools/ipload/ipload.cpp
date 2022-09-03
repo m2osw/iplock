@@ -1636,7 +1636,10 @@ bool ipload::remove_from_iptables()
             }
             std::string const cmd(snapdev::string_replace_many(
                       f_remove_user_chain
-                    , {{"[name]", c->get_name()}}));
+                    , {
+                        {"[table]", t->get_name()},
+                        {"[name]", c->get_name()},
+                      }));
             if(f_verbose)
             {
                 std::cerr << cmd << '\n';
