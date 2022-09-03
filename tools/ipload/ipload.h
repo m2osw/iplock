@@ -60,7 +60,7 @@ private:
     void                    load_basic();
     bool                    create_sets();
     bool                    remove_from_iptables();
-    bool                    load_to_iptables();
+    bool                    load_to_iptables(std::string const & flag_name);
     void                    show();
     void                    show_dependencies();
     void                    load_config(std::string const & filename);

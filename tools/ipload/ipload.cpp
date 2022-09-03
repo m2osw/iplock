@@ -255,7 +255,9 @@ constexpr std::string_view      g_prompt_start = "Are you sure you want to reset
 constexpr std::string_view      g_prompt_end = "\" without the quotes to go ahead:\n";
 constexpr std::string_view      g_prompt = snapdev::join_string_views<g_prompt_start, YES_I_AM_SURE, g_prompt_end>;
 
-constexpr std::string_view      g_flag = "/run/iplock/basic.installed";
+constexpr std::string_view      g_basic_flag = "/run/iplock/basic.installed";
+constexpr std::string_view      g_firewall_flag = "/run/iplock/firewall.installed";
+constexpr std::string_view      g_default_flag = "/run/iplock/default.installed";
 
 
 
@@ -420,33 +422,38 @@ int ipload::run()
         break;
 
     case COMMAND_LOAD:
-        // all iptables commands require the user to be root.
-        //
-        make_root();
-        load_basic();
-        if(!load_data())
         {
-            if(f_opts.is_defined("no-defaults"))
+            // all iptables commands require the user to be root.
+            //
+            make_root();
+            load_basic();
+            std::string flag_name(g_firewall_flag);
+            if(!load_data())
+            {
+                if(f_opts.is_defined("no-defaults"))
+                {
+                    return 1;
+                }
+
+                // for our own protection we want a default firewall that blocks
+                // everything (including SSH...)
+                //
+                create_defaults();
+
+                flag_name = g_default_flag;
+            }
+            if(!convert())
             {
                 return 1;
             }
-
-            // for our own protection we want a default firewall that blocks
-            // everything (including SSH...)
-            //
-            create_defaults();
-        }
-        if(!convert())
-        {
-            return 1;
-        }
-        if(!create_sets())
-        {
-            return 1;
-        }
-        if(!load_to_iptables())
-        {
-            return 1;
+            if(!create_sets())
+            {
+                return 1;
+            }
+            if(!load_to_iptables(flag_name))
+            {
+                return 1;
+            }
         }
         break;
 
@@ -466,7 +473,7 @@ int ipload::run()
         {
             return 1;
         }
-        if(!load_to_iptables())
+        if(!load_to_iptables(std::string(g_default_flag)))
         {
             return 1;
         }
@@ -727,7 +734,7 @@ void ipload::load_basic()
 
     // avoid running this code more than once
     //
-    snapdev::file_contents installed(g_flag.data(), true);
+    snapdev::file_contents installed(g_basic_flag.data(), true);
     if(installed.exists())
     {
         return;
@@ -737,7 +744,7 @@ void ipload::load_basic()
     {
         SNAP_LOG_WARNING
             << "could not create flag \""
-            << g_flag
+            << g_basic_flag
             << "\"."
             << SNAP_LOG_SEND;
     }
@@ -1666,14 +1673,14 @@ bool ipload::remove_from_iptables()
 
     if(valid)
     {
-        unlink(g_flag.data());
+        unlink(g_basic_flag.data());
     }
 
     return valid;
 }
 
 
-bool ipload::load_to_iptables()
+bool ipload::load_to_iptables(std::string const & flag_name)
 {
     FILE * p(popen("iptables-restore", "w"));
     fwrite(f_output.c_str(), sizeof(char), f_output.length(), p);
@@ -1683,10 +1690,24 @@ bool ipload::load_to_iptables()
         SNAP_LOG_ERROR
             << "the IPv4 firewall could not be loaded."
             << SNAP_LOG_SEND;
-        return true;
+        return false;
     }
 
-    return false;
+    // let other tools and services know we successfully installed the
+    // firewall
+    //
+    snapdev::file_contents installed(flag_name.c_str(), true);
+    installed.contents("yes\n");
+    if(!installed.write_all())
+    {
+        SNAP_LOG_WARNING
+            << "could not create firewall flag \""
+            << g_basic_flag
+            << "\"."
+            << SNAP_LOG_SEND;
+    }
+
+    return true;
 }
 
 
