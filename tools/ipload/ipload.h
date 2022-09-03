@@ -99,6 +99,8 @@ private:
     table::vector_t         f_tables = table::vector_t();
     chain::map_t            f_chains = chain::map_t();
     std::string             f_log_introducer = "[iptables]";
+    std::string             f_remove_user_chain = std::string();
+    std::string             f_create_set = std::string();
     std::string             f_output = std::string();
 };
 

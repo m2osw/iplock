@@ -818,15 +818,44 @@ bool ipload::process_parameters()
     auto p(f_parameters.begin());
     while(p != f_parameters.end())
     {
-        if(p->first == "log-introducer") // dashes are changed to '-' by advgetopt
+        if(p->first.empty())
         {
-            f_log_introducer = p->second;
-            while(f_log_introducer.back() == ' ')
-            {
-                f_log_introducer.pop_back();
-            }
             ++p;
             continue;
+        }
+        switch(p->first[0])
+        {
+        case 'c':
+            if(p->first == "create-set") // underscores are changed to '-' by advgetopt
+            {
+                f_create_set = p->second;
+                ++p;
+                continue;
+            }
+            break;
+
+        case 'l':
+            if(p->first == "log-introducer") // underscores are changed to '-' by advgetopt
+            {
+                f_log_introducer = p->second;
+                while(f_log_introducer.back() == ' ')
+                {
+                    f_log_introducer.pop_back();
+                }
+                ++p;
+                continue;
+            }
+            break;
+
+        case 'r':
+            if(p->first == "remove-user-chain") // underscores are changed to '-' by advgetopt
+            {
+                f_remove_user_chain = p->second;
+                ++p;
+                continue;
+            }
+            break;
+
         }
 
         advgetopt::string_list_t names;
@@ -1488,7 +1517,6 @@ bool ipload::create_sets()
     // set is referenced multiple times
     //
     std::set<std::string> found;
-    std::string command;
     bool valid(true);
     for(auto const & t : f_tables)
     {
@@ -1506,27 +1534,16 @@ bool ipload::create_sets()
                     {
                         if(found.find(name) == found.end())
                         {
-                            found.insert(name);
-                            if(command.empty())
+                            if(f_create_set.empty())
                             {
-                                if(!f_variables->has_variable("create_set"))
-                                {
-                                    SNAP_LOG_ERROR
-                                        << "some of your rules are usings ipset but the \"create_set\" variable is not defined."
-                                        << SNAP_LOG_SEND;
-                                    return false;
-                                }
-                                command = f_variables->get_variable("create_set");
-                                if(command.empty())
-                                {
-                                    SNAP_LOG_ERROR
-                                        << "found a \"create_set\" variable, but it is empty."
-                                        << SNAP_LOG_SEND;
-                                    return false;
-                                }
+                                SNAP_LOG_ERROR
+                                    << "the \"create_set\" global variable is empty."
+                                    << SNAP_LOG_SEND;
+                                return false;
                             }
+                            found.insert(name);
                             std::string const cmd(snapdev::string_replace_many(
-                                      command
+                                      f_create_set
                                     , {{"[name]", name}}));
                             int const exit_code(system(cmd.c_str()));
                             if(exit_code != 0)
@@ -1593,18 +1610,10 @@ bool ipload::remove_from_iptables()
 
     // then go through the user defined chains and remove them
     //
-    if(!f_variables->has_variable("remove_user_chain"))
+    if(f_remove_user_chain.empty())
     {
         SNAP_LOG_ERROR
-            << "try to flush user chains, but \"remove_user_chain\" is not defined."
-            << SNAP_LOG_SEND;
-        return false;
-    }
-    std::string command(f_variables->get_variable("remove_user_chain"));
-    if(command.empty())
-    {
-        SNAP_LOG_ERROR
-            << "found a \"remove_user_chain\" variable, but it is empty."
+            << "the \"remove_user_chain\" global variable is empty."
             << SNAP_LOG_SEND;
         return false;
     }
@@ -1626,7 +1635,7 @@ bool ipload::remove_from_iptables()
                 throw iplock::logic_error("chain has no name.");
             }
             std::string const cmd(snapdev::string_replace_many(
-                      command
+                      f_remove_user_chain
                     , {{"[name]", c->get_name()}}));
             if(f_verbose)
             {
