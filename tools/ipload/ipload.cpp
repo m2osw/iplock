@@ -408,6 +408,10 @@ int ipload::run()
                 << "could not load any ipload data; TODO: implement flush of default firewal."
                 << SNAP_LOG_SEND;
         }
+        if(!convert())
+        {
+            return 1;
+        }
         if(!remove_from_iptables())
         {
             return 1;
