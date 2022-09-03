@@ -63,6 +63,7 @@
 //
 #include    <snapdev/file_contents.h>
 #include    <snapdev/glob_to_list.h>
+#include    <snapdev/join_strings.h>
 #include    <snapdev/string_replace_many.h>
 
 
@@ -73,6 +74,7 @@
 
 // C
 //
+#include    <readline/readline.h>
 #include    <stdlib.h>
 #include    <unistd.h>
 
@@ -245,6 +247,13 @@ advgetopt::options_environment const g_options_environment =
     .f_groups = g_group_descriptions,
 };
 #pragma GCC diagnostic pop
+
+
+
+constexpr std::string_view      YES_I_AM_SURE = "YES I AM SURE!";
+constexpr std::string_view      g_prompt_start = "Are you sure you want to reset your firewall?\nType \"";
+constexpr std::string_view      g_prompt_end = "\" without the quotes to go ahead:\n";
+constexpr std::string_view      g_prompt = snapdev::join_string_views<g_prompt_start, YES_I_AM_SURE, g_prompt_end>;
 
 
 
@@ -1545,10 +1554,29 @@ bool ipload::create_sets()
 
 bool ipload::remove_from_iptables()
 {
+    // first ask the user for confirmation if possible (i.e. isatty() is true)
+    //
+    if(isatty(fileno(stdin))
+    && isatty(fileno(stdout)))
+    {
+        std::unique_ptr<char> answer(readline(g_prompt.data()));
+        if(strcmp(answer.get(), YES_I_AM_SURE.data()) != 0)
+        {
+            SNAP_LOG_WARNING
+                << "clearing of firewall canceled."
+                << SNAP_LOG_SEND;
+            return false;
+        }
+    }
+
     // first clear the rules & reset the policies by default
     //
     // TODO: add commands to clear all the tables to their default
     //
+    if(f_verbose)
+    {
+        std::cerr << tools_ipload::clear_firewall;
+    }
     int exit_code(system(tools_ipload::clear_firewall));
     if(exit_code != 0)
     {
@@ -1596,6 +1624,10 @@ bool ipload::remove_from_iptables()
             std::string const cmd(snapdev::string_replace_many(
                       command
                     , {{"[name]", c->get_name()}}));
+            if(f_verbose)
+            {
+                std::cerr << cmd << '\n';
+            }
             exit_code = system(cmd.c_str());
             if(exit_code != 0)
             {
