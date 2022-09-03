@@ -24,7 +24,6 @@ project(scripts)
 install(
     PROGRAMS
         count-unwanted
-        remove-dups
         showfw
         unblock-all
         unblock-ip

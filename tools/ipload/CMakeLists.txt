@@ -58,6 +58,20 @@ AsRc(
         default_firewall.conf
 )
 
+AsRc(
+    OUTPUT
+        ${CMAKE_CURRENT_BINARY_DIR}/clear_firewall.cpp
+
+    NAME
+        clear_firewall
+
+    NAMESPACE
+        tools_ipload
+
+    INPUTS
+        clear_firewall.sh
+)
+
 project(ipload)
 
 add_executable(${PROJECT_NAME}
@@ -75,6 +89,7 @@ add_executable(${PROJECT_NAME}
     ${CMAKE_CURRENT_BINARY_DIR}/basic_ipv4.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/basic_ipv6.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/default_firewall.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/clear_firewall.cpp
 )
 
 target_include_directories(${PROJECT_NAME}

@@ -29,9 +29,10 @@
 //
 #include    "ipload.h"
 
-#include    "default_firewall.h"
 #include    "basic_ipv4.h"
 #include    "basic_ipv6.h"
+#include    "clear_firewall.h"
+#include    "default_firewall.h"
 #include    "utils.h"
 
 
@@ -95,6 +96,13 @@ advgetopt::option const g_options[] =
     // COMMANDS
     //
     advgetopt::define_option(
+          advgetopt::Name("flush")
+        , advgetopt::ShortName('F')
+        , advgetopt::Flags(advgetopt::command_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
+        , advgetopt::Help("Flush the firewall back to its defaults.")
+    ),
+    advgetopt::define_option(
           advgetopt::Name("load")
         , advgetopt::ShortName('l')
         , advgetopt::Flags(advgetopt::command_flags<
@@ -102,19 +110,36 @@ advgetopt::option const g_options[] =
         , advgetopt::Help("Load or reload all the rules.")
     ),
     advgetopt::define_option(
+          advgetopt::Name("load-basic")
+        , advgetopt::ShortName('B')
+        , advgetopt::Flags(advgetopt::command_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
+        , advgetopt::Help("Only load the basic firewall (mainly for test purposes).")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("load-default")
+        , advgetopt::ShortName('D')
+        , advgetopt::Flags(advgetopt::command_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
+        , advgetopt::Help("Only load the default firewall (mainly for test purposes).")
+    ),
+    advgetopt::define_option(
           advgetopt::Name("show")
+        , advgetopt::ShortName('s')
         , advgetopt::Flags(advgetopt::standalone_command_flags<
                       advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
         , advgetopt::Help("Show the rules. Like --load but instead of loading the rules to iptables, show them in your console.")
     ),
     advgetopt::define_option(
           advgetopt::Name("show-dependencies")
+        , advgetopt::ShortName('d')
         , advgetopt::Flags(advgetopt::standalone_command_flags<
                       advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
         , advgetopt::Help("Show the rules dependency tree in a Makefile like format.")
     ),
     advgetopt::define_option(
           advgetopt::Name("verify")
+        , advgetopt::ShortName('v')
         , advgetopt::Flags(advgetopt::standalone_command_flags<
                       advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
         , advgetopt::Help("Verify the rules. Like --load but without the final step of actually loading the rules in iptables.")
@@ -226,6 +251,7 @@ advgetopt::options_environment const g_options_environment =
 
 
 
+
 /** \brief Initialize the iplock object.
  *
  * This function parses the command line and  determines the command
@@ -260,9 +286,21 @@ ipload::ipload(int argc, char * argv[])
     f_verbose = f_opts.is_defined("verbose");
     f_quiet = f_opts.is_defined("quiet");
 
+    if(f_opts.is_defined("flush"))
+    {
+        f_command |= COMMAND_FLUSH;
+    }
     if(f_opts.is_defined("load"))
     {
         f_command |= COMMAND_LOAD;
+    }
+    if(f_opts.is_defined("load-basic"))
+    {
+        f_command |= COMMAND_LOAD_BASIC;
+    }
+    if(f_opts.is_defined("load-default"))
+    {
+        f_command |= COMMAND_LOAD_DEFAULT;
     }
     if(f_opts.is_defined("show"))
     {
@@ -279,7 +317,10 @@ ipload::ipload(int argc, char * argv[])
 
     switch(f_command)
     {
+    case COMMAND_FLUSH:
     case COMMAND_LOAD:
+    case COMMAND_LOAD_BASIC:
+    case COMMAND_LOAD_DEFAULT:
     case COMMAND_SHOW:
     case COMMAND_SHOW_DEPENDENCIES:
     case COMMAND_VERIFY:
@@ -346,6 +387,24 @@ int ipload::run()
 {
     switch(f_command)
     {
+    case COMMAND_FLUSH:
+        make_root();
+        if(!load_data())
+        {
+            if(f_opts.is_defined("no-defaults"))
+            {
+                return 1;
+            }
+            SNAP_LOG_TODO
+                << "could not load any ipload data; TODO: implement flush of default firewal."
+                << SNAP_LOG_SEND;
+        }
+        if(!remove_from_iptables())
+        {
+            return 1;
+        }
+        break;
+
     case COMMAND_LOAD:
         // all iptables commands require the user to be root.
         //
@@ -371,7 +430,32 @@ int ipload::run()
         {
             return 1;
         }
-        load_to_iptables();
+        if(!load_to_iptables())
+        {
+            return 1;
+        }
+        break;
+
+    case COMMAND_LOAD_BASIC:
+        make_root();
+        load_basic();
+        break;
+
+    case COMMAND_LOAD_DEFAULT:
+        make_root();
+        create_defaults();
+        if(!convert())
+        {
+            return 1;
+        }
+        if(!create_sets())
+        {
+            return 1;
+        }
+        if(!load_to_iptables())
+        {
+            return 1;
+        }
         break;
 
     case COMMAND_SHOW:
@@ -1459,19 +1543,97 @@ bool ipload::create_sets()
 }
 
 
-void ipload::load_to_iptables()
+bool ipload::remove_from_iptables()
 {
+    // first clear the rules & reset the policies by default
+    //
+    // TODO: add commands to clear all the tables to their default
+    //
+    int exit_code(system(tools_ipload::clear_firewall));
+    if(exit_code != 0)
     {
-        FILE * p(popen("iptables-restore", "w"));
-        fwrite(f_output.c_str(), sizeof(char), f_output.length(), p);
-        int const r(pclose(p));
-        if(r != 0)
+        SNAP_LOG_ERROR
+            << "clear-firewall.sh failed with exit code "
+            << exit_code
+            << SNAP_LOG_SEND;
+        return false;
+    }
+
+    // then go through the user defined chains and remove them
+    //
+    if(!f_variables->has_variable("remove_user_chain"))
+    {
+        SNAP_LOG_ERROR
+            << "try to flush user chains, but \"remove_user_chain\" is not defined."
+            << SNAP_LOG_SEND;
+        return false;
+    }
+    std::string command(f_variables->get_variable("remove_user_chain"));
+    if(command.empty())
+    {
+        SNAP_LOG_ERROR
+            << "found a \"remove_user_chain\" variable, but it is empty."
+            << SNAP_LOG_SEND;
+        return false;
+    }
+    bool valid(true);
+    for(auto const & t : f_tables)
+    {
+        chain::vector_t const & chains(t->get_chains());
+        for(auto const & c : chains)
         {
-            SNAP_LOG_ERROR
-                << "the IPv4 firewall could not be loaded."
-                << SNAP_LOG_SEND;
+            if(c->is_system_chain())
+            {
+                continue;
+            }
+            if(c->get_name().empty())
+            {
+                SNAP_LOG_EXCEPTION
+                    << "found a chain without a name."
+                    << SNAP_LOG_SEND;
+                throw iplock::logic_error("chain has no name.");
+            }
+            std::string const cmd(snapdev::string_replace_many(
+                      command
+                    , {{"[name]", c->get_name()}}));
+            exit_code = system(cmd.c_str());
+            if(exit_code != 0)
+            {
+                int const e(errno);
+                SNAP_LOG_ERROR
+                    << "an error occurred trying to delete a user chain \""
+                    << c->get_name()
+                    << "\" (exit code: "
+                    << exit_code
+                    << ", errno: "
+                    << e
+                    << ", "
+                    << strerror(e)
+                    << ")."
+                    << SNAP_LOG_SEND;
+                valid = false;
+            }
         }
     }
+
+    return valid;
+}
+
+
+bool ipload::load_to_iptables()
+{
+    FILE * p(popen("iptables-restore", "w"));
+    fwrite(f_output.c_str(), sizeof(char), f_output.length(), p);
+    int const r(pclose(p));
+    if(r != 0)
+    {
+        SNAP_LOG_ERROR
+            << "the IPv4 firewall could not be loaded."
+            << SNAP_LOG_SEND;
+        return true;
+    }
+
+    return false;
 }
 
 

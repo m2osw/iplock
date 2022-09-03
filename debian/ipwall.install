@@ -1,9 +1,8 @@
-usr/sbin/ipwall                                usr/sbin/
+usr/sbin/ipwall
 
-usr/bin/count-unwanted                         usr/bin/
-usr/bin/showfw                                 usr/bin/
-usr/bin/unblock-all                            usr/bin/
-usr/bin/unblock-ip                             usr/bin/
+usr/bin/count-unwanted
+usr/bin/unblock-all
+usr/bin/unblock-ip
 
 usr/share/communicatord
 usr/share/fluid-settings

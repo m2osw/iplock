@@ -1,9 +1,13 @@
 #!/bin/sh
+#
+# This script comes from the old days when we used snapdb to access Cassandra.
+# It is not up to date just yet and will probably not be required because we
+# are likely to better handle duplicates long term.
 
 # $1 = computer name
 if test -z "$1"
 then
-	echo "$0 <computer name>" >&2
+	echo "Usage: $0 <computer name> [--no-cache]" >&2
 	exit 1
 fi
 
@@ -40,7 +44,7 @@ do
 
 	if ! $GOOD
 	then
-		# Wehther this returns an error or not, the cell may stick
+		# Whether this returns an error or not, the cell may stick
 		snapdb --drop-cell --host 10.134.28.122 firewall $1 "$DATE"
 
 		# so we want to also run cqlsh

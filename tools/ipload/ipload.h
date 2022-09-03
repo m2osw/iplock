@@ -42,10 +42,13 @@
 class ipload
 {
 public:
-    static constexpr int    COMMAND_LOAD              = 0x0001;
-    static constexpr int    COMMAND_SHOW              = 0x0002;
-    static constexpr int    COMMAND_SHOW_DEPENDENCIES = 0x0004;
-    static constexpr int    COMMAND_VERIFY            = 0x0008;
+    static constexpr int    COMMAND_FLUSH             = 0x0001;
+    static constexpr int    COMMAND_LOAD              = 0x0002;
+    static constexpr int    COMMAND_LOAD_BASIC        = 0x0004;
+    static constexpr int    COMMAND_LOAD_DEFAULT      = 0x0008;
+    static constexpr int    COMMAND_SHOW              = 0x0010;
+    static constexpr int    COMMAND_SHOW_DEPENDENCIES = 0x0020;
+    static constexpr int    COMMAND_VERIFY            = 0x0040;
 
                             ipload(int argc, char * argv[]);
 
@@ -56,7 +59,8 @@ private:
     bool                    load_data();
     void                    load_basic();
     bool                    create_sets();
-    void                    load_to_iptables();
+    bool                    remove_from_iptables();
+    bool                    load_to_iptables();
     void                    show();
     void                    show_dependencies();
     void                    load_config(std::string const & filename);
