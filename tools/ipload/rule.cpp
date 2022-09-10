@@ -253,7 +253,6 @@ void rule::result_builder::append_line(line_builder const & line)
     }
 
     std::string const & chain(line.get_add_chain());
-std::cerr << "ADD CHAIN = [" << chain << "]\n";
     f_result += chain;
 
     if(is_ipv4
