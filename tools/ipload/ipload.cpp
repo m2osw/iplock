@@ -29,8 +29,7 @@
 //
 #include    "ipload.h"
 
-#include    "basic_ipv4.h"
-#include    "basic_ipv6.h"
+#include    "basic.h"
 #include    "clear_firewall.h"
 #include    "default_firewall.h"
 #include    "utils.h"
@@ -753,7 +752,7 @@ void ipload::load_basic()
     //
     {
         FILE * p(popen("iptables-restore", "w"));
-        fwrite(tools_ipload::basic_ipv4, sizeof(char), tools_ipload::basic_ipv4_size, p);
+        fwrite(tools_ipload::basic, sizeof(char), tools_ipload::basic_size, p);
         int const r(pclose(p));
         if(r != 0)
         {
@@ -763,11 +762,11 @@ void ipload::load_basic()
         }
     }
 
-    // install a default, very basic IPv4 firewall
+    // install a default, very basic IPv6 firewall
     //
     {
         FILE * p(popen("ip6tables-restore", "w"));
-        fwrite(tools_ipload::basic_ipv6, sizeof(char), tools_ipload::basic_ipv6_size, p);
+        fwrite(tools_ipload::basic, sizeof(char), tools_ipload::basic_size, p);
         int const r(pclose(p));
         if(r != 0)
         {
@@ -1442,7 +1441,11 @@ bool ipload::generate_chain(std::ostream & out, chain::pointer_t c)
 }
 
 
-bool ipload::generate_rules(std::ostream & out, chain::pointer_t c, section_reference::pointer_t s, int & count)
+bool ipload::generate_rules(
+      std::ostream & out
+    , chain::pointer_t c
+    , section_reference::pointer_t s
+    , int & count)
 {
     bool valid(true);
 
@@ -1682,15 +1685,30 @@ bool ipload::remove_from_iptables()
 
 bool ipload::load_to_iptables(std::string const & flag_name)
 {
-    FILE * p(popen("iptables-restore", "w"));
-    fwrite(f_output.c_str(), sizeof(char), f_output.length(), p);
-    int const r(pclose(p));
-    if(r != 0)
     {
-        SNAP_LOG_ERROR
-            << "the IPv4 firewall could not be loaded."
-            << SNAP_LOG_SEND;
-        return false;
+        FILE * p(popen("iptables-restore", "w"));
+        fwrite(f_output.c_str(), sizeof(char), f_output.length(), p);
+        int const r(pclose(p));
+        if(r != 0)
+        {
+            SNAP_LOG_ERROR
+                << "the IPv4 firewall could not be loaded."
+                << SNAP_LOG_SEND;
+            return false;
+        }
+    }
+
+    {
+        FILE * p(popen("ip6tables-restore", "w"));
+        fwrite(f_output.c_str(), sizeof(char), f_output.length(), p);
+        int const r(pclose(p));
+        if(r != 0)
+        {
+            SNAP_LOG_ERROR
+                << "the IPv6 firewall could not be loaded."
+                << SNAP_LOG_SEND;
+            return false;
+        }
     }
 
     // let other tools and services know we successfully installed the

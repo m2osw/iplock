@@ -371,6 +371,13 @@ exceptions.
 
 This parameter defines which protocol is necessary to match this rule.
 
+**IMPORTANT NOTE:** The `icmp` protocol is for IPv4 and IPv6. When used,
+`ipload` automatically adds a rule with `ipv6-icmp`. It is very unlikely
+that you would need `icmp` and not `ipv6-icmp` or that having both would
+be unsafe. If you directly specify `ipv6-icmp` then no rule with `icmp`
+gets added and the rule is specific to IPv6 so it does not get added as
+an IPv4 rule.
+
 **Default:** no protocol is matched meaning that all packets get checked.
 
 ### `rule::<name>::state` or `rule::<name>::states`

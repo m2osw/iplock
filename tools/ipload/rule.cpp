@@ -38,6 +38,11 @@
 #include    <iplock/exception.h>
 
 
+// libaddr
+//
+#include    <libaddr/addr_parser.h>
+
+
 // advgetopt
 //
 #include    <advgetopt/validator_integer.h>
@@ -67,6 +72,230 @@
 
 
 
+namespace
+{
+
+
+
+std::string address_with_mask(addr::addr const & a)
+{
+    std::string ip(a.to_ipv4or6_string(addr::string_ip_t::STRING_IP_ONLY));
+    int mask_size(a.get_mask_size());
+    if(mask_size >= 0
+    && mask_size != 128)
+    {
+        if(a.is_ipv4())
+        {
+            mask_size -= 96;
+        }
+        ip += '/';
+        ip += std::to_string(mask_size);
+    }
+    return ip;
+}
+
+
+
+}
+
+
+rule::line_builder::line_builder(std::string const & chain_name)
+    : f_generating_for_chain_name(chain_name)
+{
+    if(f_generating_for_chain_name.empty())
+    {
+        throw iplock::logic_error("chain name cannot be an empty string in rule::line_builder");
+    }
+}
+
+
+//rule::line_builder::line_builder(line_builder const & rhs)
+//{
+//    *this = rhs;
+//}
+
+
+std::string rule::line_builder::get_add_chain() const
+{
+    return "-A " + f_generating_for_chain_name;
+}
+
+
+bool rule::line_builder::is_chain_name(char const * chain_name) const
+{
+    return f_generating_for_chain_name == chain_name;
+}
+
+
+void rule::line_builder::set_protocol(std::string const & protocol)
+{
+    if(!f_generating_for_protocol.empty())
+    {
+        throw iplock::logic_error("the protocol is already set in this line_builder object; it can't be replaced.");
+    }
+
+    // "ipv6-icmp" gets transformed to "icmpv6" early on,
+    // so it should not occur here, but just in case...
+    //
+    if(protocol == "icmpv6"
+    || protocol == "ipv6-icmp")
+    {
+        set_ipv6();
+        f_generating_for_protocol = "icmpv6";
+    }
+    else
+    {
+        f_generating_for_protocol = protocol;
+    }
+}
+
+
+std::string const & rule::line_builder::get_protocol() const
+{
+    return f_generating_for_protocol;
+}
+
+
+void rule::line_builder::set_ipv4()
+{
+    if(f_ipv6)
+    {
+        throw iplock::logic_error("set_ipv4() called on a line which is already set as an IPv6 specific line.");
+    }
+    f_ipv4 = true;
+}
+
+
+bool rule::line_builder::is_ipv4() const
+{
+    return f_ipv4;
+}
+
+
+void rule::line_builder::set_ipv6()
+{
+    if(f_ipv4)
+    {
+        throw iplock::logic_error("set_ipv6() called on a line which is already set as an IPv4 specific line.");
+    }
+    f_ipv6 = true;
+}
+
+
+bool rule::line_builder::is_ipv6() const
+{
+    return f_ipv6;
+}
+
+
+void rule::line_builder::append_ipv4line(std::string const & s, bool set)
+{
+    if(set)
+    {
+        set_ipv4();
+    }
+    if(!f_ipv6)
+    {
+        f_ipv4line += s;
+    }
+}
+
+
+void rule::line_builder::append_ipv6line(std::string const & s, bool set)
+{
+    if(set)
+    {
+        set_ipv6();
+    }
+    if(!f_ipv4)
+    {
+        f_ipv6line += s;
+    }
+}
+
+
+void rule::line_builder::append_both(std::string const & s)
+{
+    append_ipv4line(s);
+    append_ipv6line(s);
+}
+
+
+std::string const & rule::line_builder::get_ipv4line() const
+{
+    return f_ipv4line;
+}
+
+
+std::string const & rule::line_builder::get_ipv6line() const
+{
+    return f_ipv6line;
+}
+
+
+
+
+
+
+
+
+
+void rule::result_builder::append_line(line_builder const & line)
+{
+    // if the rule is not specific to IPv4 or IPv6, apply it to both
+    //
+    bool is_ipv4(line.is_ipv4());
+    bool is_ipv6(line.is_ipv6());
+    if(!is_ipv4 && !is_ipv6)
+    {
+        is_ipv4 = true;
+        is_ipv6 = true;
+    }
+
+    std::string const & chain(line.get_add_chain());
+std::cerr << "ADD CHAIN = [" << chain << "]\n";
+    f_result += chain;
+
+    if(is_ipv4
+    && is_ipv6
+    && line.get_ipv4line() == line.get_ipv6line())
+    {
+        // no need for the --ipv4 or --ipv6
+        //
+        f_result += line.get_ipv4line();
+    }
+    else
+    {
+        // either we only have an IPv4 or an IPv6 rule or there are some
+        // differences in the rule and thus we have to distinguish both
+        //
+        if(is_ipv4)
+        {
+            f_result += " --ipv4" + line.get_ipv4line();
+        }
+        if(is_ipv6)
+        {
+            f_result += " --ipv6" + line.get_ipv6line();
+        }
+    }
+}
+
+
+std::string const & rule::result_builder::get_result() const
+{
+    return f_result;
+}
+
+
+
+
+
+
+
+
+
+
+
 rule::rule(
           advgetopt::conf_file::parameters_t::iterator & it
         , advgetopt::conf_file::parameters_t const & config_params
@@ -78,7 +307,7 @@ rule::rule(
     advgetopt::split_string(it->first, name_list, {"::"});
     if(name_list.size() != 3)
     {
-        throw iplock::logic_error("the rule name \"" + it->first + "\" is expected to be exactly three names: \"rule::<name>::<parameter>\"");
+        throw iplock::logic_error("the rule name \"" + it->first + "\" is expected to be exactly three names: \"rule::<name>::<parameter>\".");
     }
 
     // this is the name of the rule
@@ -89,6 +318,10 @@ rule::rule(
     f_name = advgetopt::option_with_underscores(name_list[1]);
 
     std::string const complete_namespace("rule::" + name_list[1] + "::");
+    advgetopt::string_list_t sources;
+    advgetopt::string_list_t except_sources;
+    advgetopt::string_list_t destinations;
+    advgetopt::string_list_t except_destinations;
     for(; it != config_params.end(); ++it)
     {
         if(strncmp(it->first.c_str(), complete_namespace.c_str(), complete_namespace.length()) != 0)
@@ -179,7 +412,7 @@ rule::rule(
             else if(param_name == "destination"
                  || param_name == "destinations")
             {
-                advgetopt::split_string(value, f_destinations, {","});
+                advgetopt::split_string(value, destinations, {","});
             }
             else if(param_name == "destination-port"
                  || param_name == "destination-ports")
@@ -200,12 +433,12 @@ rule::rule(
             if(param_name == "except-destination"
             || param_name == "except-destinations")
             {
-                advgetopt::split_string(value, f_except_destinations, {","});
+                advgetopt::split_string(value, except_destinations, {","});
             }
             else if(param_name == "except-source"
                  || param_name == "except-sources")
             {
-                advgetopt::split_string(value, f_except_sources, {","});
+                advgetopt::split_string(value, except_sources, {","});
             }
             else
             {
@@ -254,6 +487,13 @@ rule::rule(
             || param_name == "protocols")
             {
                 advgetopt::split_string(value, f_protocols, {","});
+                for(auto & p : f_protocols)
+                {
+                    if(p == "ipv6-icmp")
+                    {
+                        p = "icmpv6";
+                    }
+                }
             }
             else
             {
@@ -279,7 +519,7 @@ rule::rule(
             else if(param_name == "source"
                  || param_name == "sources")
             {
-                advgetopt::split_string(value, f_sources, {","});
+                advgetopt::split_string(value, sources, {","});
             }
             else if(param_name == "source-port"
                  || param_name == "source-ports")
@@ -333,7 +573,7 @@ rule::rule(
     }
 
     if(!f_except_sources.empty()
-    && !f_sources.empty())
+    && !sources.empty())
     {
         SNAP_LOG_ERROR
             << "rule \""
@@ -372,6 +612,26 @@ rule::rule(
             << SNAP_LOG_SEND;
         f_valid = false;
     }
+
+    parse_addresses(
+          sources
+        , f_sources
+        , f_source_ranges);
+
+    parse_addresses(
+          destinations
+        , f_destinations
+        , f_destination_ranges);
+
+    parse_addresses(
+          except_sources
+        , f_except_sources
+        , f_except_source_ranges);
+
+    parse_addresses(
+          except_destinations
+        , f_except_destinations
+        , f_except_destination_ranges);
 }
 
 
@@ -718,6 +978,89 @@ bool rule::parse_expression(std::string const & expression)
 }
 
 
+void rule::parse_addresses(
+      advgetopt::string_list_t const & in
+    , addr::addr::vector_t & out_addresses
+    , addr::addr_range::vector_t & out_ranges)
+{
+    // we already have the addresses separated by commas in separate strings
+    // so we will not allow multi-addresses in the libaddr parser
+    //
+    // here we allow the beginning of the address to include a protocol like
+    // in a URI (i.e. "tcp://" or "udp://"); note that we won't properly
+    // support protocols such as HTTP because that is not compatible with
+    // iptables (although we could make them work too)
+    //
+    advgetopt::string_list_t const input(std::move(in));
+    for(auto const & in_addr : input)
+    {
+        std::string ip(in_addr);
+        std::string protocol;
+        std::string::size_type const pos(ip.find("://"));
+        if(pos != std::string::npos)
+        {
+            protocol = ip.substr(0, pos);
+            if(protocol.empty())
+            {
+                SNAP_LOG_ERROR
+                    << "protocol in address \""
+                    << in_addr
+                    << "\" cannot be empty."
+                    << SNAP_LOG_SEND;
+                f_valid = false;
+                return;
+            }
+            ip = ip.substr(pos + 3);
+            if(ip.empty())
+            {
+                SNAP_LOG_ERROR
+                    << "address in \""
+                    << in_addr
+                    << "\" cannot be empty."
+                    << SNAP_LOG_SEND;
+                f_valid = false;
+                return;
+            }
+        }
+        addr::addr_parser parser;
+        if(!protocol.empty())
+        {
+            parser.set_protocol(protocol);
+        }
+        else
+        {
+            // most IPs in a firewall are TCP or UDP, although this just
+            // means we're reading an IP address
+            //
+            parser.set_protocol(IPPROTO_TCP);
+            parser.set_allow(addr::allow_t::ALLOW_ADDRESS_RANGE, true);
+        }
+        parser.set_allow(addr::allow_t::ALLOW_MASK, true);
+
+        // TODO: look into adding support for port lists or ranges
+        //       (not yet implemented in the libaddr)
+
+        addr::addr_range::vector_t ranges(parser.parse(ip));
+        for(auto const & r : ranges)
+        {
+            if(protocol.empty()
+            && r.has_from()
+            && !r.has_to()
+            && !r.get_from().get_port_defined())
+            {
+                // these addresses get mixed with the f_protocols and f_ports
+                //
+                out_addresses.push_back(r.get_from());
+            }
+            else
+            {
+                out_ranges.push_back(r);
+            }
+        }
+    }
+}
+
+
 bool rule::is_valid() const
 {
     return f_valid;
@@ -783,16 +1126,16 @@ advgetopt::string_list_t const & rule::get_source_interfaces() const
 }
 
 
-advgetopt::string_list_t const & rule::get_sources() const
-{
-    return f_sources;
-}
+//addr::addr::vector_t const & rule::get_sources() const
+//{
+//    return f_sources;
+//}
 
 
-advgetopt::string_list_t const & rule::get_except_sources() const
-{
-    return f_except_sources;
-}
+//addr::addr::vector_t const & rule::get_except_sources() const
+//{
+//    return f_except_sources;
+//}
 
 
 advgetopt::string_list_t const & rule::get_source_ports() const
@@ -807,16 +1150,16 @@ advgetopt::string_list_t const & rule::get_destination_interfaces() const
 }
 
 
-advgetopt::string_list_t const & rule::get_destinations() const
-{
-    return f_destinations;
-}
+//addr::addr::vector_t const & rule::get_destinations() const
+//{
+//    return f_destinations;
+//}
 
 
-advgetopt::string_list_t const & rule::get_except_destinations() const
-{
-    return f_except_destinations;
-}
+//addr::addr::vector_t const & rule::get_except_destinations() const
+//{
+//    return f_except_destinations;
+//}
 
 
 advgetopt::string_list_t const & rule::get_destination_ports() const
@@ -931,10 +1274,10 @@ void rule::set_level(int level)
 /** \brief Generate the iptables rules.
  *
  * This function recursively goes through all the data found in this rule
- * and generate the corresponding code for the iptables-restore command.
+ * and generate the corresponding code for the iptables-restore and
+ * ip6tables-restore commands.
  *
  * \todo
- * Work on generating rules for both: iptables and ip6tables.
  * If the chain does not allow source interfaces, do not generate the "-i".
  * If the chain does not allow source interfaces, do not generate the "-o".
  *
@@ -945,12 +1288,8 @@ void rule::set_level(int level)
  */
 std::string rule::to_iptables_rules(std::string const & chain_name)
 {
-    f_generating_for_chain_name = chain_name;
-
-    std::string result;
-    std::string line;
-
-    line += "-A " + chain_name;
+    result_builder result;
+    line_builder line(chain_name);
 
     if(f_source_interfaces.empty())
     {
@@ -960,15 +1299,17 @@ std::string rule::to_iptables_rules(std::string const & chain_name)
     {
         for(auto const & s : f_source_interfaces)
         {
-            to_iptables_destination_interfaces(result, line + " -i " + s);
+            line_builder sub_line(line);
+            sub_line.append_both(" -i " + s);
+            to_iptables_destination_interfaces(result, sub_line);
         }
     }
 
-    return result;
+    return result.get_result();
 }
 
 
-void rule::to_iptables_destination_interfaces(std::string & result, std::string const & line)
+void rule::to_iptables_destination_interfaces(result_builder & result, line_builder const & line)
 {
     if(f_destination_interfaces.empty())
     {
@@ -978,13 +1319,15 @@ void rule::to_iptables_destination_interfaces(std::string & result, std::string 
     {
         for(auto const & s : f_destination_interfaces)
         {
-            to_iptables_interfaces(result, line + " -o " + s);
+            line_builder sub_line(line);
+            sub_line.append_both(" -o " + s);
+            to_iptables_interfaces(result, sub_line);
         }
     }
 }
 
 
-void rule::to_iptables_interfaces(std::string & result, std::string const & line)
+void rule::to_iptables_interfaces(result_builder & result, line_builder const & line)
 {
     if(f_interfaces.empty())
     {
@@ -1001,11 +1344,11 @@ void rule::to_iptables_interfaces(std::string & result, std::string const & line
         constexpr int IN_OUT_IN  = 0x01;
         constexpr int IN_OUT_OUT = 0x02;
         int in_out(0);
-        if(f_generating_for_chain_name == "OUTPUT")
+        if(line.is_chain_name("OUTPUT"))
         {
             in_out = IN_OUT_OUT;
         }
-        else if(f_generating_for_chain_name == "FORWARD")
+        else if(line.is_chain_name("FORWARD"))
         {
             in_out = IN_OUT_IN | IN_OUT_OUT;
         }
@@ -1015,21 +1358,27 @@ void rule::to_iptables_interfaces(std::string & result, std::string const & line
         case 0:     // for all others, the input is the default
             for(auto const & s : f_interfaces)
             {
-                to_iptables_protocols(result, line + " -i " + s);
+                line_builder sub_line(line);
+                sub_line.append_both(" -i " + s);
+                to_iptables_protocols(result, sub_line);
             }
             break;
 
         case IN_OUT_OUT:
             for(auto const & s : f_interfaces)
             {
-                to_iptables_protocols(result, line + " -o " + s);
+                line_builder sub_line(line);
+                sub_line.append_both(" -o " + s);
+                to_iptables_protocols(result, sub_line);
             }
             break;
 
         case IN_OUT_IN | IN_OUT_OUT:
             for(auto const & s : f_interfaces)
             {
-                to_iptables_protocols(result, line + " -i " + s + " -o " + s);
+                line_builder sub_line(line);
+                sub_line.append_both(" -i " + s + " -o " + s);
+                to_iptables_protocols(result, sub_line);
             }
             break;
 
@@ -1038,7 +1387,7 @@ void rule::to_iptables_interfaces(std::string & result, std::string const & line
 }
 
 
-void rule::to_iptables_protocols(std::string & result, std::string const & line)
+void rule::to_iptables_protocols(result_builder & result, line_builder const & line)
 {
     if(f_protocols.empty())
     {
@@ -1053,7 +1402,6 @@ void rule::to_iptables_protocols(std::string & result, std::string const & line)
             f_valid = false;
         }
 
-        f_generating_for_protocol = "";
         to_iptables_sources(result, line);
     }
     else
@@ -1070,36 +1418,92 @@ void rule::to_iptables_protocols(std::string & result, std::string const & line)
         }
         for(auto const & s : f_protocols)
         {
-            std::string l(line + " -p " + s);
-            if(is_established_related)
+            if(s != "icmpv6")
             {
-                l += " -m state --state ESTABLISHED,RELATED";
+                line_builder sub_line(line);
+
+                sub_line.set_protocol(s);
+
+                sub_line.append_both(" -p " + s);
+                if(is_established_related)
+                {
+                    sub_line.append_both(" -m state --state ESTABLISHED,RELATED");
+                }
+                if(f_source_ports.size() > 1
+                || f_destination_ports.size() > 1)
+                {
+                    sub_line.append_both(" -m multiport");
+                }
+                sub_line.append_both(" -m " + s);
+                to_iptables_sources(result, sub_line);
             }
-            if(f_source_ports.size() > 1
-            || f_destination_ports.size() > 1)
+
+            if(s == "icmp"
+            || s == "icmpv6")
             {
-                l += " -m multiport";
+                line_builder sub_line(line);
+
+                sub_line.set_protocol("icmpv6"); // this forces IPv6
+
+                sub_line.append_ipv6line(" -p icmpv6");
+                if(is_established_related)
+                {
+                    sub_line.append_ipv6line(" -m state --state ESTABLISHED,RELATED");
+                }
+                if(f_source_ports.size() > 1
+                || f_destination_ports.size() > 1)
+                {
+                    sub_line.append_ipv6line(" -m multiport");
+                }
+                sub_line.append_ipv6line(" -m icmpv6");
+                to_iptables_sources(result, sub_line);
             }
-            f_generating_for_protocol = s;
-            to_iptables_sources(result, l + " -m " + s);
         }
     }
 }
 
 
-void rule::to_iptables_sources(std::string & result, std::string const & line)
+void rule::to_iptables_sources(result_builder & result, line_builder const & line)
 {
     if(f_sources.empty())
     {
         if(f_except_sources.empty())
         {
+            if(!f_source_ranges.empty()
+            || !f_except_source_ranges.empty())
+            {
+                // this rule uses ranges, this is not a case of an empty
+                // sources input so here we just return
+                //
+                return;
+            }
+
             to_iptables_source_ports(result, line);
         }
         else
         {
             for(auto const & s : f_except_sources)
             {
-                to_iptables_source_ports(result, line + " ! -s " + s);
+                if(s.is_ipv4())
+                {
+                    if(!line.is_ipv6())
+                    {
+                        line_builder sub_line(line);
+                        std::string const ip(address_with_mask(s));
+                        sub_line.append_ipv4line(" ! -s " + ip, true);
+                        to_iptables_source_ports(result, sub_line);
+                    }
+                }
+                else
+                {
+                    if(!line.is_ipv4())
+                    {
+                        line_builder sub_line(line);
+                        std::string const ip(address_with_mask(s));
+                        sub_line.append_ipv6line(" ! -s " + ip, true);
+                        to_iptables_source_ports(result, sub_line);
+                    }
+                }
             }
         }
     }
@@ -1107,13 +1511,49 @@ void rule::to_iptables_sources(std::string & result, std::string const & line)
     {
         for(auto const & s : f_sources)
         {
-            to_iptables_source_ports(result, line + " -s " + s);
+            if(s.is_default())
+            {
+                // the default IP applies to both: IPv4 and IPv6
+                //
+                if(!line.is_ipv6())
+                {
+                    line_builder sub_line(line);
+                    sub_line.append_ipv4line(" -s 0.0.0.0", true);
+                    to_iptables_source_ports(result, sub_line);
+                }
+                if(!line.is_ipv4())
+                {
+                    line_builder sub_line(line);
+                    sub_line.append_ipv6line(" -s ::", true);
+                    to_iptables_source_ports(result, sub_line);
+                }
+            }
+            else if(s.is_ipv4())
+            {
+                if(!line.is_ipv6())
+                {
+                    line_builder sub_line(line);
+                    std::string const ip(address_with_mask(s));
+                    sub_line.append_ipv4line(" -s " + ip, true);
+                    to_iptables_source_ports(result, sub_line);
+                }
+            }
+            else
+            {
+                if(!line.is_ipv4())
+                {
+                    line_builder sub_line(line);
+                    std::string const ip(address_with_mask(s));
+                    sub_line.append_ipv6line(" -s " + ip, true);
+                    to_iptables_source_ports(result, sub_line);
+                }
+            }
         }
     }
 }
 
 
-void rule::to_iptables_source_ports(std::string & result, std::string const & line)
+void rule::to_iptables_source_ports(result_builder & result, line_builder const & line)
 {
     if(f_source_ports.empty())
     {
@@ -1125,7 +1565,9 @@ void rule::to_iptables_source_ports(std::string & result, std::string const & li
         {
             // for just one port, use --sport
             //
-            to_iptables_destinations(result, line + " --sport " + f_source_ports[0]);
+            line_builder sub_line(line);
+            sub_line.append_both(" --sport " + f_source_ports[0]);
+            to_iptables_destinations(result, sub_line);
         }
         else
         {
@@ -1134,36 +1576,59 @@ void rule::to_iptables_source_ports(std::string & result, std::string const & li
             //
             for(std::size_t idx(0); idx < f_source_ports.size(); idx += 15)
             {
-                std::string l(line + " --sports ");
+                std::string l(" --sports ");
                 std::size_t const max(std::min(idx + 15, f_source_ports.size()));
-                for(std::size_t p(idx); p < max; ++p)
-                {
-                    if(p != idx)
-                    {
-                        l += ',';
-                    }
-                    l += f_source_ports[p];
-                }
-                to_iptables_destinations(result, l);
+                l += snapdev::join_strings(f_source_ports.begin() + idx, f_source_ports.begin() + max, ",");
+                line_builder sub_line(line);
+                sub_line.append_both(l);
+                to_iptables_destinations(result, sub_line);
             }
         }
     }
 }
 
 
-void rule::to_iptables_destinations(std::string & result, std::string const & line)
+void rule::to_iptables_destinations(result_builder & result, line_builder const & line)
 {
     if(f_destinations.empty())
     {
         if(f_except_destinations.empty())
         {
+            if(!f_destination_ranges.empty()
+            || !f_except_destination_ranges.empty())
+            {
+                // this rule uses ranges, this is not a case of an empty
+                // destinations input so here we just return
+                //
+                return;
+            }
+
             to_iptables_destination_ports(result, line);
         }
         else
         {
             for(auto const & s : f_except_destinations)
             {
-                to_iptables_destination_ports(result, line + " ! -d " + s);
+                if(s.is_ipv4())
+                {
+                    if(!line.is_ipv6())
+                    {
+                        line_builder sub_line(line);
+                        std::string const ip(address_with_mask(s));
+                        sub_line.append_ipv4line(" ! -d " + ip, true);
+                        to_iptables_destination_ports(result, sub_line);
+                    }
+                }
+                else
+                {
+                    if(!line.is_ipv4())
+                    {
+                        line_builder sub_line(line);
+                        std::string const ip(address_with_mask(s));
+                        sub_line.append_ipv6line(" ! -d " + ip, true);
+                        to_iptables_destination_ports(result, sub_line);
+                    }
+                }
             }
         }
     }
@@ -1171,22 +1636,49 @@ void rule::to_iptables_destinations(std::string & result, std::string const & li
     {
         for(auto const & s : f_destinations)
         {
-            if(s == "any")
+            if(s.is_default())
             {
-                // TODO: once I have ip6tables we need to use '::' here
+                // the default IP applies to both, IPv4 and IPv6
                 //
-                to_iptables_destination_ports(result, line + " -d 0.0.0.0");
+                if(!line.is_ipv6())
+                {
+                    line_builder sub_line(line);
+                    sub_line.append_ipv4line(" -d 0.0.0.0", true);
+                    to_iptables_destination_ports(result, sub_line);
+                }
+                if(!line.is_ipv4())
+                {
+                    line_builder sub_line(line);
+                    sub_line.append_ipv6line(" -d ::", true);
+                    to_iptables_destination_ports(result, sub_line);
+                }
+            }
+            else if(s.is_ipv4())
+            {
+                if(!line.is_ipv6())
+                {
+                    line_builder sub_line(line);
+                    std::string const ip(address_with_mask(s));
+                    sub_line.append_ipv4line(" -d " + ip, true);
+                    to_iptables_destination_ports(result, sub_line);
+                }
             }
             else
             {
-                to_iptables_destination_ports(result, line + " -d " + s);
+                if(!line.is_ipv4())
+                {
+                    line_builder sub_line(line);
+                    std::string const ip(address_with_mask(s));
+                    sub_line.append_ipv6line(" -d " + ip, true);
+                    to_iptables_destination_ports(result, sub_line);
+                }
             }
         }
     }
 }
 
 
-void rule::to_iptables_destination_ports(std::string & result, std::string const & line)
+void rule::to_iptables_destination_ports(result_builder & result, line_builder const & line)
 {
     if(f_destination_ports.empty())
     {
@@ -1198,16 +1690,21 @@ void rule::to_iptables_destination_ports(std::string & result, std::string const
         {
             // for just one port, use --dport
             //
-            to_iptables_set(result, line + " --dport " + f_destination_ports[0]);
+            line_builder sub_line(line);
+            sub_line.append_both(" --dport " + f_destination_ports[0]);
+            to_iptables_set(result, sub_line);
         }
         else
         {
             // the maximum number of ports with -m multiport is 15 so here
             // we have to generate blocks of 15 or less
             //
+            // TBD: see whether having exactly 16 ports is an issue for
+            //      the second rule which will get a single port
+            //
             for(std::size_t idx(0); idx < f_destination_ports.size(); idx += 15)
             {
-                std::string l(line + " --dports ");
+                std::string l(" --dports ");
                 std::size_t const max(std::min(idx + 15, f_destination_ports.size()));
                 for(std::size_t p(idx); p < max; ++p)
                 {
@@ -1217,14 +1714,16 @@ void rule::to_iptables_destination_ports(std::string & result, std::string const
                     }
                     l += f_destination_ports[p];
                 }
-                to_iptables_set(result, l);
+                line_builder sub_line(line);
+                sub_line.append_both(l);
+                to_iptables_set(result, sub_line);
             }
         }
     }
 }
 
 
-void rule::to_iptables_set(std::string & result, std::string const & line)
+void rule::to_iptables_set(result_builder & result, line_builder const & line)
 {
     if(f_set.empty())
     {
@@ -1234,13 +1733,15 @@ void rule::to_iptables_set(std::string & result, std::string const & line)
     {
         for(auto const & s : f_set)
         {
-            to_iptables_limits(result, line + " -m set --match-set " + s + " src");
+            line_builder sub_line(line);
+            sub_line.append_both(" -m set --match-set " + s + " src");
+            to_iptables_limits(result, sub_line);
         }
     }
 }
 
 
-void rule::to_iptables_limits(std::string & result, std::string const & line)
+void rule::to_iptables_limits(result_builder & result, line_builder const & line)
 {
     if(f_limits.empty())
     {
@@ -1269,6 +1770,10 @@ void rule::to_iptables_limits(std::string & result, std::string const & line)
             else if(*s == '>')
             {
                 less_equal = false;
+                ++s;
+            }
+            while(isspace(*s))
+            {
                 ++s;
             }
             if(!advgetopt::validator_integer::convert_string(s, count))
@@ -1331,6 +1836,10 @@ void rule::to_iptables_limits(std::string & result, std::string const & line)
                     f_valid = false;
                 }
             }
+            while(isspace(*s))
+            {
+                ++s;
+            }
             if(!advgetopt::validator_integer::convert_string(s, mask))
             {
                 SNAP_LOG_ERROR
@@ -1351,7 +1860,7 @@ void rule::to_iptables_limits(std::string & result, std::string const & line)
             }
         }
 
-        std::string l(line);
+        std::string l;
         if(less_equal)
         {
             l += " --connlimit-upto " + std::to_string(count);
@@ -1369,12 +1878,39 @@ void rule::to_iptables_limits(std::string & result, std::string const & line)
             l += " --connlimit-daddr";
         }
 
-        to_iptables_states(result, l);
+        line_builder sub_line(line);
+        if(mask > 32)
+        {
+            // a mask of more than 32 bits is only supported by IPv6
+            //
+            if(line.is_ipv4())
+            {
+                SNAP_LOG_ERROR
+                    << "the second number in the rule limit must be between 0 and 32 for IPv4 addresses. \""
+                    << f_limits[1]
+                    << "\" is not valid."
+                    << SNAP_LOG_SEND;
+                f_valid = false;
+
+                // allow continuation, the user already knows somethings is wrong
+                //
+                sub_line.append_both(l);
+            }
+            else
+            {
+                sub_line.append_ipv6line(l, true);
+            }
+        }
+        else
+        {
+            sub_line.append_both(l);
+        }
+        to_iptables_states(result, sub_line);
     }
 }
 
 
-void rule::to_iptables_states(std::string & result, std::string const & line)
+void rule::to_iptables_states(result_builder & result, line_builder const & line)
 {
     if(f_states.empty())
     {
@@ -1389,13 +1925,15 @@ void rule::to_iptables_states(std::string & result, std::string const & line)
                 continue;
             }
 
-            to_iptables_target(result, line + s.to_iptables_options(f_generating_for_protocol));
+            line_builder sub_line(line);
+            sub_line.append_both(s.to_iptables_options(line.get_protocol()));
+            to_iptables_target(result, sub_line);
         }
     }
 }
 
 
-void rule::to_iptables_target(std::string & result, std::string const & line)
+void rule::to_iptables_target(result_builder & result, line_builder const & line)
 {
     // the LOG action must appear first
     //
@@ -1410,16 +1948,18 @@ void rule::to_iptables_target(std::string & result, std::string const & line)
         prefix = snapdev::string_replace_many(
                   prefix
                 , {{"\"", "'"}});
-        if(prefix.length() > 28)
+        if(prefix.length() > 28) // 28 + ':' = 29
         {
             prefix = prefix.substr(0, 28);
         }
         prefix += ':';
 
-        result += line
-                + " -j LOG --log-prefix \""
-                + prefix
-                + "\" --log-uid\n";
+        line_builder log_line(line);
+        log_line.append_both(
+              " -j LOG --log-prefix \""
+            + prefix
+            + "\" --log-uid\n");
+        result.append_line(log_line);
     }
 
     if(f_action == action_t::ACTION_LOG)
@@ -1429,42 +1969,44 @@ void rule::to_iptables_target(std::string & result, std::string const & line)
         return;
     }
 
-    result += line + " -j " + get_action_name();
+    line_builder final_line(line);
+    final_line.append_both(" -j " + get_action_name());
 
     switch(f_action)
     {
     case action_t::ACTION_CALL:
         // we need to add the name of the user chain to call
         //
-        result += f_action_param;
+        final_line.append_both(f_action_param);
         break;
 
     case action_t::ACTION_DNAT:
-        result += " --to-destination " + f_action_param;
+        final_line.append_both(" --to-destination " + f_action_param);
         break;
 
     case action_t::ACTION_REDIRECT:
-        result += " --to-port " + f_action_param;
+        final_line.append_both(" --to-port " + f_action_param);
         break;
 
     case action_t::ACTION_REJECT:
         if(!f_action_param.empty())
         {
-            result += " --reject-with " + f_action_param;
+            final_line.append_both(" --reject-with " + f_action_param);
         }
         break;
 
     case action_t::ACTION_SNAT:
-        result += " --to-source " + f_action_param;
+        final_line.append_both(" --to-source " + f_action_param);
         break;
 
     default:
         break;
 
     }
-    result += '\n';
-}
+    final_line.append_both("\n");
 
+    result.append_line(final_line);
+}
 
 
 // vim: ts=4 sw=4 et

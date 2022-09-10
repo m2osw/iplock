@@ -18,30 +18,16 @@
 
 AsRc(
     OUTPUT
-        ${CMAKE_CURRENT_BINARY_DIR}/basic_ipv4.cpp
+        ${CMAKE_CURRENT_BINARY_DIR}/basic.cpp
 
     NAME
-        basic_ipv4
+        basic
 
     NAMESPACE
         tools_ipload
 
     INPUTS
-        basic_ipv4.rules
-)
-
-AsRc(
-    OUTPUT
-        ${CMAKE_CURRENT_BINARY_DIR}/basic_ipv6.cpp
-
-    NAME
-        basic_ipv6
-
-    NAMESPACE
-        tools_ipload
-
-    INPUTS
-        basic_ipv6.rules
+        basic.rules
 )
 
 AsRc(
@@ -86,8 +72,7 @@ add_executable(${PROJECT_NAME}
     table.cpp
     utils.cpp
 
-    ${CMAKE_CURRENT_BINARY_DIR}/basic_ipv4.cpp
-    ${CMAKE_CURRENT_BINARY_DIR}/basic_ipv6.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/basic.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/default_firewall.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/clear_firewall.cpp
 )

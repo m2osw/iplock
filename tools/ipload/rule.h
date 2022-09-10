@@ -33,6 +33,11 @@
 #include    "state_result.h"
 
 
+// libaddr
+//
+#include    <libaddr/addr_range.h>
+
+
 // advgetopt
 //
 #include    <advgetopt/conf_file.h>
@@ -78,13 +83,13 @@ public:
 
     advgetopt::string_list_t const &    get_set() const;
     advgetopt::string_list_t const &    get_source_interfaces() const;
-    advgetopt::string_list_t const &    get_sources() const;
-    advgetopt::string_list_t const &    get_except_sources() const;
+    //advgetopt::string_list_t const &    get_sources() const;
+    //advgetopt::string_list_t const &    get_except_sources() const;
     advgetopt::string_list_t const &    get_source_ports() const;
 
     advgetopt::string_list_t const &    get_destination_interfaces() const;
-    advgetopt::string_list_t const &    get_destinations() const;
-    advgetopt::string_list_t const &    get_except_destinations() const;
+    //advgetopt::string_list_t const &    get_destinations() const;
+    //advgetopt::string_list_t const &    get_except_destinations() const;
     advgetopt::string_list_t const &    get_destination_ports() const;
 
     advgetopt::string_list_t const &    get_protocols() const;
@@ -104,19 +109,74 @@ public:
     std::string                         to_iptables_rules(std::string const & chain_name);
 
 private:
+    class line_builder
+    {
+    public:
+        explicit            line_builder(std::string const & chain_name);
+                            //line_builder(line_builder const & rhs);
+
+        line_builder &      operator = (line_builder const &) = delete;
+
+        std::string         get_add_chain() const;
+        bool                is_chain_name(char const * chain_name) const;
+        void                set_protocol(std::string const & protocol);
+        std::string const & get_protocol() const;
+
+        void                set_ipv4();
+        bool                is_ipv4() const;
+        void                set_ipv6();
+        bool                is_ipv6() const;
+
+        void                append_ipv4line(std::string const & s, bool set = false);
+        void                append_ipv6line(std::string const & s, bool set = false);
+        void                append_both(std::string const & s);
+
+        std::string const & get_ipv4line() const;
+        std::string const & get_ipv6line() const;
+
+    private:
+        // if f_ipv4/6 is true then anything else on that line has to match
+        // there is no choice here (i.e. if an ipv4 address is used then we
+        // add that to the ipv4 firewall and not ipv6 and vice versa)
+        //
+        bool                f_ipv4 = false;
+        bool                f_ipv6 = false;
+        std::string         f_generating_for_chain_name = std::string();
+        std::string         f_generating_for_protocol = std::string();
+
+        std::string         f_ipv4line = std::string();
+        std::string         f_ipv6line = std::string();
+    };
+
+    class result_builder
+    {
+    public:
+        void                append_line(line_builder const & line);
+
+        std::string const & get_result() const;
+
+    private:
+        std::string         f_result = std::string();
+    };
+
     void                                parse_action(std::string const & action);
-    void                                to_iptables_destination_interfaces(std::string & result, std::string const & line);
-    void                                to_iptables_interfaces(std::string & result, std::string const & line);
-    void                                to_iptables_protocols(std::string & result, std::string const & line);
-    void                                to_iptables_sources(std::string & result, std::string const & line);
-    void                                to_iptables_source_ports(std::string & result, std::string const & line);
-    void                                to_iptables_destinations(std::string & result, std::string const & line);
-    void                                to_iptables_destination_ports(std::string & result, std::string const & line);
-    void                                to_iptables_set(std::string & result, std::string const & line);
-    void                                to_iptables_limits(std::string & result, std::string const & line);
-    void                                to_iptables_states(std::string & result, std::string const & line);
-    void                                to_iptables_target(std::string & result, std::string const & line);
+    void                                parse_addresses(
+                                              advgetopt::string_list_t const & in
+                                            , addr::addr::vector_t & addresses
+                                            , addr::addr_range::vector_t & range);
     bool                                parse_expression(std::string const & expression);
+
+    void                                to_iptables_destination_interfaces(result_builder & result, line_builder const & line);
+    void                                to_iptables_interfaces(result_builder & result, line_builder const & line);
+    void                                to_iptables_protocols(result_builder & result, line_builder const & line);
+    void                                to_iptables_sources(result_builder & result, line_builder const & line);
+    void                                to_iptables_source_ports(result_builder & result, line_builder const & line);
+    void                                to_iptables_destinations(result_builder & result, line_builder const & line);
+    void                                to_iptables_destination_ports(result_builder & result, line_builder const & line);
+    void                                to_iptables_set(result_builder & result, line_builder const & line);
+    void                                to_iptables_limits(result_builder & result, line_builder const & line);
+    void                                to_iptables_states(result_builder & result, line_builder const & line);
+    void                                to_iptables_target(result_builder & result, line_builder const & line);
 
     std::string                         f_name = std::string();
     std::string                         f_description = std::string();
@@ -130,20 +190,21 @@ private:
     int                                 f_level = 0;
     bool                                f_condition = true;
 
-    std::string                         f_generating_for_chain_name = std::string();
-    std::string                         f_generating_for_protocol = std::string();
-
     advgetopt::string_list_t            f_interfaces = advgetopt::string_list_t();
 
     advgetopt::string_list_t            f_set = advgetopt::string_list_t();
     advgetopt::string_list_t            f_source_interfaces = advgetopt::string_list_t();
-    advgetopt::string_list_t            f_sources = advgetopt::string_list_t();
-    advgetopt::string_list_t            f_except_sources = advgetopt::string_list_t();
+    addr::addr::vector_t                f_sources = addr::addr::vector_t();
+    addr::addr_range::vector_t          f_source_ranges = addr::addr_range::vector_t();
+    addr::addr::vector_t                f_except_sources = addr::addr::vector_t();
+    addr::addr_range::vector_t          f_except_source_ranges = addr::addr_range::vector_t();
     advgetopt::string_list_t            f_source_ports = advgetopt::string_list_t();
 
     advgetopt::string_list_t            f_destination_interfaces = advgetopt::string_list_t();
-    advgetopt::string_list_t            f_destinations = advgetopt::string_list_t();
-    advgetopt::string_list_t            f_except_destinations = advgetopt::string_list_t();
+    addr::addr::vector_t                f_destinations = addr::addr::vector_t();
+    addr::addr_range::vector_t          f_destination_ranges = addr::addr_range::vector_t();
+    addr::addr::vector_t                f_except_destinations = addr::addr::vector_t();
+    addr::addr_range::vector_t          f_except_destination_ranges = addr::addr_range::vector_t();
     advgetopt::string_list_t            f_destination_ports = advgetopt::string_list_t();
 
     advgetopt::string_list_t            f_protocols = advgetopt::string_list_t();

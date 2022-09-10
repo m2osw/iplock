@@ -209,7 +209,8 @@ std::string state_result::to_iptables_options(std::string const & protocol) cons
     //    return " -m state --state ESTABLISHED,RELATED";
     //}
 
-    if(protocol == "icmp")
+    if(protocol == "icmp"
+    || protocol == "icmpv6")
     {
         if(!f_icmp_type.empty())
         {
