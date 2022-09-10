@@ -738,15 +738,8 @@ void ipload::load_basic()
     {
         return;
     }
-    installed.contents("yes\n");
-    if(!installed.write_all())
-    {
-        SNAP_LOG_WARNING
-            << "could not create flag \""
-            << g_basic_flag
-            << "\"."
-            << SNAP_LOG_SEND;
-    }
+
+    bool success(true);
 
     // install a default, very basic IPv4 firewall
     //
@@ -759,6 +752,7 @@ void ipload::load_basic()
             SNAP_LOG_RECOVERABLE_ERROR
                 << "the basic IPv4 firewall could not be loaded."
                 << SNAP_LOG_SEND;
+            success = false;
         }
     }
 
@@ -772,6 +766,22 @@ void ipload::load_basic()
         {
             SNAP_LOG_RECOVERABLE_ERROR
                 << "the basic IPv6 firewall could not be loaded."
+                << SNAP_LOG_SEND;
+            success = false;
+        }
+    }
+
+    // write the flag file to disk
+    //
+    if(success)
+    {
+        installed.contents("yes\n");
+        if(!installed.write_all())
+        {
+            SNAP_LOG_WARNING
+                << "could not create flag \""
+                << g_basic_flag
+                << "\"."
                 << SNAP_LOG_SEND;
         }
     }
