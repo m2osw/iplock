@@ -5,9 +5,9 @@
 -A INPUT -p tcp -m state --state ESTABLISHED,RELATED -m tcp ! --syn -j ACCEPT
 -A INPUT -p udp -m state --state ESTABLISHED,RELATED -m udp -j ACCEPT
 -A INPUT --ipv4 -p udp -m udp -d 224.0.0.0/4 -j ACCEPT
--A INPUT -p tcp -m tcp -m multiports -dports 53,5353 --syn -j ACCEPT
--A INPUT -p udp -m udp -m multiports -dports 53,5353 -j ACCEPT
--A INPUT -p tcp -m tcp -m multiports -dports 137,138,139 -j REJECT
--A INPUT -p udp -m udp -m multiports -dports 67,68,137 -j REJECT
+-A INPUT -p tcp -m tcp -m multiport --dports 53,5353 --syn -j ACCEPT
+-A INPUT -p udp -m udp -m multiport --dports 53,5353 -j ACCEPT
+-A INPUT -p tcp -m tcp -m multiport --dports 137,138,139 -j REJECT
+-A INPUT -p udp -m udp -m multiport --dports 67,68,137 -j REJECT
 -A INPUT -j LOG --log-prefix "[iptables] basic(in): " --log-uid
 COMMIT
