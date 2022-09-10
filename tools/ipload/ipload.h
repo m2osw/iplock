@@ -57,7 +57,7 @@ public:
 private:
     void                    make_root();
     bool                    load_data();
-    void                    load_basic();
+    void                    load_basic(bool force);
     bool                    create_sets();
     bool                    remove_from_iptables();
     bool                    load_to_iptables(std::string const & flag_name);

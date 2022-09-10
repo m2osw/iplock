@@ -425,7 +425,7 @@ int ipload::run()
             // all iptables commands require the user to be root.
             //
             make_root();
-            load_basic();
+            load_basic(false);
             std::string flag_name(g_firewall_flag);
             if(!load_data())
             {
@@ -458,7 +458,7 @@ int ipload::run()
 
     case COMMAND_LOAD_BASIC:
         make_root();
-        load_basic();
+        load_basic(true);
         break;
 
     case COMMAND_LOAD_DEFAULT:
@@ -722,7 +722,7 @@ void ipload::load_conf_file(
 }
 
 
-void ipload::load_basic()
+void ipload::load_basic(bool force)
 {
     // user doesn't want defaults?
     //
@@ -734,7 +734,8 @@ void ipload::load_basic()
     // avoid running this code more than once
     //
     snapdev::file_contents installed(g_basic_flag.data(), true);
-    if(installed.exists())
+    if(!force
+    && installed.exists())
     {
         return;
     }
@@ -1618,6 +1619,14 @@ bool ipload::remove_from_iptables()
     {
         std::cerr << tools_ipload::clear_firewall;
     }
+
+    // after these unlink() we do not really know the status of the firewall
+    // but it is likely cleared... (if the clear fails, then, who knows!)
+    //
+    unlink(g_basic_flag.data());
+    unlink(g_firewall_flag.data());
+    unlink(g_default_flag.data());
+
     int exit_code(system(tools_ipload::clear_firewall));
     if(exit_code != 0)
     {
@@ -1682,11 +1691,6 @@ bool ipload::remove_from_iptables()
                 valid = false;
             }
         }
-    }
-
-    if(valid)
-    {
-        unlink(g_basic_flag.data());
     }
 
     return valid;
