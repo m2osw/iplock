@@ -1,6 +1,0 @@
-*filter
-:INPUT DROP [0:0]
-:OUTPUT ACCEPT [0:0]
--A INPUT -i lo -j ACCEPT
--A INPUT -j LOG --log-prefix "[iptables] basic(in): " --log-uid
-COMMIT
