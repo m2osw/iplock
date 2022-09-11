@@ -10,11 +10,10 @@ then
     # delete the logs
     #
     rm -f /var/log/iplock/${PACKAGENAME}.log*
-    rm -rf /var/log/iptables
 
-    # delete the user configuration file
+    # delete the admin configuration file
     #
-    rm -f /etc/iplock/iplock.d/??-${PACKAGENAME}.conf
+    rm -f /etc/iplock/iplock.d/50-${PACKAGENAME}.conf
 
     # TBD: reset the firewall to empty? It does not seem wise to me.
 fi

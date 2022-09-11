@@ -72,6 +72,7 @@ public:
                                             , advgetopt::variables::pointer_t variables);
 
     bool                                is_valid() const;
+    bool                                empty() const;
 
     std::string const &                 get_name() const;
     advgetopt::string_list_t const &    get_chains() const;

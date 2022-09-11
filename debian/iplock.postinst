@@ -11,6 +11,10 @@
 if [ "$1" = "configure" ]
 then
     /usr/bin/ipload
+
+    # We add `01-iptables.conf`, make sure it is taken in account
+    #
+    invoke-rc.d rsyslog restart
 fi
 
 

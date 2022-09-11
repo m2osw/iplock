@@ -658,18 +658,37 @@ void rule::parse_action(std::string const & action)
         switch(a[0])
         {
         case 'a':
-            if(a == "accept")
+            if(a == "accept"
+            || a == "allow")  // synonym
             {
                 if(action_param.size() != 1)
                 {
                     SNAP_LOG_ERROR
-                        << "the \"ACCEPT\" action does not support a parameter."
+                        << "the \"ACCEPT\" (ALLOW) action does not support a parameter."
                         << SNAP_LOG_SEND;
                     f_valid = false;
                 }
                 else
                 {
                     f_action = action_t::ACTION_ACCEPT;
+                }
+                return;
+            }
+            break;
+
+        case 'b':
+            if(a == "blackhole") // DROP synonym
+            {
+                if(action_param.size() != 1)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"DROP\" (DENY, BLACKHOLE) action does not support a parameter."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_DROP;
                 }
                 return;
             }
@@ -695,12 +714,13 @@ void rule::parse_action(std::string const & action)
             break;
 
         case 'd':
-            if(a == "drop")
+            if(a == "drop"
+            || a == "deny") // synonym
             {
                 if(action_param.size() != 1)
                 {
                     SNAP_LOG_ERROR
-                        << "the \"DROP\" action does not support a parameter."
+                        << "the \"DROP\" (DENY, BLACKHOLE) action does not support a parameter."
                         << SNAP_LOG_SEND;
                     f_valid = false;
                 }
@@ -1063,6 +1083,12 @@ void rule::parse_addresses(
 bool rule::is_valid() const
 {
     return f_valid;
+}
+
+
+bool rule::empty() const
+{
+    return !f_valid || !f_condition;
 }
 
 

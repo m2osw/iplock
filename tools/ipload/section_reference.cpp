@@ -63,6 +63,19 @@ bool section_reference::is_valid() const
 }
 
 
+bool section_reference::empty() const
+{
+    for(auto const & r : f_rules)
+    {
+        if(!r->empty())
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+
 void section_reference::add_rule(rule::pointer_t r)
 {
     f_rules.push_back(r);

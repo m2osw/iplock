@@ -1,14 +1,22 @@
 .TH IPLOCK 1 "August 2022" "iplock 1.x" "User Commands"
 .SH NAME
-iplock \- Block and Unblock IP address in your firewall
+iplock \- Block and Unblock IP addresses in your firewall
 .SH SYNOPSIS
 .B iplock
 [\fIOPTION\fR]...
 .SH DESCRIPTION
-The iplock tool is used to block and unblock IP addresses directly
+The `iplock' tool is used to block and unblock IP addresses directly
 whithin your firewall. The tool is setup so you do not need to be root
-to do so. That allows the ipwall service to add and remove IP addresses
-from the firewall on all the computers in your cluster with one call.
+to do so. That allows the \fBipwall\fR service to add and remove IP
+addresses from the firewall on all the computers in your cluster with
+one call.
+
+.SH "SECURITY"
+The `iplock' tool only allows the update of one user defined chain or
+am IP set. Which is all defined in the `iplock' configuration files.
+This is why we allow anyone from blocking and unblocking IP addresses.
+The unblocking can only unblock IP addresses that are in that user defined
+chain or IP set.
 
 .SH "COMMAND LINE OPTIONS"
 .TP
@@ -23,7 +31,7 @@ List the commands understood by `iplock'.
 \fB\-\-compiler\-version\fR
 Output the version information of the C++ compiler used to compile the
 `advgetopt' library. In most cases, this is the same as the compiler used
-to compile the `ipmgr' tool.
+to compile the `iplock' tool.
 
 .TP
 \fB\-\-config\-dir\fR [\fISOURCE\fR]...
@@ -31,13 +39,13 @@ Define a list of configuration directories to search for configuration files.
 
 .TP
 \fB\-\-configuration\-filenames\fR
-List the filename of each configuration file that the `ipmgr' will read
-to get initialized. \fBWARNING:\fR this does not include the zones that
+List the filename of each configuration file that the `iplock' will read
+to get initialized. \fBWARNING:\fR this does not include the schemes that
 get loaded later in the process.
 
 .TP
 \fB\-\-config\-warnings\fR \fItrue | false\fR
-Whether to show warnings when reading configuration files. Default to false.
+Whether to show warnings when reading scheme files. Defaults to false.
 
 .TP
 \fB\-\-console\fR
@@ -46,82 +54,33 @@ files.
 
 .TP
 \fB\-C\fR, \fB\-\-copyright\fR
-Print out the copyright notice of the `ipmgr' tool.
+Print out the copyright notice of the `iplock' tool.
 
 .TP
 \fB\-\-debug\fR
 Change the logger severity to the `debug' level. This command line option
-changes the level of all the appenders configured for `ipmgr'.
-
-.TP
-\fB\-\-default\-expire\fR \fIduration\fR...
-Define the amount of time to remember a zone value, even if stale.
-The default is two weeks (2w).
-
-.TP
-\fB\-\-default\-group\fR \fIname\fR
-Define a default group name. The group names are used to place different
-zones within the same directory. For example, you could have groups named
-`company', `customers', and `personal'.
-
-.TP
-\fB\-\-default\-hostmaster\fR \fIemail\fR
-Define a default hostmaster email address for all your zones. You can change
-this parameter on a per zone basis.
-
-.TP
-\fB\-\-default\-ips\fR \fIIP\fR...
-One or more IP addresses to use by default. If you have a single server,
-that would be that one IP address (although really you need at least two
-servers to make a DNS work correctly since you need two nameserver IP
-addresses).
-
-.TP
-\fB\-\-default\-minimum\-cache\-failures\fR \fIduration\fR
-Define the minimum amount of time a cache refresh attempt has to wait on
-a failure before trying again.
-
-.TP
-\fB\-\-default\-nameservers\fR \fIsubdomain.domain.tld\fR
-Define two or more default nameserver dmain names. The domain names must
-include the subdomain, domain, and TLD. These will be used by all the
-zones that did not define their own domain nameservers. In most cases,
-this is enough.
-
-.TP
-\fB\-\-default\-refresh\fR \fIduration\fR
-The default refresh duration defines at what rate your secondary DNS server
-is to refresh its copies of your domain names.
-
-.TP
-\fB\-\-default\-retry\fR \fIduration\fR
-Define the retry rate in case the main server does not reply to the
-secondary server.
-
-.TP
-\fB\-\-default\-ttl\fR \fIduration\fR
-Define the TTL of each one of your IP address. Each zone and each IP
-address can itself define its own TTL. The default is used everywhere else.
-
-.TP
-\fB\-\-dns\-ip\fR \fIIP\fR
-Define an IP address to use to dynamically update DNS zones.
-
-.TP
-\fB\-d\fR, \fB\-\-dry\-run\fR
-Do not run the commands that will modify the BIND9 settings. Useful to
-first verify that everything compiles as expected.
+changes the level of all the appenders configured for `iplock'.
 
 .TP
 \fB\-\-environment\-variable\-name\fR
 Print the name of the variable to the console. This variable can be used
 to enter options instead of writing them on the command line or the
-setup file. Commands are not allowed in the environment variable.
+configuration file. Commands are not allowed in the environment variable.
+
+.TP
+\fB\-\-except\-stack\-collect\fR \fIno|yes|simple|complete\fR
+Defines what exceptions are expected to collect from the stack.
+Nearly all our exceptions are expected to stop a process. This command line
+option gives you the ability to define how much information is to be collected
+from the stack trace when that exception occurred. By default, it is set to
+`yes' (which is the synomym of `simple'). With the logger, that exception
+stack information can automatically be logged to your log file. Very useful
+to debug issues in your software running on a remote server.
 
 .TP
 \fB\-\-force\-severity\fR \fIlevel\fR
 Change the logger severity to this specific level. This new level is
-applied to all the defined appenders. The lelve is changed whether it
+applied to all the defined appenders. The level is changed whether it
 is higher or lower than the current appender's level.
 
 .TP
@@ -134,7 +93,11 @@ Print a brief document about the tool usage, then exit.
 
 .TP
 \fB\-L\fR, \fB\-\-license\fR
-Print out the license of `ipmgr' and exit.
+Print out the license of `iplock' and exit.
+
+.TP
+\fB--list-appenders\fR
+List the available appenders as used by the logger.
 
 .TP
 \fB\-\-list\-severities\fR
@@ -144,7 +107,7 @@ List the available severities as used by the logger.
 \fB\-\-log\-component\fR \fIname\fR...
 Define one or more component name to filter the logs. Only logs with that
 component are output, others are ignored. You can use the `!' (exclamation
-mark) character in front of a name to exclude logs from that component.
+mark) character in front of a name to exclude logs with that component.
 
 .TP
 \fB\-\-log\-config\fR \fIfilename\fR
@@ -153,7 +116,7 @@ Only load this very configuration file to setup the logger.
 .TP
 \fB\-\-log\-config\-path\fR \fIpath\fR
 Define a path to search for log configuration files instead of using the
-default.
+defaults.
 
 .TP
 \fB\-\-log\-file\fR \fIfilename\fR
@@ -161,20 +124,33 @@ Save the logs in this specific file instead of what is defined in the
 configuration files.
 
 .TP
+\fB\-\-log\-severity\fR \fIlevel\fR
+Change the severity to this level unless the appender already accepts logs
+for a lower level. So for example, an appender setup to output logs with a
+severity level of `error' or higher is affected by the `warning' level.
+An appender setup to output logs with a severity level of `info' does not
+changed when setting this command line option to `warning'.
+
+.TP
 \fB\-\-logger\-configuration\-filenames\fR
-List the files that the logger will read to be setup. If not files are found,
-then messages will appear in the console by default.
+List the files that the logger reads to be setup. If no files are found,
+then messages appear in the console by default.
 
 .TP
 \fB\-\-logger\-hide\-banner\fR
 Request that the logger does not print the banner in the console. This is
-particularly useful for command line options (opposed to a service). The
-`ipmgr' service automatically turns this option on.
+particularly useful for command line tools (opposed to a service). The
+`iplock' tool automatically turns this option on.
+
+.TP
+\fB\-\-logger\-plugin\-paths\fR
+This option allows you to change the path(s) to the `snaplogger' plugins. You
+can enter multiple paths by separating them with a colon (:).
 
 .TP
 \fB\-\-logger\-show\-banner\fR
 Request that the logger prints its banner when it starts. This is useful
-if you run the tool from a service and want to make sure the administrator
+if you run a tool from a service and want to make sure the administrator
 knows which version of the tool is being used.
 
 .TP
@@ -182,14 +158,6 @@ knows which version of the tool is being used.
 Print out the version of the Snap! Logger and exit.
 
 .TP
-\fB\-\-log\-severity\fR \fIlevel\fR
-Change the severity to this level unless the appender already accepts logs
-for a lower level. So for example, an appender setup to output logs with a
-severity level of `error' or higher will be affected by the `warning' level.
-An appender setup to output logs with a severity level of `info' will not
-be changed when setting this command line option to `warning'.
-
-.TO
 \fB\-\-no\-log\fR
 Turn off the logger so nothing gets printed out. This is somewhat similar
 to a quiet or silent option that many Unix tools offer.
@@ -203,10 +171,15 @@ Print the list of options supported by `ipmgr'.
 Option definitions can be defined in a .ini file. If it exists, this is the
 path where it can be found.
 
-.TO
-\fB\-q\fR, \fB\-\-quiet\fR
-Make the `ipmgr' quiet. This flag cancels the effect of \-\-verbose flag.
-This is also the default.
+.TP
+\fB\-\-print\-option\fR \fIname\fR
+This option is useful to debug your command line, environment variable, and
+configuration files by printing the value of the named option. This tells
+you what value the tool or service sees in the end.
+
+Note that `ipwall' uses `fluid-settings'. Some of the options are defined
+there instead. Make sure to use the `fluid-settings-cli(1)' command line
+instead to read those options.
 
 .TP
 \fB\-\-show\-option\-sources\fR
@@ -216,27 +189,18 @@ This option can be used to determine where a value is defined, which once
 in a while is particularly useful.
 
 .TP
-\fB\-\-slave\fR [\fItrue | false\fR]
-Request the `ipmgr' to generate bind files for the slave server if set to
-true.
-
-.TP
 \fB\-\-syslog\fR [\fIidentity\fR]
 Send the logs to the system `syslog'. If specified, the `identity' is used
 along each message.
 
 .TP
 \fB\-\-trace\fR
-Change the logger severity to the TRACE level. All appenders will accept
-all the logs that they receive.
-
-.TP
-\fB-v\fR, \fB\-\-verbose\fR
-Show the various steps table by the `ipmgr' before running them.
+Change the logger severity to the TRACE level. All appenders accept all the
+logs that they receive.
 
 .TP
 \fB\-V\fR, \fB\-\-version\fR
-print version number, then exit
+Print the `iplock' version number, then exit.
 
 .SH AUTHOR
 Written by Alexis Wilke <alexis@m2osw.com>.
@@ -253,6 +217,5 @@ This is free software: you are free to change and redistribute it.
 .br
 There is NO WARRANTY, to the extent permitted by law.
 .SH "SEE ALSO"
-.BR ipblock (1),
 .BR ipload (1),
 .BR ipwall (1)

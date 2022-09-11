@@ -64,6 +64,7 @@ public:
                                         , bool verbose);
 
     bool                            is_valid() const;
+    bool                            empty() const;
     void                            add_section_reference(section_reference::pointer_t section_reference);
     section_reference::vector_t const &
                                     get_section_references() const;

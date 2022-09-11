@@ -196,6 +196,19 @@ bool table::is_valid() const
 }
 
 
+bool table::empty() const
+{
+    for(auto const & c : f_chains)
+    {
+        if(!c->empty())
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+
 std::string table::get_name() const
 {
     return f_name;

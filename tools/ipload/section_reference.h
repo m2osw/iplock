@@ -44,6 +44,7 @@ public:
                                               section::pointer_t s);
 
     bool                                is_valid() const;
+    bool                                empty() const;
 
     void                                add_rule(rule::pointer_t r);
     void                                compute_dependencies();

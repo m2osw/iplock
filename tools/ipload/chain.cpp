@@ -235,6 +235,19 @@ bool chain::is_valid() const
 }
 
 
+bool chain::empty() const
+{
+    for(auto const & s : f_section_references)
+    {
+        if(!s->empty())
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+
 void chain::add_section_reference(section_reference::pointer_t sr)
 {
     // note: ipload sorts the sections first so here they get added

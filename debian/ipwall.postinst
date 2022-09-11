@@ -20,10 +20,6 @@ then
     touch ${LOGFILE}
     chown ${USERNAME}:${GROUPNAME} ${LOGFILE}
     chmod 640 ${LOGFILE}
-
-    # We added the 01-iptables.conf file, make sure it is taken in account
-    #
-    invoke-rc.d rsyslog restart
 fi
 
 

@@ -1,14 +1,44 @@
 .TH IPLOAD 1 "August 2022" "ipload 1.x" "User Commands"
 .SH NAME
-ipload \- Block and Unblock IP address in your firewall
+ipload \- Load your firewall on boot
 .SH SYNOPSIS
 .B ipload
-[\fIOPTION\fR]...
+[\fB\-\-load\fR
+| \fB\-\-load\-basic\fR
+| \fB\-\-load-default\fR
+| \fB\-\-verify\fR
+| \fB\-\-flush\fR
+| \fB\-\-show\fR
+| \fB\-\-show\-dependencies\fR]
+[\fIOPTIONS\fR]...
 .SH DESCRIPTION
-The ipload tool runs once on a reboot in order to load the firewall
-definitions in your firewall before your network is up. It will also
-make sure to load all the IP addresses defined in your database and
-that need to be blocked.
+The \fBipload(1)\fR tool runs once at boot time in order to load the firewall
+definitions in your firewall before your network is up.
+.PP
+If your firewall makes use of `ipset' to register lists of IP addresses,
+then it also creates those sets.
+
+.SH BASIC USAGE
+The \fBipload(1)\fR command must be called using the one command. Without
+a command, the process fails. In most cases, you want to use the
+\fB\-\-load\fR command to load your firewall in place. The other commands
+are useful to debug your rules.
+.PP
+The commands supported by this version of \fBipload(1)\fR are:
+.PP
+\fB\-\-load\fR -- load the rules in your firewall
+.br
+\fB\-\-load\-basic\fR -- just load the basic rules in your firewall
+.br
+\fB\-\-load\-default\fR -- load the default firewall
+.br
+\fB\-\-verify\fR -- verify that the firewall can be loaded
+.br
+\fB\-\-flush\fR -- flush the firewall
+.br
+\fB\-\-show\fR -- show the ipload output, do not load it
+.br
+\fB\-\-show-dependencies\fR -- show a Makefile list of targets and dependencies
 
 .SH "COMMAND LINE OPTIONS"
 .TP
@@ -20,24 +50,23 @@ Display the date and time when the tool was last built.
 List the commands understood by `ipload'.
 
 .TP
+\fB\-\-comment\fR
+When showing the output with the \-\-show command, include comments.
+
+Note that the `iptables-restore' and `ip6tables-restore' commands do not
+support comments. This is only to make it easier to read the resulting
+generated rules.
+
+.TP
 \fB\-\-compiler\-version\fR
 Output the version information of the C++ compiler used to compile the
 `advgetopt' library. In most cases, this is the same as the compiler used
-to compile the `ipmgr' tool.
-
-.TP
-\fB\-\-config\-dir\fR [\fISOURCE\fR]...
-Define a list of configuration directories to search for configuration files.
+to compile the `ipload' tool.
 
 .TP
 \fB\-\-configuration\-filenames\fR
-List the filename of each configuration file that the `ipmgr' will read
-to get initialized. \fBWARNING:\fR this does not include the zones that
-get loaded later in the process.
-
-.TP
-\fB\-\-config\-warnings\fR \fItrue | false\fR
-Whether to show warnings when reading configuration files. Default to false.
+List the filename of each configuration file that `ipload' reads on
+startup.
 
 .TP
 \fB\-\-console\fR
@@ -46,82 +75,47 @@ files.
 
 .TP
 \fB\-C\fR, \fB\-\-copyright\fR
-Print out the copyright notice of the `ipmgr' tool.
+Print out the copyright notice of the `ipload' tool.
 
 .TP
 \fB\-\-debug\fR
 Change the logger severity to the `debug' level. This command line option
-changes the level of all the appenders configured for `ipmgr'.
-
-.TP
-\fB\-\-default\-expire\fR \fIduration\fR...
-Define the amount of time to remember a zone value, even if stale.
-The default is two weeks (2w).
-
-.TP
-\fB\-\-default\-group\fR \fIname\fR
-Define a default group name. The group names are used to place different
-zones within the same directory. For example, you could have groups named
-`company', `customers', and `personal'.
-
-.TP
-\fB\-\-default\-hostmaster\fR \fIemail\fR
-Define a default hostmaster email address for all your zones. You can change
-this parameter on a per zone basis.
-
-.TP
-\fB\-\-default\-ips\fR \fIIP\fR...
-One or more IP addresses to use by default. If you have a single server,
-that would be that one IP address (although really you need at least two
-servers to make a DNS work correctly since you need two nameserver IP
-addresses).
-
-.TP
-\fB\-\-default\-minimum\-cache\-failures\fR \fIduration\fR
-Define the minimum amount of time a cache refresh attempt has to wait on
-a failure before trying again.
-
-.TP
-\fB\-\-default\-nameservers\fR \fIsubdomain.domain.tld\fR
-Define two or more default nameserver dmain names. The domain names must
-include the subdomain, domain, and TLD. These will be used by all the
-zones that did not define their own domain nameservers. In most cases,
-this is enough.
-
-.TP
-\fB\-\-default\-refresh\fR \fIduration\fR
-The default refresh duration defines at what rate your secondary DNS server
-is to refresh its copies of your domain names.
-
-.TP
-\fB\-\-default\-retry\fR \fIduration\fR
-Define the retry rate in case the main server does not reply to the
-secondary server.
-
-.TP
-\fB\-\-default\-ttl\fR \fIduration\fR
-Define the TTL of each one of your IP address. Each zone and each IP
-address can itself define its own TTL. The default is used everywhere else.
-
-.TP
-\fB\-\-dns\-ip\fR \fIIP\fR
-Define an IP address to use to dynamically update DNS zones.
-
-.TP
-\fB\-d\fR, \fB\-\-dry\-run\fR
-Do not run the commands that will modify the BIND9 settings. Useful to
-first verify that everything compiles as expected.
+changes the level of all the appenders configured for `ipload'.
 
 .TP
 \fB\-\-environment\-variable\-name\fR
 Print the name of the variable to the console. This variable can be used
 to enter options instead of writing them on the command line or the
-setup file. Commands are not allowed in the environment variable.
+configuration file. Commands are not allowed in the environment variable.
+
+.TP
+\fB\-\-except\-stack\-collect\fR \fIno|yes|simple|complete\fR
+Defines what exceptions are expected to collect from the stack.
+Nearly all our exceptions are expected to stop a process. This command line
+option gives you the ability to define how much information is to be collected
+from the stack trace when that exception occurred. By default, it is set to
+`yes' (which is the synomym of `simple'). With the logger, that exception
+stack information can automatically be logged to your log file. Very useful
+to debug issues in your software running on a remote server.
+
+.TP
+\fB-F\fR, \fB\-\-flush\fR
+Flush the firewall back to its defaults.
+
+\fBWARNING:\fR This is dangerous on a live server. It is available mainly
+for administrators to have the ability to test their firewall and make sure
+that it looks as expected. For that reason, when run in your console, `ipload'
+first verifies that you really want to do that by asking you to enter:
+"YES I AM SURE!" and hit enter. It has to be typed in uppercase without
+the quotes.
+
+The flush also resets each chain policy back to `ACCEPT' and deletes all the
+user defined chains.
 
 .TP
 \fB\-\-force\-severity\fR \fIlevel\fR
 Change the logger severity to this specific level. This new level is
-applied to all the defined appenders. The lelve is changed whether it
+applied to all the defined appenders. The level is changed whether it
 is higher or lower than the current appender's level.
 
 .TP
@@ -134,17 +128,51 @@ Print a brief document about the tool usage, then exit.
 
 .TP
 \fB\-L\fR, \fB\-\-license\fR
-Print out the license of `ipmgr' and exit.
+Print out the license of `ipload' and exit.
+
+.TP
+\fB--list-appenders\fR
+List the available appenders as used by the logger.
 
 .TP
 \fB\-\-list\-severities\fR
 List the available severities as used by the logger.
 
 .TP
+\fB\-L\fR, \fB\-\-load\fR
+Load the firewall. This command can be used any number of times. It reloads
+the most current files and always refreshes the firewall. This ensures that
+the latest is loaded. Packages that install new firewall rules should have
+a `postinst' script which runs this command: `ipload \-\-load'.
+
+.TP
+\fB\-B\fR, \fB\-\-load\-basic\fR
+Load the basic firewall only. This commands is used to forcibly loads only
+the basic firewall. This blocks all incoming connections except for ports
+53 (DNS), 5353 (on Ubuntu, DNS on IPv6), and 22 (SSH). It should have
+sufficient open rules to let your computer work as expected. It also allows
+connections to port 22 (SSH).
+
+This basic firewall is automatically loaded when you first run the
+`ipload' command. It then gets completely replaced by either the `default'
+or the user defined firewall rules. This is a safety measure in case the
+default or user defined firewall rules cannot be loaded properly. In this
+way your server is protected until you fix your rules.
+
+.TP
+\fB\-D\fR, \fB\-\-load\-default\fR
+This command is used to load the default firewall. When the `ipload' command
+is run, it attempts to load user defined rules. If that fails, it falls back
+to loading a default set of rules in your firewall.
+
+This firewall is a little more extended than the basic firewall and includes
+dynamic rules.
+
+.TP
 \fB\-\-log\-component\fR \fIname\fR...
 Define one or more component name to filter the logs. Only logs with that
 component are output, others are ignored. You can use the `!' (exclamation
-mark) character in front of a name to exclude logs from that component.
+mark) character in front of a name to exclude logs with that component.
 
 .TP
 \fB\-\-log\-config\fR \fIfilename\fR
@@ -153,7 +181,7 @@ Only load this very configuration file to setup the logger.
 .TP
 \fB\-\-log\-config\-path\fR \fIpath\fR
 Define a path to search for log configuration files instead of using the
-default.
+defaults.
 
 .TP
 \fB\-\-log\-file\fR \fIfilename\fR
@@ -161,20 +189,33 @@ Save the logs in this specific file instead of what is defined in the
 configuration files.
 
 .TP
+\fB\-\-log\-severity\fR \fIlevel\fR
+Change the severity to this level unless the appender already accepts logs
+for a lower level. So for example, an appender setup to output logs with a
+severity level of `error' or higher is affected by the `warning' level.
+An appender setup to output logs with a severity level of `info' does not
+changed when setting this command line option to `warning'.
+
+.TP
 \fB\-\-logger\-configuration\-filenames\fR
-List the files that the logger will read to be setup. If not files are found,
-then messages will appear in the console by default.
+List the files that the logger reads to be setup. If no files are found,
+then messages appear in the console by default.
 
 .TP
 \fB\-\-logger\-hide\-banner\fR
 Request that the logger does not print the banner in the console. This is
-particularly useful for command line options (opposed to a service). The
-`ipmgr' service automatically turns this option on.
+particularly useful for command line tools (opposed to a service). The
+`ipload' service automatically turns this option on.
+
+.TP
+\fB\-\-logger\-plugin\-paths\fR
+This option allows you to change the path(s) to the `snaplogger' plugins. You
+can enter multiple paths by separating them with a colon (:).
 
 .TP
 \fB\-\-logger\-show\-banner\fR
 Request that the logger prints its banner when it starts. This is useful
-if you run the tool from a service and want to make sure the administrator
+if you run a tool from a service and want to make sure the administrator
 knows which version of the tool is being used.
 
 .TP
@@ -182,14 +223,19 @@ knows which version of the tool is being used.
 Print out the version of the Snap! Logger and exit.
 
 .TP
-\fB\-\-log\-severity\fR \fIlevel\fR
-Change the severity to this level unless the appender already accepts logs
-for a lower level. So for example, an appender setup to output logs with a
-severity level of `error' or higher will be affected by the `warning' level.
-An appender setup to output logs with a severity level of `info' will not
-be changed when setting this command line option to `warning'.
+\fB\-N\fR, \fB\-\-no\-defaults\fR
+Prevent loading the default rules. If the user defined rules do not load
+properly, just quit immediately.
 
-.TO
+In most cases, you want to use this option only when debugging your rules
+in order to avoid getting the defaults instead of your rules installed.
+When running the service on a boot, using this option would prevent any
+kind of firewall from being installed if any rule is invalid and the
+load fails, leaving the firewall wide open.
+
+This option cannot be used along the \fB\-\-load\-basic\fR command.
+
+.TP
 \fB\-\-no\-log\fR
 Turn off the logger so nothing gets printed out. This is somewhat similar
 to a quiet or silent option that many Unix tools offer.
@@ -203,10 +249,60 @@ Print the list of options supported by `ipmgr'.
 Option definitions can be defined in a .ini file. If it exists, this is the
 path where it can be found.
 
-.TO
+.TP
+\fB\-\-print\-option\fR \fIname\fR
+This option is useful to debug your command line, environment variable, and
+configuration files by printing the value of the named option. This tells
+you what value the tool or service sees in the end.
+
+.TP
 \fB\-q\fR, \fB\-\-quiet\fR
-Make the `ipmgr' quiet. This flag cancels the effect of \-\-verbose flag.
-This is also the default.
+Prevent the `iptables' tools from printing output message in your console.
+The exit code is still used to know whether an error occurred or not.
+
+.TP
+\fB\-r\fR, \fB\-\-rules\fR
+One or more colon separated paths to directories scanned for firewall rules.
+
+By default, this is set to `/usr/share/iplock/ipload:/etc/iplock/ipload'.
+The paths are used in order, which is important since you can override
+the `enabled' parameter of a rule.
+
+With the default, it is expected the tools install their own rules under
+`/usr/share/iplock/ipload' and override (disable) rules by installing
+files under `/etc/ipload/ipload/ipload.d/??-<package-name>.conf'.
+
+.TP
+\fB\-s\fR, \fB\-\-show\fR
+Show the rules in your console (stdout). This is extremely useful as a first
+step to debug your firewall before \fB\-\-load\fR-ing it.
+
+When the \fB\-\-comment\fR option is used alongside the \fB\-\-show\fR
+option, the `ipload' tool writes headers for each table and chain.
+
+Further, the \fB\-\-verbose\fR option adds comments for each rule. Making
+it even easier to find which file generated which iptables rules.
+
+\fBWARNING:\fR To get output which is compatible with the `iptables-restore'
+and `ip6tables-restore' tools, you cannot use the \fB\-\-comment\fR or
+\fB\-\-verbose\fR options. Also, if `ipload' exits with a value other than 0
+then the output should be considered invalid.
+
+.TP
+\fB\-d\fR, \fB\-\-show\-dependencies\fR
+This option is used to show the dependency tree as built by the `ipload' tool
+before organizing the data in the proper order. Sections and Rules can be
+given `before' and `after' parameters. These defined the order in which
+the Sections and Rules are to be used. This is very important since you
+want to block certain things before allowing others and vice versa.
+
+The output looks like a Makefile with the name of each rule and their
+dependencies. The dependencies in this output are only `after' rules.
+So for example `b: a' means that rule `b' must be added after rule `a'.
+`ipload' transforms all the `before' parameters in `after' parameters.
+
+Note that this tree is always built internally as it is required to sort
+the rules properly.
 
 .TP
 \fB\-\-show\-option\-sources\fR
@@ -216,27 +312,30 @@ This option can be used to determine where a value is defined, which once
 in a while is particularly useful.
 
 .TP
-\fB\-\-slave\fR [\fItrue | false\fR]
-Request the `ipmgr' to generate bind files for the slave server if set to
-true.
-
-.TP
 \fB\-\-syslog\fR [\fIidentity\fR]
 Send the logs to the system `syslog'. If specified, the `identity' is used
 along each message.
 
 .TP
 \fB\-\-trace\fR
-Change the logger severity to the TRACE level. All appenders will accept
-all the logs that they receive.
+Change the logger severity to the TRACE level. All appenders accept all the
+logs that they receive.
 
 .TP
 \fB-v\fR, \fB\-\-verbose\fR
-Show the various steps table by the `ipmgr' before running them.
+Show the various steps taken by `ipload' as it runs.
 
 .TP
-\fB\-V\fR, \fB\-\-version\fR
-print version number, then exit
+\fB\-V\fR, \fB\-\-verify\fR
+Run the `ipload' tool in \fIdry mode\fR. This function runs the tool as if
+the \fB\-\-load\fR command line option was used, but without actually loading
+anything in your firewall. This is useful to detect an error before running
+the command for real. By default, no output is generated unless some errors
+are generated.
+
+.TP
+\fB\-\-version\fR
+Print the `ipload' version number, then exit.
 
 .SH AUTHOR
 Written by Alexis Wilke <alexis@m2osw.com>.
@@ -253,6 +352,6 @@ This is free software: you are free to change and redistribute it.
 .br
 There is NO WARRANTY, to the extent permitted by law.
 .SH "SEE ALSO"
-.BR ipblock (1),
-.BR ipload (1),
+.BR ipload (5),
+.BR iplock (1),
 .BR ipwall (1)

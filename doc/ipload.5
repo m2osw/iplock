@@ -1,0 +1,246 @@
+.TH IPLOAD 1 "August 2022" "ipload 1.x" "User Commands"
+.SH NAME
+ipload \- Load your firewall on boot
+.SH SYNOPSIS
+.B /usr/share/iplock/ipload/<name>.conf
+and
+.B /etc/iplock/ipload/<name>.conf
+and
+.B /etc/iplock/ipload/iplock.d/??-<name>.conf
+.SH DESCRIPTION
+The \fBipload(1)\fR tool runs once at boot time in order to load the firewall
+definitions in your iptables firewall before your network goes up.
+.PP
+The following documents the format of the configuration file supported by
+the \fBipload(1)\fR tool.
+
+.SH ORGANIZATION
+The \fBipload(1)\fR tool loads all the files and look for a specific set
+of options as defined below. All the files are loaded first. Then the
+data gets organized in \fITables\fR, \fIChains\fR, \fISections\fR, and
+\fIRules\fR. The \fISections\fR is a concept added by \fBipload(1)\fR
+to ease the defining the order in which your rules get added to the
+firewall.
+.PP
+The names of the \fITables\fR are the same as defined in \fBiptables(8)\fR:
+.RS
+.IP \fBfilter\fR
+.IP \fBnat\fR
+.IP \fBmangle\fR
+.IP \fBraw\fR
+.IP \fBsecurity\fR
+.RE
+.PP
+\fITables\fR include \fIChains\fR. We consider that there are two types of
+\fIChains\fR: (1) system defined chains (such as \fBINPUT\fR) and (2) user
+defined chains. At the moment, all chains have to be explicitly defined
+before they can be referenced.
+.PP
+All tables do not support all system defined chains. Here is a table of
+the system defined chains are and the tables in which they can be used:
+.RS
+.TP 15
+.B Chains
+.B Corresponding Tables
+.TP 15
+.B FORWARD
+filter mangle security
+.TP 15
+.B INPUT
+filter nat mangle security
+.TP 15
+.B OUTPUT
+filter nat mangle raw security
+.TP 15
+.B PREROUTING
+nat mangle raw
+.TP 15
+.B POSTROUTING
+nat mangle
+.RE
+.PP
+User defined chains cannot reuse those names in any table.
+.PP
+\fIChains\fR include \fISections\fR. \fISections\fB are a concept introduced
+by \fBipload(1)\fR to give you a way to group rules instead of having them
+all sorted with just \fBbefore = ...\fR and \fBafter = ...\fR parameters.
+.PP
+Finally, \fISections\fR include \fIRules\fR. \fBRules\fR are the actual
+rules that appear in your \fBiptables(8)\fR, however, one \fBipload(1)\fR
+rule may result in zero to many \fBiptables(8)\fR rules.
+.PP
+Here is a tree like representation of those definitions:
+.RS
+.IP \fBTables\fP
+.RS
+.IP \fBChains\fP
+.RS
+.IP \fBSections\fP
+.RS
+.IP \fBRules\fP
+.RE
+.RE
+.RE
+.RE
+
+.SH TABLES
+The \fBipload(1)\fR command reads all the configurations files. It then
+look for tables, chains, sections, and rules (as defined in the ORGANIZATION
+section above).
+.PP
+The default configuration files already defined all the available tables.
+
+.SH CHAINS
+Like with tables, the default system chains are all defined in the default
+configuration files. The \fBipload(1)\fR tool also defined two user chains:
+
+.TP
+\fBbad_packets\fR
+To list a default set of IP addresses that is not supported on your system
+such as 10.x.x.x (i.e. if you use 192.168.x.x, then you can as well block
+all traffic on 10.x.x.x).
+
+It happens that some hackers simulate those IP addresses in an attempt to
+directly connect to a service on your LAN. The IP protocol is such that there
+is no good way to prevent such attempts except through your firewall.
+
+.TP
+\fBunwanted\fR
+This chain is used to add all the unwanted IP addresses and block them with
+a \fBDROP\fI. In the new scheme, we actually use an IP set instead of the
+\fBunwanted\fR chain. However, the chain is still available. I have a few
+cases where some IP address is just plain bad \fIforeever\fR and I add these
+directly in this chain. (And yes, those bad IPs, I tried to remove them from
+my firewall and the hits started coming strong again... some such servers
+are there to stay around forever.)
+
+.SH "SECTIONS"
+As mentioned above, \fISections\fR are a concept in \fBipload(1)\fR only.
+This allows us to create groups of rules that get sorted as per the sorting
+order of the sections.
+.PP
+A \fISection\fR is sorted compared to another \fISection\fR using the
+\fBbefore = ...\fR and \fBafter = ...\fR parameters.
+.PP
+By default, we offer five sections sorted in this order:
+.RS
+.IP header
+.IP early_content
+.IP content
+.IP late_content
+.IP footer
+.RE
+.PP
+In most likelihood, you won't need additional sections.
+.PP
+The \fBcontent\fR section is marked as being the default. This means rules
+that do not defined a \fBsection = ...\fR parameter end up in that section.
+You can detect when that happens using the \fB\-\-verbose\fR command
+line option.
+
+.SH "Rules"
+The rules define the actual firewall rules. Contrary to the \fBiptables(8)\fR
+rules, our rules do not require advance knowledge of all the command line
+options. Instead of offer a \fIfew\fR parameters that you can set with
+various values and you end up with the rules as required by \fBiptables(8)\fR.
+Not only that, some of the parameters generate a product, meaning that it
+can end up generating multiple. For example, if you define two chains, two
+interfaces and three sources in one \fBipload(1)\fR rule, you end up with
+2 x 2 x 3 = 12 rules in \fBiptables(8)\fR.
+.PP
+Rules should be assigned a \fBsection = ...\fR parameter. When that
+parameter is not defined, the rule is assigned to the default section.
+.PP
+The \fBbefore = ...\fR and \fBafter = ...\fR parameters of the rules can
+reference rules in a different section. In that case, the reference is
+ignored. This is useful because the same rule may be reused by different
+chains and the before/after parameter may work for that one chain and not
+another.
+.PP
+Rules can include a \fBcondition = ...\fR to dynamically define whether the
+rule should be included or not. At the moment, the condition is limited to
+whether two strings are equal or not equal. This is still very useful since
+we can then test whether a variable is set. If not set, skip that rule.
+
+.SH "VARIABLES"
+Any of the configuration files can include a \fB[variables]\fR declaration.
+The variables are simple \fIname = value\fR.
+
+The rules, sections, chains, and tables may include variables in their
+parameters. Variables are referenced using the \fB${<varname>}\fR syntax.
+These can appear between quotes or just as is.
+
+Note that the variables only work on the right hand side of a parameter
+definition (i.e. in the value, not as the name of the parameter).
+
+The default variables are defined under
+\fI/usr/share/iplock/general/variables.conf\fR.
+
+.SH "DYNAMIC VARIABLES"
+Some of the available variables are dynamically assigned by \fBipload(1)\fR.
+These variables can be used like any others and also overwritten.
+
+TODO: actually implement such variables (i.e. list of interfaces and IP
+addresses on those interfaces).
+
+.SH "GLOBAL VARIABLES"
+The system also supports a few global variables.
+
+The global variables are defined under
+\fI/usr/share/iplock/general/global.conf\fR.
+
+.TP
+\fBlog_introducer\fR
+The log introducer is prepended to all the \fBiptables(8)\fR rules using
+the \fBLOG\fR target. We reuse this introducer in our file,
+\fI/etc/rsyslog.d/01-iptables.conf\fR, to capture those logs and send them
+to a separate file (under \fB/var/log/iptables/...\fR).
+
+It is unlikely that you would want to change this introducer.
+
+.TP
+\fBcreate_set\fR
+The system command line to be used to create an \fBipset(8)\fR. The
+\fBipload(1)\fR command transforms any instances of \fB[name]\fR with
+the name of the set it is attempting to create.
+
+Note that \fBipload(1)\fR always attempts to create the set.
+The command should use a condition to avoid errors if the set already
+exists. At this time, this is the \fB\-exist\fR command line option.
+
+.TP
+\fBremove_user_chain\fR
+The \fBiptables-restore(8)\fR and \fBip6tables-restore(8)\fR commands
+automatically create new user chains. The \fB\-\-flush\fR command line
+option can be used to completely flush the firewall and that includes
+removing all user defined chains. This variable includes the command
+to be used to remove that user chain.
+
+Note that \fBipload(1)\fR always attempts to remove the user chain.
+The command should include a conition to not return an error if the
+chain does not exist. This is currently done using the \fB\-\-list\fR
+command line option. If that does not fail, the chain exists and it
+gets removed.
+
+This command has any instances of \fB[name]\fR replaced by the name of
+the chain being removed. Similarly, it replaces \fB[table]\fR with the
+name of the table in which that chain has to be deleted.
+
+.SH AUTHOR
+Written by Alexis Wilke <alexis@m2osw.com>.
+.SH "REPORTING BUGS"
+Report bugs to <https://github.com/m2osw/iplock/issues>.
+.br
+ipload home page: <https://snapwebsites.org/project/iplock>.
+.SH COPYRIGHT
+Copyright \(co 2022 Made to Order Software Corporation
+.br
+License: GPLv3
+.br
+This is free software: you are free to change and redistribute it.
+.br
+There is NO WARRANTY, to the extent permitted by law.
+.SH "SEE ALSO"
+.BR ipload (1),
+.BR iplock (1),
+.BR ipwall (1)

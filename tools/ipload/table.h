@@ -46,6 +46,7 @@ public:
                                         , advgetopt::variables::pointer_t variables);
 
     bool                            is_valid() const;
+    bool                            empty() const;
     std::string                     get_name() const;
     std::string                     get_prefix() const;
 

@@ -1,7 +1,7 @@
 # iptables
 #
-# We moved the iptable LOG to iptables.log so we have to make sure it
-# gets rotated. This file is here for that purpose.
+# The iptables logs are moved to /var/log/iptables/...
+# This file makes sure these logs get rotated.
 #
 /var/log/iptables/iptables.log {
     weekly

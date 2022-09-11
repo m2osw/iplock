@@ -1,10 +1,15 @@
+# Basic rules loaded first in case the user's rules have errors and cannot
+# be loaded. They may also be extended by the default rules.
+#
 *filter
 :INPUT DROP [0:0]
+:FORWARD DROP [0:0]
 :OUTPUT ACCEPT [0:0]
 -A INPUT -i lo -j ACCEPT
 -A INPUT -p tcp -m state --state ESTABLISHED,RELATED -m tcp ! --syn -j ACCEPT
 -A INPUT -p udp -m state --state ESTABLISHED,RELATED -m udp -j ACCEPT
 -A INPUT --ipv4 -p udp -m udp -d 224.0.0.0/4 -j ACCEPT
+-A INPUT -p tcp -m tcp --dport 22 --syn -j ACCEPT
 -A INPUT -p tcp -m tcp -m multiport --dports 53,5353 --syn -j ACCEPT
 -A INPUT -p udp -m udp -m multiport --dports 53,5353 -j ACCEPT
 -A INPUT -p icmp -j ACCEPT
@@ -12,6 +17,6 @@
 -A INPUT -p tcp -m tcp -m multiport --dports 137,138,139 -j REJECT
 -A INPUT -p udp -m udp -m multiport --dports 67,68,137,138,139 -j REJECT
 -A INPUT -j LOG --log-prefix "[iptables] basic(in): " --log-uid
--A OUTPUT --ipv4 -o lo -p icmp -j ACCEPT
+-A OUTPUT --ipv4 -o lo -j ACCEPT
 -A OUTPUT --ipv4 -p icmp --icmp-type timestamp-reply -j REJECT
 COMMIT

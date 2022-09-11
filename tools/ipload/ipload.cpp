@@ -154,7 +154,7 @@ advgetopt::option const g_options[] =
                       advgetopt::GETOPT_FLAG_GROUP_OPTIONS
                     , advgetopt::GETOPT_FLAG_COMMAND_LINE
                     , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE>())
-        , advgetopt::Help("Add comments to the output of the --show command (although iptable-restore does not support those).")
+        , advgetopt::Help("Add comments to the output of the --show command.")
     ),
     advgetopt::define_option(
           advgetopt::Name("no-defaults")
@@ -182,7 +182,7 @@ advgetopt::option const g_options[] =
                     , advgetopt::GETOPT_FLAG_COMMAND_LINE
                     , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE>())
         , advgetopt::DefaultValue("/usr/share/iplock/ipload:/etc/iplock/ipload")
-        , advgetopt::Help("Path to the rules to load in iptables.")
+        , advgetopt::Help("Colon separated paths to the rules to load in iptables.")
     ),
     advgetopt::define_option(
           advgetopt::Name("verbose")
@@ -307,6 +307,13 @@ ipload::ipload(int argc, char * argv[])
     }
     if(f_opts.is_defined("load-basic"))
     {
+        if(f_opts.is_defined("no-defaults"))
+        {
+            SNAP_LOG_ERROR
+                << "the --no-defaults command line option cannot be used along the --load-basic command."
+                << SNAP_LOG_SEND;
+            throw advgetopt::getopt_exit("mutually exclusive command line options.", 1);
+        }
         f_command |= COMMAND_LOAD_BASIC;
     }
     if(f_opts.is_defined("load-default"))
@@ -407,7 +414,7 @@ int ipload::run()
                 return 1;
             }
             SNAP_LOG_TODO
-                << "could not load any ipload data; TODO: implement flush of default firewal."
+                << "could not load user defined ipload data; TODO: implement flush of default firewall."
                 << SNAP_LOG_SEND;
         }
         if(!convert())
@@ -1273,6 +1280,11 @@ bool ipload::generate_tables(std::ostream & out)
 {
     for(auto const & t : f_tables)
     {
+        if(t->empty())
+        {
+            continue;
+        }
+
         if(f_show_comments)
         {
             out << "# Table: " << t->get_name() << "\n";
