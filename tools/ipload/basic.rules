@@ -7,7 +7,11 @@
 -A INPUT --ipv4 -p udp -m udp -d 224.0.0.0/4 -j ACCEPT
 -A INPUT -p tcp -m tcp -m multiport --dports 53,5353 --syn -j ACCEPT
 -A INPUT -p udp -m udp -m multiport --dports 53,5353 -j ACCEPT
+-A INPUT -p icmp -j ACCEPT
+-A INPUT --ipv6 -p icmpv6 -j ACCEPT
 -A INPUT -p tcp -m tcp -m multiport --dports 137,138,139 -j REJECT
 -A INPUT -p udp -m udp -m multiport --dports 67,68,137,138,139 -j REJECT
 -A INPUT -j LOG --log-prefix "[iptables] basic(in): " --log-uid
+-A OUTPUT -o lo -p icmp -j ACCEPT
+-A OUTPUT -p icmp --icmp-type timestamp-reply -j DROP
 COMMIT
