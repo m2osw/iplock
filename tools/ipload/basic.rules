@@ -5,18 +5,42 @@
 :INPUT DROP [0:0]
 :FORWARD DROP [0:0]
 :OUTPUT ACCEPT [0:0]
+
+# Local network
 -A INPUT -i lo -j ACCEPT
+
+# Established connection
 -A INPUT -p tcp -m state --state ESTABLISHED,RELATED -m tcp ! --syn -j ACCEPT
 -A INPUT -p udp -m state --state ESTABLISHED,RELATED -m udp -j ACCEPT
+
+# 224.x.x.x is local only, it's safe
 -A INPUT --ipv4 -p udp -m udp -d 224.0.0.0/4 -j ACCEPT
+
+# SSH
 -A INPUT -p tcp -m tcp --dport 22 --syn -j ACCEPT
+
+# DNS
 -A INPUT -p tcp -m tcp -m multiport --dports 53,5353 --syn -j ACCEPT
 -A INPUT -p udp -m udp -m multiport --dports 53,5353 -j ACCEPT
+
+# DHCP (BootP)
+-A INPUT -p udp -m udp -m multiport --dports 67,68 -j ACCEPT
+
+# ICMP
 -A INPUT -p icmp -j ACCEPT
 -A INPUT --ipv6 -p icmpv6 -j ACCEPT
+
+# Netbios, if you have WIndows machines you'll get those all the time
 -A INPUT -p tcp -m tcp -m multiport --dports 137,138,139 -j REJECT
--A INPUT -p udp -m udp -m multiport --dports 67,68,137,138,139 -j REJECT
+-A INPUT -p udp -m udp -m multiport --dports 137,138,139 -j REJECT
+
+# Log other hits for easier debugging
 -A INPUT -j LOG --log-prefix "[iptables] basic(in): " --log-uid
+
+# Localhost
 -A OUTPUT --ipv4 -o lo -j ACCEPT
+
+# Prevent IPv4 timestamp-reply outside
 -A OUTPUT --ipv4 -p icmp --icmp-type timestamp-reply -j REJECT
+
 COMMIT
