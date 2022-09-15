@@ -1787,9 +1787,18 @@ void rule::to_iptables_set(result_builder & result, line_builder const & line)
     {
         for(auto const & s : f_set)
         {
-            line_builder sub_line(line);
-            sub_line.append_both(" -m set --match-set " + s + " src");
-            to_iptables_limits(result, sub_line);
+            if(!line.is_ipv6())
+            {
+                line_builder sub_line(line);
+                sub_line.append_ipv4line(" -m set --match-set " + s + "_ipv4 src");
+                to_iptables_limits(result, sub_line);
+            }
+            if(!line.is_ipv4())
+            {
+                line_builder sub_line(line);
+                sub_line.append_ipv6line(" -m set --match-set " + s + "_ipv6 src");
+                to_iptables_limits(result, sub_line);
+            }
         }
     }
 }

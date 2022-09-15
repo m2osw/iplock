@@ -1586,7 +1586,7 @@ bool ipload::create_sets()
                             }
                             std::string const cmd_ipv4(snapdev::string_replace_many(
                                       f_create_set_ipv4
-                                    , {{"[name]", name}}));
+                                    , {{"[name]", name + "_ipv4"}}));
                             int const exit_code_v4(system(cmd_ipv4.c_str()));
                             if(exit_code_v4 != 0)
                             {
@@ -1616,7 +1616,7 @@ bool ipload::create_sets()
                             }
                             std::string const cmd_ipv6(snapdev::string_replace_many(
                                       f_create_set_ipv6
-                                    , {{"[name]", name}}));
+                                    , {{"[name]", name + "_ipv6"}}));
                             int const exit_code_v6(system(cmd_ipv6.c_str()));
                             if(exit_code_v6 != 0)
                             {
