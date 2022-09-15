@@ -190,6 +190,8 @@ private:
     vector_t                            f_dependencies = vector_t();
     int                                 f_level = 0;
     bool                                f_condition = true;
+    bool                                f_force_ipv4 = false;
+    bool                                f_force_ipv6 = false;
 
     advgetopt::string_list_t            f_interfaces = advgetopt::string_list_t();
 

@@ -389,6 +389,30 @@ rule::rule(
             || param_name == "chains")
             {
                 advgetopt::split_string(value, f_chains, {","});
+                for(auto ch(f_chains.begin()); ch != f_chains.end(); )
+                {
+                    if(*ch == "ipv4")
+                    {
+                        ch = f_chains.erase(ch);
+                        f_force_ipv4 = true;
+                    }
+                    else if(*ch == "ipv6")
+                    {
+                        ch = f_chains.erase(ch);
+                        f_force_ipv6 = true;
+                    }
+                    else
+                    {
+                        ++ch;
+                    }
+                }
+                if(f_force_ipv4 && f_force_ipv6)
+                {
+                    SNAP_LOG_ERROR
+                        << "the chains = ... parameter cannot include \"ipv4\" and \"ipv6\" at the same time."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
             }
             else if(param_name == "condition"
                  || param_name == "conditions")
@@ -1316,6 +1340,15 @@ std::string rule::to_iptables_rules(std::string const & chain_name)
     result_builder result;
     line_builder line(chain_name);
 
+    if(f_force_ipv4)
+    {
+        line.set_ipv4();
+    }
+    else if(f_force_ipv6)
+    {
+        line.set_ipv6();
+    }
+
     if(f_source_interfaces.empty())
     {
         to_iptables_destination_interfaces(result, line);
@@ -1462,9 +1495,7 @@ void rule::to_iptables_protocols(result_builder & result, line_builder const & l
                 sub_line.append_both(" -m " + s);
                 to_iptables_sources(result, sub_line);
             }
-
-            if(s == "icmp"
-            || s == "icmpv6")
+            else //if(s == "icmpv6")
             {
                 line_builder sub_line(line);
 
