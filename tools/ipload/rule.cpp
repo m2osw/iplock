@@ -1492,7 +1492,6 @@ void rule::to_iptables_protocols(result_builder & result, line_builder const & l
                 {
                     sub_line.append_both(" -m multiport");
                 }
-                sub_line.append_both(" -m " + s);
                 to_iptables_sources(result, sub_line);
             }
             else //if(s == "icmpv6")
@@ -1511,7 +1510,6 @@ void rule::to_iptables_protocols(result_builder & result, line_builder const & l
                 {
                     sub_line.append_ipv6line(" -m multiport");
                 }
-                sub_line.append_ipv6line(" -m icmpv6");
                 to_iptables_sources(result, sub_line);
             }
         }
@@ -1982,6 +1980,7 @@ void rule::to_iptables_states(result_builder & result, line_builder const & line
             }
 
             line_builder sub_line(line);
+            sub_line.append_both(" -m " + sub_line.get_protocol());
             sub_line.append_both(s.to_iptables_options(line.get_protocol()));
             to_iptables_target(result, sub_line);
         }
