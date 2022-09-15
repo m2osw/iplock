@@ -850,9 +850,15 @@ bool ipload::process_parameters()
         switch(p->first[0])
         {
         case 'c':
-            if(p->first == "create-set") // underscores are changed to '-' by advgetopt
+            if(p->first == "create-set-ipv4") // underscores are changed to '-' by advgetopt
             {
-                f_create_set = p->second;
+                f_create_set_ipv4 = p->second;
+                ++p;
+                continue;
+            }
+            if(p->first == "create-set-ipv6") // underscores are changed to '-' by advgetopt
+            {
+                f_create_set_ipv6 = p->second;
                 ++p;
                 continue;
             }
@@ -1567,26 +1573,59 @@ bool ipload::create_sets()
                     {
                         if(found.find(name) == found.end())
                         {
-                            if(f_create_set.empty())
+                            found.insert(name);
+
+                            // IPv4
+                            //
+                            if(f_create_set_ipv4.empty())
                             {
                                 SNAP_LOG_ERROR
                                     << "the \"create_set\" global variable is empty."
                                     << SNAP_LOG_SEND;
                                 return false;
                             }
-                            found.insert(name);
-                            std::string const cmd(snapdev::string_replace_many(
-                                      f_create_set
+                            std::string const cmd_ipv4(snapdev::string_replace_many(
+                                      f_create_set_ipv4
                                     , {{"[name]", name}}));
-                            int const exit_code(system(cmd.c_str()));
-                            if(exit_code != 0)
+                            int const exit_code_v4(system(cmd_ipv4.c_str()));
+                            if(exit_code_v4 != 0)
                             {
                                 int const e(errno);
                                 SNAP_LOG_ERROR
                                     << "an error occurred trying to create ipset \""
                                     << name
-                                    << "\" (exit code: "
-                                    << exit_code
+                                    << "\" IPv4 (exit code: "
+                                    << exit_code_v4
+                                    << ", errno: "
+                                    << e
+                                    << ", "
+                                    << strerror(e)
+                                    << ")."
+                                    << SNAP_LOG_SEND;
+                                valid = false;
+                            }
+
+                            // IPv6
+                            //
+                            if(f_create_set_ipv6.empty())
+                            {
+                                SNAP_LOG_ERROR
+                                    << "the \"create_setv6\" global variable is empty."
+                                    << SNAP_LOG_SEND;
+                                return false;
+                            }
+                            std::string const cmd_ipv6(snapdev::string_replace_many(
+                                      f_create_set_ipv6
+                                    , {{"[name]", name}}));
+                            int const exit_code_v6(system(cmd_ipv6.c_str()));
+                            if(exit_code_v6 != 0)
+                            {
+                                int const e(errno);
+                                SNAP_LOG_ERROR
+                                    << "an error occurred trying to create ipset \""
+                                    << name
+                                    << "\" IPv6 (exit code: "
+                                    << exit_code_v6
                                     << ", errno: "
                                     << e
                                     << ", "
