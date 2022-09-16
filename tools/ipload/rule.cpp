@@ -1565,7 +1565,8 @@ void rule::to_iptables_sources(result_builder & result, line_builder const & lin
     {
         for(auto const & s : f_sources)
         {
-            if(s.is_default())
+            if(!s.is_mask_defined()
+            && s.is_default())
             {
                 // the default IP applies to both: IPv4 and IPv6
                 //
