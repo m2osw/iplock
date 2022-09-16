@@ -154,11 +154,14 @@ chain::chain(
             if(param_name == "policy")
             {
                 value = to_lower(value);
-                if(value == "accept")
+                if(value == "accept"
+                || value == "allow")
                 {
                     f_policy = policy_t::POLICY_ACCEPT;
                 }
-                else if(value == "drop")
+                else if(value == "drop"
+                     || value == "blackhole"
+                     || value == "deny")
                 {
                     f_policy = policy_t::POLICY_DROP;
                 }
@@ -193,7 +196,10 @@ chain::chain(
                 {
                     f_type = type_t::TYPE_REJECT;
                 }
-                else if(value == "user_defined")
+                else if(value == "user_defined"
+                     || value == "accept"
+                     || value == "allow"
+                     || value == "passthrough")
                 {
                     f_type = type_t::TYPE_USER_DEFINED;
                 }
