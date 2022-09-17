@@ -7,5 +7,6 @@
 * Add a vim syntax file for the firewall .conf files.
 * Add safeguard to prevent blocking our own IPs with ipload (i.e. if a rule is DROP or REJECT and the rule matches one of our local IP).
 * Move docs from README.md to man pages.
+* Chain LOG+DROP/REJECT should probably offer an option to define a list of (public) interfaces so one can get immediate stats per interface.
 * Write tests.
 
