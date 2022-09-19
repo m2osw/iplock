@@ -1559,7 +1559,6 @@ void rule::to_iptables_knocks(result_builder & result, line_builder const & line
                     , std::placeholders::_1
                     , std::placeholders::_2));
             f_destination_ports = { f_knock_ports[idx - 1] };
-            //to_iptables_destination_ports(result, knock);
             to_iptables_protocols(result, knock);
 
             line_builder remover(line.get_chain_name());
@@ -1573,8 +1572,13 @@ void rule::to_iptables_knocks(result_builder & result, line_builder const & line
         //
         line_builder first_knock(line);
         first_knock.append_both(" -m recent --set --name knock1");
+        first_knock.set_next_func(std::bind(
+                  &rule::to_iptables_destination_ports
+                , this
+                , std::placeholders::_1
+                , std::placeholders::_2));
         f_destination_ports = { f_knock_ports[0] };
-        to_iptables_destination_ports(result, first_knock);
+        to_iptables_protocols(result, first_knock);
 
         f_destination_ports = save_destination_ports;
         f_action = save_action;
