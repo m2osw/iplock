@@ -47,6 +47,7 @@
 enum class action_t
 {
     ACTION_UNDEFINED,
+    ACTION_NONE,            // no -j (for things like -m recent)
     ACTION_ACCEPT,
     ACTION_CALL,
     ACTION_DNAT,
@@ -114,10 +115,10 @@ private:
     {
     public:
         explicit            line_builder(std::string const & chain_name);
-                            //line_builder(line_builder const & rhs);
 
         line_builder &      operator = (line_builder const &) = delete;
 
+        std::string         get_chain_name() const;
         std::string         get_add_chain() const;
         bool                is_chain_name(char const * chain_name) const;
         void                set_protocol(std::string const & protocol);
@@ -166,17 +167,21 @@ private:
                                             , addr::addr::vector_t & addresses
                                             , addr::addr_range::vector_t & range);
     bool                                parse_expression(std::string const & expression);
+    void                                parse_reject_action();
 
+    void                                to_iptables_source_interfaces(result_builder & result, line_builder const & line);
     void                                to_iptables_destination_interfaces(result_builder & result, line_builder const & line);
     void                                to_iptables_interfaces(result_builder & result, line_builder const & line);
     void                                to_iptables_protocols(result_builder & result, line_builder const & line);
     void                                to_iptables_sources(result_builder & result, line_builder const & line);
     void                                to_iptables_source_ports(result_builder & result, line_builder const & line);
     void                                to_iptables_destinations(result_builder & result, line_builder const & line);
+    void                                to_iptables_knocks(result_builder & result, line_builder const & line);
     void                                to_iptables_destination_ports(result_builder & result, line_builder const & line);
     void                                to_iptables_set(result_builder & result, line_builder const & line);
     void                                to_iptables_limits(result_builder & result, line_builder const & line);
     void                                to_iptables_states(result_builder & result, line_builder const & line);
+    void                                to_iptables_comment(result_builder & result, line_builder const & line);
     void                                to_iptables_target(result_builder & result, line_builder const & line);
 
     std::string                         f_name = std::string();
@@ -202,6 +207,7 @@ private:
     addr::addr::vector_t                f_except_sources = addr::addr::vector_t();
     addr::addr_range::vector_t          f_except_source_ranges = addr::addr_range::vector_t();
     advgetopt::string_list_t            f_source_ports = advgetopt::string_list_t();
+    advgetopt::string_list_t            f_knock_ports = advgetopt::string_list_t();
 
     advgetopt::string_list_t            f_destination_interfaces = advgetopt::string_list_t();
     addr::addr::vector_t                f_destinations = addr::addr::vector_t();
@@ -216,6 +222,7 @@ private:
 
     action_t                            f_action = action_t::ACTION_UNDEFINED;
     std::string                         f_action_param = std::string();     // REJECT [<type>] or CALL <chain-name>
+    std::string                         f_comment = std::string();
     std::string                         f_log = std::string();
     std::string                         f_log_introducer = "[iptables]";
 };

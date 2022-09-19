@@ -124,11 +124,16 @@ A \fISection\fR is sorted compared to another \fISection\fR using the
 .PP
 By default, we offer five sections sorted in this order:
 .RS
-.IP header
-.IP early_content
-.IP content
-.IP late_content
-.IP footer
+.IP \(bu 2
+header
+.IP \(bu 2
+early_content
+.IP \(bu 2
+content
+.IP \(bu 2
+late_content
+.IP \(bu 2
+footer
 .RE
 .PP
 In most likelihood, you won't need additional sections.
@@ -138,7 +143,7 @@ that do not defined a \fBsection = ...\fR parameter end up in that section.
 You can detect when that happens using the \fB\-\-verbose\fR command
 line option.
 
-.SH "Rules"
+.SH "RULES"
 The rules define the actual firewall rules. Contrary to the \fBiptables(8)\fR
 rules, our rules do not require advance knowledge of all the command line
 options. Instead of offer a \fIfew\fR parameters that you can set with
@@ -161,6 +166,83 @@ Rules can include a \fBcondition = ...\fR to dynamically define whether the
 rule should be included or not. At the moment, the condition is limited to
 whether two strings are equal or not equal. This is still very useful since
 we can then test whether a variable is set. If not set, skip that rule.
+.PP
+The following is the list of available parameters supported by the rules
+blocks:
+
+.TP
+\fBaction = <action>\fR (required)
+Define what the rule shall do when it is a match. There is no default action.
+In other words, this parameter is mandatory. The supported actions are:
+
+.RS 14
+.IP "ACCEPT or ALLOW"
+.IP "CALL <chain-name>"
+.IP "DNAT <destination>"
+.IP "DROP or DENY or BLACKHOLE"
+.IP "LOG"
+.IP "MASQUERADE"
+.IP "REDIRECT <port>"
+.IP "REJECT [<icmp-type>]"
+.IP "RETURN"
+.IP "SNAT <source>"
+.RE
+
+.IP
+The \fBALLOW\fR, \fBDENY\fR, and \fBBLACKHOLE\fR are synonyms. They are not
+recommended.
+
+The \fBCALL\fR action must be followed by a valid chain name. When that rule
+matches, then the specified "<chain-name>" gets called and executed. It
+must be a user defined chain name.
+
+The \fBDNAT\fR and \fBSNAT\fR expect a destination and a source IP address.
+
+The \fBREDIRECT\fR expects a port. This allows you to change the local
+destination port. The call does not see that redirection.
+
+The \fBREJECT\fR can optionally be given an ICMP type to use to reject the
+message. In most cases, you want to use "icmp-port-unreachable", which is
+the default. ipload tries to match the name to IPv4 or IPv6, however, some
+names are not compatible. The available names are:
+.RS 14
+.IP "\fBicmp6-no-route\fR or \fBno-route\fR (IPv6 only)"
+.IP "\fBicmp6-adm-prohibited\fR or \fBicmp-adm-prohibited\fR or \fBadm-prohibited\fR (first IPv6 only)"
+.IP "\fBicmp6-addr-unreachable\fR or \fBaddr-unreach\fR (IPv6 only)"
+.IP "\fBicmp6-port-unreachable\fR or \fBicmp-port-unreachable\fR (first IPv6 only, \fIthis is the default\fR for both IPv4 and IPv6)"
+.IP "\fBicmp-net-unreachable\fR or \fBnet-unreachable\fR (IPv4 only)"
+.IP "\fBicmp-net-prohibited\fR or \fBnet-prohibited\fR (IPv4 only)"
+.IP "\fBicmp-host-unreachable\fR or \fBhost-unreachable\fR (IPv4 only)"
+.IP "\fBicmp-host-prohibited\fR or \fBhost-prohibited\fR (IPv4 only)"
+.IP "\fBicmp-proto-unreachable\fR or \fBproto-unreachable\fR (IPv4 only)"
+.IP "\fBtcp-reset\fR or \fBicmp-tcp-reset\fR"
+.RE
+
+.IP
+Note: Some synonyms are our own extensions. The "icmp-" introducer is
+generally not required.
+
+.TP
+\fBafter = <rule-name>\fR
+Define the name of a rule this rule has to appear after. This enforces an
+order. If no "<rule-name>" is found within this rule's section, then the
+parameter is simply ignored.
+
+.TP
+\fBbefore = <rule-name>\fR
+Define the name of a rule this rule has to appear before. This enforces an
+order. If no "<rule-name>" is found within this rule's section, then the
+parameter is simply ignored.
+
+.TP
+\fBcomment = <comment>\fR
+Add a comment to the rule. This comment is kept in the actual iptables.
+It can be useful if you want to use the ipload as a helper tool to generate
+your rules and then save them using the "iptables-save" command.
+
+.TP
+\fBTODO = <value>\fR
+Add other parameters...
 
 .SH "VARIABLES"
 Any of the configuration files can include a \fB[variables]\fR declaration.
@@ -176,14 +258,14 @@ definition (i.e. in the value, not as the name of the parameter).
 The default variables are defined under
 \fI/usr/share/iplock/general/variables.conf\fR.
 
-.SH "DYNAMIC VARIABLES"
+.SS "Dynamic Variables"
 Some of the available variables are dynamically assigned by \fBipload(1)\fR.
 These variables can be used like any others and also overwritten.
 
 TODO: actually implement such variables (i.e. list of interfaces and IP
 addresses on those interfaces).
 
-.SH "GLOBAL VARIABLES"
+.SS "Global Variables"
 The system also supports a few global variables.
 
 The global variables are defined under

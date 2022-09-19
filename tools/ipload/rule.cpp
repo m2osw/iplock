@@ -76,6 +76,61 @@ namespace
 {
 
 
+constexpr int       REJECT_OPTION_IPV4          = 0x0001;
+constexpr int       REJECT_OPTION_IPV6          = 0x0002;
+constexpr int       REJECT_OPTION_USE_PREVIOUS  = 0x0004;
+
+struct reject_option {
+    char const *    f_name = nullptr;
+    int             f_flags = 0;
+};
+
+reject_option g_reject_options[] =
+{
+    // no route
+    { "icmp6-no-route",         REJECT_OPTION_IPV6 },
+    { "no-route",               REJECT_OPTION_IPV6 },
+
+    // adm prohibited
+    { "icmp6-adm-prohibited",   REJECT_OPTION_IPV6 },
+    { "icmp-adm-prohibited",    REJECT_OPTION_IPV6 | REJECT_OPTION_IPV4 },
+    { "adm-prohibited",         REJECT_OPTION_IPV6 | REJECT_OPTION_IPV4 },
+
+    // addr unreachable
+    { "icmp6-addr-unreachable", REJECT_OPTION_IPV6 },
+    { "addr-unreach",           REJECT_OPTION_IPV6 },
+    { "addr-unreachable",       REJECT_OPTION_IPV6 | REJECT_OPTION_USE_PREVIOUS },   // our extension
+
+    // port unreachable (default if unspecified)
+    { "icmp6-port-unreachable", REJECT_OPTION_IPV6 },
+    { "icmp-port-unreachable",  REJECT_OPTION_IPV6 | REJECT_OPTION_IPV4 },
+    { "port-unreachable",       REJECT_OPTION_IPV6 | REJECT_OPTION_IPV4 | REJECT_OPTION_USE_PREVIOUS },   // our extension
+
+    // net unreachable
+    { "icmp-net-unreachable",   REJECT_OPTION_IPV4 },
+    { "net-unreachable",        REJECT_OPTION_IPV4 | REJECT_OPTION_USE_PREVIOUS },   // our extension
+
+    // net prohibited
+    { "icmp-net-prohibited",    REJECT_OPTION_IPV4 },
+    { "net-prohibited",         REJECT_OPTION_IPV4 | REJECT_OPTION_USE_PREVIOUS },   // our extension
+
+    // host unreachable
+    { "icmp-host-unreachable",  REJECT_OPTION_IPV4 },
+    { "host-unreachable",       REJECT_OPTION_IPV4 | REJECT_OPTION_USE_PREVIOUS },   // our extension
+    { "host-unreach",           REJECT_OPTION_IPV4 | REJECT_OPTION_USE_PREVIOUS },   // our extension
+
+    // proto unreachable
+    { "icmp-proto-unreachable", REJECT_OPTION_IPV4 },
+    { "proto-unreachable",      REJECT_OPTION_IPV4 | REJECT_OPTION_USE_PREVIOUS },   // our extension
+    { "proto-unreach",          REJECT_OPTION_IPV4 | REJECT_OPTION_USE_PREVIOUS },   // our extension
+
+    // tcp reset
+    { "tcp-reset",              REJECT_OPTION_IPV6 | REJECT_OPTION_IPV4 },
+    { "icmp-tcp-reset",         REJECT_OPTION_IPV6 | REJECT_OPTION_IPV4 | REJECT_OPTION_USE_PREVIOUS },   // our extension
+    { "icmp6-tcp-reset",        REJECT_OPTION_IPV6 | REJECT_OPTION_USE_PREVIOUS },   // our extension
+};
+
+
 
 std::string address_with_mask(addr::addr const & a)
 {
@@ -109,10 +164,10 @@ rule::line_builder::line_builder(std::string const & chain_name)
 }
 
 
-//rule::line_builder::line_builder(line_builder const & rhs)
-//{
-//    *this = rhs;
-//}
+std::string rule::line_builder::get_chain_name() const
+{
+    return f_generating_for_chain_name;
+}
 
 
 std::string rule::line_builder::get_add_chain() const
@@ -406,13 +461,12 @@ rule::rule(
                         ++ch;
                     }
                 }
-                if(f_force_ipv4 && f_force_ipv6)
-                {
-                    SNAP_LOG_ERROR
-                        << "the chains = ... parameter cannot include \"ipv4\" and \"ipv6\" at the same time."
-                        << SNAP_LOG_SEND;
-                    f_valid = false;
-                }
+            }
+            else if(param_name == "comment")
+            {
+                f_comment = snapdev::string_replace_many(
+                          value
+                        , {{"\"", "'"}}).substr(0, 256);
             }
             else if(param_name == "condition"
                  || param_name == "conditions")
@@ -475,6 +529,18 @@ rule::rule(
             {
                 advgetopt::split_string(value, f_interfaces, {","});
                 list_to_lower(f_interfaces);
+            }
+            else
+            {
+                found = false;
+            }
+            break;
+
+        case 'k':
+            if(param_name == "knock"
+            || param_name == "knocks")
+            {
+                advgetopt::split_string(value, f_knock_ports, {","});
             }
             else
             {
@@ -635,6 +701,26 @@ rule::rule(
             << SNAP_LOG_SEND;
         f_valid = false;
     }
+
+    if(f_force_ipv4 && f_force_ipv6)
+    {
+        SNAP_LOG_ERROR
+            << "found rules that force IPv4 an IPv6 at the same time (i.e. chains = ipv4, ipv6; reject = IPv4/6 ICMP contradicts your chain definition, etc.)."
+            << SNAP_LOG_SEND;
+        f_valid = false;
+    }
+
+    // TODO: this is not quite correct; it has to be with an INPUT but could
+    //       be in a user defined chain...
+    //
+    //if(!f_knock_ports.empty()
+    //&& f_chains.find("INPUT") == f_chains.end())
+    //{
+    //    SNAP_LOG_ERROR
+    //        << "knocks = ... parameter can only be used with the INPUT chain"
+    //        << SNAP_LOG_SEND;
+    //    f_valid = false;
+    //}
 
     parse_addresses(
           sources
@@ -824,6 +910,7 @@ void rule::parse_action(std::string const & action)
                     if(action_param.size() == 2)
                     {
                         f_action_param = action_param[1];
+                        parse_reject_action();
                     }
                 }
                 return;
@@ -1104,6 +1191,55 @@ void rule::parse_addresses(
 }
 
 
+void rule::parse_reject_action()
+{
+    if(f_action_param.empty())
+    {
+        return;
+    }
+
+    for(std::size_t idx(0); idx < std::size(g_reject_options); ++idx)
+    {
+        if(strcmp(g_reject_options[idx].f_name, f_action_param.c_str()) == 0)
+        {
+            if((g_reject_options[idx].f_flags & REJECT_OPTION_USE_PREVIOUS) != 0)
+            {
+                if((g_reject_options[idx - 1].f_flags & REJECT_OPTION_USE_PREVIOUS) != 0)
+                {
+                    f_action_param = g_reject_options[idx - 2].f_name;
+                }
+                else
+                {
+                    f_action_param = g_reject_options[idx - 1].f_name;
+                }
+            }
+            if((g_reject_options[idx].f_flags & (REJECT_OPTION_IPV6 | REJECT_OPTION_IPV4)) == (REJECT_OPTION_IPV6 | REJECT_OPTION_IPV4))
+            {
+                return;
+            }
+            if((g_reject_options[idx].f_flags & REJECT_OPTION_IPV6) != 0)
+            {
+                f_force_ipv6 = true;
+                return;
+            }
+            if((g_reject_options[idx].f_flags & REJECT_OPTION_IPV4) != 0)
+            {
+                f_force_ipv4 = true;
+                return;
+            }
+            throw iplock::logic_error("the g_reject_options table has an f_flags without either IPv4 or IPv6.");
+        }
+    }
+
+    SNAP_LOG_ERROR
+        << "unrecognized \"REJECT\" action \""
+        << f_action_param
+        << "\"."
+        << SNAP_LOG_SEND;
+    f_valid = false;
+}
+
+
 bool rule::is_valid() const
 {
     return f_valid;
@@ -1246,7 +1382,8 @@ std::string rule::get_action_name() const
     switch(f_action)
     {
     case action_t::ACTION_UNDEFINED:
-        throw iplock::logic_error("action still undefined");
+    case action_t::ACTION_NONE:
+        throw iplock::logic_error("action still undefined or set to NONE");
 
     case action_t::ACTION_ACCEPT:
         return "ACCEPT";
@@ -1349,6 +1486,93 @@ std::string rule::to_iptables_rules(std::string const & chain_name)
         line.set_ipv6();
     }
 
+    to_iptables_knocks(result, line);
+
+    return result.get_result();
+}
+
+
+void rule::to_iptables_knocks(result_builder & result, line_builder const & line)
+{
+    // the basic knock rules skip on interfaces, sources/destinations, etc.
+    // the main rules have them so it is still very safe and that way we
+    // avoid a lot of unnecessary duplication
+    //
+    std::size_t count(f_knock_ports.size());
+    if(count == 0)
+    {
+        to_iptables_source_interfaces(result, line);
+    }
+    else
+    {
+        // the rules should only apply to an INPUT rule, unfortunately
+        // with user defined chains, we just cannot currently guarantee
+        //
+        // the following sequence must remain in order
+
+        // first remove knock<N> if not used in a timely manner
+        //
+        action_t const save_action(f_action);
+        line_builder remove_old("INPUT");
+        remove_old.append_both(
+                  " -m recent --rcheck --seconds 10 --name knock"
+                + std::to_string(count)
+                + " -m recent --remove --name hacker");
+        f_action = action_t::ACTION_NONE;
+        to_iptables_limits(result, remove_old);
+
+        // second, apply the user rules with a verification against
+        // that knock<N> rule
+        //
+        f_action = save_action;
+        line_builder sub_line(line);
+        sub_line.append_both(
+                  " -m recent --rcheck --seconds 10 --name knock"
+                + std::to_string(count));
+        to_iptables_source_interfaces(result, sub_line);
+
+        f_action = action_t::ACTION_NONE;
+        advgetopt::string_list_t const save_destination_ports(f_destination_ports);
+        for(std::size_t idx(count); idx > 1; --idx)
+        {
+            line_builder knock(line);
+            knock.append_both(
+                      " -m recent --rcheck --seconds 10 --name knock"
+                    + std::to_string(idx - 1)
+                    + " -m recent --set --name knock"
+                    + std::to_string(idx));
+            f_destination_ports = { f_knock_ports[idx - 1] };
+            to_iptables_destination_ports(result, knock);
+
+            line_builder remover(line.get_chain_name());
+            remover.append_both(
+                      " -m recent --remove --name knock"
+                    + std::to_string(idx - 1));
+            to_iptables_limits(result, remover);
+        }
+
+        // add first knock entry
+        //
+        line_builder first_knock(line);
+        first_knock.append_both(" -m recent --set --name knock1");
+        f_destination_ports = { f_knock_ports[0] };
+        to_iptables_destination_ports(result, first_knock);
+
+        f_destination_ports = save_destination_ports;
+        f_action = save_action;
+    }
+    //-A portknock -m recent --rcheck --seconds 3600 --name knock3 -m recent --remove --name blacklist
+    //-A portknock -p tcp -m tcp --dport 22 -m recent --rcheck --seconds 3600 --name knock3 -j ACCEPT
+    //-A portknock -p tcp -m tcp --dport 3456 -m recent --rcheck --seconds 10 --name knock2 -m recent --set --name knock3
+    //-A portknock -m recent --remove --name knock2
+    //-A portknock -p tcp -m tcp --dport 2345 -m recent --rcheck --seconds 10 --name knock1 -m recent --set --name knock2
+    //-A portknock -m recent --remove --name knock1
+    //-A portknock -p tcp -m tcp --dport 1234 --set --name knock1
+}
+
+
+void rule::to_iptables_source_interfaces(result_builder & result, line_builder const & line)
+{
     if(f_source_interfaces.empty())
     {
         to_iptables_destination_interfaces(result, line);
@@ -1362,8 +1586,6 @@ std::string rule::to_iptables_rules(std::string const & chain_name)
             to_iptables_destination_interfaces(result, sub_line);
         }
     }
-
-    return result.get_result();
 }
 
 
@@ -1976,9 +2198,10 @@ void rule::to_iptables_limits(result_builder & result, line_builder const & line
 
 void rule::to_iptables_states(result_builder & result, line_builder const & line)
 {
-    if(f_states.empty())
+    if(f_states.empty()
+    || line.get_protocol().empty())
     {
-        to_iptables_target(result, line);
+        to_iptables_comment(result, line);
     }
     else
     {
@@ -1992,8 +2215,26 @@ void rule::to_iptables_states(result_builder & result, line_builder const & line
             line_builder sub_line(line);
             sub_line.append_both(" -m " + sub_line.get_protocol());
             sub_line.append_both(s.to_iptables_options(line.get_protocol()));
-            to_iptables_target(result, sub_line);
+            to_iptables_comment(result, sub_line);
         }
+    }
+}
+
+
+void rule::to_iptables_comment(result_builder & result, line_builder const & line)
+{
+    if(f_comment.empty())
+    {
+        to_iptables_target(result, line);
+    }
+    else
+    {
+        line_builder sub_line(line);
+        sub_line.append_both(
+                  " -m comment --comment \""
+                + f_comment
+                + "\"");
+        to_iptables_target(result, sub_line);
     }
 }
 
@@ -2035,7 +2276,11 @@ void rule::to_iptables_target(result_builder & result, line_builder const & line
     }
 
     line_builder final_line(line);
-    final_line.append_both(" -j " + get_action_name());
+
+    if(f_action != action_t::ACTION_NONE)
+    {
+        final_line.append_both(" -j " + get_action_name());
+    }
 
     switch(f_action)
     {

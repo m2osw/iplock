@@ -25,37 +25,10 @@
  */
 
 
-//// self
-////
-//#include    "rule.h"
-//
-//#include    "utils.h"
-//
-//
-//// iplock
-////
-//#include    <iplock/exception.h>
-//
-//
-//// advgetopt
-////
-//#include    <advgetopt/validator_integer.h>
-//
-//
-//// snaplogger
-////
-//#include    <snaplogger/message.h>
-
-
 // C++
 //
 #include    <string>
 #include    <vector>
-
-
-//// C
-////
-//#include    <string.h>
 
 
 
