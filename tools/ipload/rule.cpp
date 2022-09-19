@@ -288,6 +288,18 @@ std::string const & rule::line_builder::get_ipv6line() const
 }
 
 
+void rule::line_builder::set_next_func(to_iptables_func_t f)
+{
+    f_next_func = f;
+}
+
+
+rule::to_iptables_func_t rule::line_builder::get_next_func() const
+{
+    return f_next_func;
+}
+
+
 
 
 
@@ -1541,8 +1553,14 @@ void rule::to_iptables_knocks(result_builder & result, line_builder const & line
                     + std::to_string(idx - 1)
                     + " -m recent --set --name knock"
                     + std::to_string(idx));
+            knock.set_next_func(std::bind(
+                      &rule::to_iptables_destination_ports
+                    , this
+                    , std::placeholders::_1
+                    , std::placeholders::_2));
             f_destination_ports = { f_knock_ports[idx - 1] };
-            to_iptables_destination_ports(result, knock);
+            //to_iptables_destination_ports(result, knock);
+            to_iptables_protocols(result, knock);
 
             line_builder remover(line.get_chain_name());
             remover.append_both(
@@ -1669,6 +1687,16 @@ void rule::to_iptables_interfaces(result_builder & result, line_builder const & 
 
 void rule::to_iptables_protocols(result_builder & result, line_builder const & line)
 {
+    to_iptables_func_t next(line.get_next_func());
+    if(next == nullptr)
+    {
+        next = std::bind(
+                  &rule::to_iptables_sources
+                , this
+                , std::placeholders::_1
+                , std::placeholders::_2);
+    }
+
     if(f_protocols.empty())
     {
         if(!f_source_ports.empty()
@@ -1682,7 +1710,7 @@ void rule::to_iptables_protocols(result_builder & result, line_builder const & l
             f_valid = false;
         }
 
-        to_iptables_sources(result, line);
+        next(result, line);
     }
     else
     {
@@ -1714,7 +1742,7 @@ void rule::to_iptables_protocols(result_builder & result, line_builder const & l
                 {
                     sub_line.append_both(" -m multiport");
                 }
-                to_iptables_sources(result, sub_line);
+                next(result, sub_line);
             }
             else //if(s == "icmpv6")
             {
@@ -1732,7 +1760,7 @@ void rule::to_iptables_protocols(result_builder & result, line_builder const & l
                 {
                     sub_line.append_ipv6line(" -m multiport");
                 }
-                to_iptables_sources(result, sub_line);
+                next(result, sub_line);
             }
         }
     }

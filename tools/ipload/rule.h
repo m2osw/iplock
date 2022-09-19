@@ -111,6 +111,11 @@ public:
     std::string                         to_iptables_rules(std::string const & chain_name);
 
 private:
+    class result_builder;
+    class line_builder;
+    typedef std::function<void(result_builder &, line_builder const &)>
+                                        to_iptables_func_t;
+
     class line_builder
     {
     public:
@@ -136,6 +141,9 @@ private:
         std::string const & get_ipv4line() const;
         std::string const & get_ipv6line() const;
 
+        void                set_next_func(to_iptables_func_t f);
+        to_iptables_func_t  get_next_func() const;
+
     private:
         // if f_ipv4/6 is true then anything else on that line has to match
         // there is no choice here (i.e. if an ipv4 address is used then we
@@ -148,6 +156,7 @@ private:
 
         std::string         f_ipv4line = std::string();
         std::string         f_ipv6line = std::string();
+        to_iptables_func_t  f_next_func = to_iptables_func_t();
     };
 
     class result_builder
