@@ -29,6 +29,7 @@ configure_file(
 
 add_library(${PROJECT_NAME} SHARED
     block_ip.cpp
+    knock_ports.cpp
     wait_on_firewall.cpp
     version.cpp
 )

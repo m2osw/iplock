@@ -16,9 +16,33 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-add_subdirectory(ipload)
-add_subdirectory(iplock)
-add_subdirectory(ipwall)
-add_subdirectory(knock_knock)
+
+project(knock-knock)
+
+add_executable(${PROJECT_NAME}
+    knock_knock.cpp
+)
+
+target_include_directories(${PROJECT_NAME}
+    PUBLIC
+        ${CMAKE_CURRENT_BINARY_DIR}
+        ${ADVGETOPT_INCLUDE_DIRS}
+        ${BOOST_INCLUDE_DIRS}
+        ${LIBADDR_INCLUDE_DIRS}
+        ${LIBEXCEPT_INCLUDE_DIRS}
+)
+
+target_link_libraries(${PROJECT_NAME}
+    iplock
+)
+
+install(
+    TARGETS
+        ${PROJECT_NAME}
+
+    RUNTIME DESTINATION
+        bin
+)
+
 
 # vim: ts=4 sw=4 et

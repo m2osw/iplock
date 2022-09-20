@@ -58,6 +58,7 @@
 #include    <snapdev/join_strings.h>
 #include    <snapdev/not_reached.h>
 #include    <snapdev/remove_duplicates.h>
+#include    <snapdev/safe_variable.h>
 #include    <snapdev/string_replace_many.h>
 
 
@@ -552,7 +553,17 @@ rule::rule(
             if(param_name == "knock"
             || param_name == "knocks")
             {
-                advgetopt::split_string(value, f_knock_ports, {","});
+                std::string const error(iplock::parse_ports(value, f_knock_ports));
+                if(!error.empty())
+                {
+                    SNAP_LOG_ERROR
+                        << '"'
+                        << value
+                        << "\" is not a valid set of knock ports: "
+                        << error
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
             }
             else
             {
@@ -722,8 +733,8 @@ rule::rule(
         f_valid = false;
     }
 
-    // TODO: this is not quite correct; it has to be with an INPUT but could
-    //       be in a user defined chain...
+    // TODO: this is not quite correct; it has to be with the INPUT chain
+    //       but could be in a user defined chain...
     //
     //if(!f_knock_ports.empty()
     //&& f_chains.find("INPUT") == f_chains.end())
@@ -1524,19 +1535,18 @@ void rule::to_iptables_knocks(result_builder & result, line_builder const & line
 
         // first remove knock<N> if not used in a timely manner
         //
-        action_t const save_action(f_action);
-        line_builder remove_old("INPUT");
+        snapdev::safe_variable const safe_action(f_action, action_t::ACTION_NONE);
+        line_builder remove_old(line.get_chain_name());
         remove_old.append_both(
                   " -m recent --rcheck --seconds 10 --name knock"
                 + std::to_string(count)
                 + " -m recent --remove --name hacker");
-        f_action = action_t::ACTION_NONE;
         to_iptables_limits(result, remove_old);
 
         // second, apply the user rules with a verification against
         // that knock<N> rule
         //
-        f_action = save_action;
+        f_action = safe_action.saved_value();
         line_builder sub_line(line);
         sub_line.append_both(
                   " -m recent --rcheck --seconds 10 --name knock"
@@ -1544,7 +1554,10 @@ void rule::to_iptables_knocks(result_builder & result, line_builder const & line
         to_iptables_source_interfaces(result, sub_line);
 
         f_action = action_t::ACTION_NONE;
-        advgetopt::string_list_t const save_destination_ports(f_destination_ports);
+        snapdev::safe_variable safe_destination_ports(f_destination_ports, {});
+        //advgetopt::string_list_t const save_destination_ports(f_destination_ports);
+        snapdev::safe_variable safe_protocols(f_protocols, {});
+        //advgetopt::string_list_t const save_protocols(f_protocols);
         for(std::size_t idx(count); idx > 1; --idx)
         {
             line_builder knock(line);
@@ -1558,7 +1571,15 @@ void rule::to_iptables_knocks(result_builder & result, line_builder const & line
                     , this
                     , std::placeholders::_1
                     , std::placeholders::_2));
-            f_destination_ports = { f_knock_ports[idx - 1] };
+            f_destination_ports = { std::to_string(f_knock_ports[idx - 1].f_port) };
+            if(f_knock_ports[idx - 1].f_protocol != IPPROTO_IP)
+            {
+                f_protocols = { f_knock_ports[idx - 1].protocol_name() };
+            }
+            else
+            {
+                f_protocols = safe_protocols.saved_value();
+            }
             to_iptables_protocols(result, knock);
 
             line_builder remover(line.get_chain_name());
@@ -1577,11 +1598,20 @@ void rule::to_iptables_knocks(result_builder & result, line_builder const & line
                 , this
                 , std::placeholders::_1
                 , std::placeholders::_2));
-        f_destination_ports = { f_knock_ports[0] };
+        f_destination_ports = { std::to_string(f_knock_ports[0].f_port) };
+        if(f_knock_ports[0].f_protocol != IPPROTO_IP)
+        {
+            f_protocols = { f_knock_ports[0].protocol_name() };
+        }
+        else
+        {
+            f_protocols = safe_protocols.saved_value();
+        }
         to_iptables_protocols(result, first_knock);
 
-        f_destination_ports = save_destination_ports;
-        f_action = save_action;
+        //f_protocols = save_protocols;
+        //f_destination_ports = save_destination_ports;
+        //f_action = save_action;
     }
     //-A portknock -m recent --rcheck --seconds 3600 --name knock3 -m recent --remove --name blacklist
     //-A portknock -p tcp -m tcp --dport 22 -m recent --rcheck --seconds 3600 --name knock3 -j ACCEPT
