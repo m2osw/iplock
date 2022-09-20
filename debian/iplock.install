@@ -4,6 +4,7 @@
 #
 usr/sbin/iplock
 usr/sbin/ipload
+usr/bin/knock-knock
 usr/bin/showfw
 
 # Configuration Files

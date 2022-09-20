@@ -72,6 +72,7 @@ class rule
 public:
     typedef std::shared_ptr<rule>       pointer_t;
     typedef std::vector<pointer_t>      vector_t;
+    typedef std::set<pointer_t>         set_t;
 
                                         rule(
                                               advgetopt::conf_file::parameters_t::iterator & it

@@ -50,7 +50,7 @@ public:
     void                                compute_dependencies();
     int                                 count_levels(
                                               rule::vector_t const & dependencies
-                                            , rule::pointer_t current_rule) const;
+                                            , rule::set_t seen_rules) const;
     bool                                sort_rules();
     rule::vector_t const &              get_rules() const;
 

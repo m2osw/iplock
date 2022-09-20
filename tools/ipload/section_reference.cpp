@@ -84,20 +84,26 @@ void section_reference::add_rule(rule::pointer_t r)
 
 int section_reference::count_levels(
       rule::vector_t const & dependencies
-    , rule::pointer_t current_rule) const
+    , rule::set_t seen_rules) const
 {
     int cnt(1);
     for(auto const & d : dependencies)
     {
-        if(d == current_rule)
+        auto const status(seen_rules.insert(d));
+        if(!status.second)
         {
             SNAP_LOG_ERROR
                 << "detected a dependency loop for "
-                << current_rule->get_name()
+                << d->get_name()
                 << SNAP_LOG_SEND;
-            return cnt;
+            return -1;
         }
-        cnt = std::max(cnt, count_levels(d->get_dependencies(), current_rule) + 1);
+        int const r(count_levels(d->get_dependencies(), seen_rules));
+        if(r < 0)
+        {
+            return -1;
+        }
+        cnt = std::max(cnt, r + 1);
     }
     return cnt;
 }
@@ -153,7 +159,8 @@ bool section_reference::sort_rules()
     int max_level(0);
     for(auto & r : f_rules)
     {
-        int const level(count_levels(r->get_dependencies(), r));
+        rule::set_t seen_rules({r});
+        int const level(count_levels(r->get_dependencies(), seen_rules));
         r->set_level(level);
         max_level = std::max(level, max_level);
     }
