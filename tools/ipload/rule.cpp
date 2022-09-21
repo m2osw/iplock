@@ -1539,7 +1539,39 @@ void rule::to_iptables_knocks(result_builder & result, line_builder const & line
     {
         // the rules should only apply to an INPUT rule, unfortunately
         // with user defined chains, we just cannot currently guarantee
+
+        // verify that destination ports and knock ports do not overlap
+        // because that would cause problems
         //
+        // why is that an issue?
+        //   there are delays to allow the next connection; if you do not
+        //   wait long enough, the port knocking will fail because it will
+        //   allow the connection to the destination port when it should
+        //   let go and go through the port knocking rule instead
+        //
+        for(auto const & p : f_destination_ports)
+        {
+            for(auto const & pp : f_knock_ports)
+            {
+                // TODO: strengthen this test, the 'p' string could be a
+                //       port name (i.e. "ssh")
+                //
+                // TODO: this loop ignores the protocol; if the connection
+                //       on destination ports is TCP and the port knocking
+                //       is UDP, then we should not prevent the reuse
+                //
+                if(p == std::to_string(pp.f_port))
+                {
+                    SNAP_LOG_ERROR
+                        << "knock port \""
+                        << p
+                        << "\" should not be used since it is one of the destination port."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+            }
+        }
+
         // the following sequence must remain in order
 
         // first remove knock<N> if not used in a timely manner
@@ -1564,9 +1596,7 @@ void rule::to_iptables_knocks(result_builder & result, line_builder const & line
 
         f_action = action_t::ACTION_NONE;
         snapdev::safe_variable safe_destination_ports(f_destination_ports, {});
-        //advgetopt::string_list_t const save_destination_ports(f_destination_ports);
         snapdev::safe_variable safe_protocols(f_protocols, {});
-        //advgetopt::string_list_t const save_protocols(f_protocols);
         for(std::size_t idx(count); idx > 1; --idx)
         {
             line_builder knock(line);

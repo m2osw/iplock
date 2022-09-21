@@ -1,6 +1,6 @@
-.TH KNOCK-KNOCK 1 "September 2022" "iplock 1.x" "User Commands"
+.TH KNOCK-KNOCK 1 "September 2022" "knock-knock 1.x" "User Commands"
 .SH NAME
-knock-knock \- Knock a firewall to allow access to a port
+knock-knock \- Knock at a firewall to allow access
 .SH SYNOPSIS
 .B knock-knock
 [\fIOPTION\fR]... <hostname> [<protocol>:]<port> ...
@@ -11,26 +11,76 @@ services such as your SSH daemon. Even with a small number of ports, this
 is a very effective way to protect your administrative ports.
 .PP
 Assuming you are using the `ipload' tool to load your iptables firewall,
-you can simply use the `knock = ...' parameter of the rules to enter
+you can simply use the `knocks = ...' parameter of the rules to enter
 a sequence of ports. The `ipload' program automatically converts that
 list in a set of iptables rules for you.
 
 .SH "SECURITY"
-The `ipload' tool creates pure iptables rules using the `recent' extension.
-This means the knock-knock tool works on its own. There is no need for a
-server on the other side and the firewall rules do not change over time.
+In order to create the knocking mechanism, the `ipload' tool creates pure
+`iptables' rules using the `recent' extension. This means the `knock-knock'
+command line tool works on its own. There is no need for a server on the
+other end. Plus the firewall rules do not change over time.
 .PP
 The number of ports available for port knocking is 65,535 (you do not want
 to use port 0, even if it is a legal port). For each port you add to the
 list, there are 65,535 possibilities. This means with just three ports in
 your knocking list you end up with 65,535 power 3 or 281,462,092,005,375
-possibilities.
+(281 trillion) possibilities, which gives each hacker attempt about 1 chance
+in 140 trillion to access your service.
 .PP
-Tools such `nmap' can be used to scan your ports to discover services that
+Tools such as `nmap' are used to scan your ports to discover services that
 are running. By default, it scans the ports in sequence. This means you
 should not chose knocking ports that follow each other. The `ipload' tool
 actually enforces that rule if you specify 3 or more ports. These cannot
 following each other or preceed each other.
+
+.SH "HOW DOES IT WORK?"
+The knocking is simply a connection between the client machine on which
+you run `knock-knock' and the server machine with the firewall you need
+to open.
+.PP
+When using the "tcp:" protocol, the code uses a `connect()' call. This
+generates a TCP SYN message. Then `knock-knock' closes the socket
+immediately.
+.PP
+When using the "udp:" protocol, the code sends a one byte message. It
+does not expect any reply. Just as with the TCP protocol, `knock-knock'
+closes the socket immediately after it sent the message.
+
+.SH "DELAY"
+The `--delay' option let you change the delay between each knock. By default
+this is set to 0.1 seconds.
+.PP
+The delay also happens after the last knock. In other words, by default
+`knock-knock' quits 0.1 seconds after the last knock was sent to the server.
+
+.SH "EXAMPLE"
+The following connects to port 300 with TCP.
+
+It then sleeps for 0.1s (100ms).
+
+Next it sends a UDP message of 1 byte (a zero).
+
+Again it sleeps for 0.1s.
+
+Finally, it does a connect to port 200 with TCP.
+
+Just before quitting, it waits one more time 0.1s.
+
+    knock-knock 192.168.1.10 300 udp:100 200 --delay 0.1s --verbose
+
+The `--verbose' option asks `knock-knock' to print each time it connects
+to a TCP port or sends a UDP message.
+
+Once the function returns, you can use the port you just opened. Say this
+is a an SSH connection, you can now do:
+
+    ssh 192.168.1.10
+
+Note that the default is to let the knock open for one hour. After that you
+need to knock again to reopen the port to yourself (i.e. the firewall knows
+your IP address and it will limit connections to that port only to your IP
+address for one hour).
 
 .SH "COMMAND LINE OPTIONS"
 .TP
@@ -39,13 +89,13 @@ Display the date and time when the tool was last built.
 
 .TP
 \fB\-\-command\-help\fR
-List the commands understood by `iplock'.
+List the commands understood by `knock-knock'.
 
 .TP
 \fB\-\-compiler\-version\fR
 Output the version information of the C++ compiler used to compile the
 `advgetopt' library. In most cases, this is the same as the compiler used
-to compile the `iplock' tool.
+to compile the `knock-knock' tool.
 
 .TP
 \fB\-\-config\-dir\fR [\fISOURCE\fR]...
@@ -53,27 +103,36 @@ Define a list of configuration directories to search for configuration files.
 
 .TP
 \fB\-\-configuration\-filenames\fR
-List the filename of each configuration file that the `iplock' will read
-to get initialized. \fBWARNING:\fR this does not include the schemes that
-get loaded later in the process.
-
-.TP
-\fB\-\-config\-warnings\fR \fItrue | false\fR
-Whether to show warnings when reading scheme files. Defaults to false.
+List the filenames of all the configuration files `knock-knock' reads to get
+initialized.
 
 .TP
 \fB\-\-console\fR
 Print the logs out to the console. This overrides the logger configuration
-files.
+files which in the case of `knock-knock' is to write to your console.
 
 .TP
 \fB\-C\fR, \fB\-\-copyright\fR
-Print out the copyright notice of the `iplock' tool.
+Print out the copyright notice of the `knock-knock' tool.
 
 .TP
 \fB\-\-debug\fR
 Change the logger severity to the `debug' level. This command line option
-changes the level of all the appenders configured for `iplock'.
+changes the level of all the appenders configured for `knock-knock'.
+
+.TP
+\fB\-\-delay\fR \fIDURATION\fR
+Define how long to wait between each knock. The first knock is sent as soon
+as possible. Then the delay is applied before sending the next knock. The
+delay is also applied after the last knock and before exiting the application.
+
+The delay is specified as a duration. You may use a decimal number (i.e. "0.3")
+followed by one of `s[econd[s]]', `m[inute[s]]', `h[our[s]]', `d[ay[s]]',
+`w[eek[s]]', `m[onth[s]]', `y[ear[s]]'. The default is seconds. You may use 0
+in which case no delay is applied. With the current `ipload' rule settings,
+no delays are required. However, if you use UDP packets, it probably is a
+good idea to always use a delay or the packets may not arrive in the expected
+order.
 
 .TP
 \fB\-\-environment\-variable\-name\fR
@@ -107,7 +166,7 @@ Print a brief document about the tool usage, then exit.
 
 .TP
 \fB\-L\fR, \fB\-\-license\fR
-Print out the license of `iplock' and exit.
+Print out the license of `knock-knock' and exit.
 
 .TP
 \fB--list-appenders\fR
@@ -154,10 +213,10 @@ then messages appear in the console by default.
 \fB\-\-logger\-hide\-banner\fR
 Request that the logger does not print the banner in the console. This is
 particularly useful for command line tools (opposed to a service). The
-`iplock' tool automatically turns this option on.
+`knock-knock' tool automatically turns this option on.
 
 .TP
-\fB\-\-logger\-plugin\-paths\fR
+\fB\-\-logger\-plugin\-paths\fR \fIpath1:path2:...\fR
 This option allows you to change the path(s) to the `snaplogger' plugins. You
 can enter multiple paths by separating them with a colon (:).
 
@@ -196,6 +255,13 @@ there instead. Make sure to use the `fluid-settings-cli(1)' command line
 instead to read those options.
 
 .TP
+\fB\-\-protocol\fR \fItcp|udp\fR
+Define the default protocol. Internally, the default is "tcp". You may
+change the default to "udp". You can specify the protocol when you specify
+a port like so: "<protocol>:<port>". For example, to use a UDP message with
+port 505, you write: "udp:505".
+
+.TP
 \fB\-\-show\-option\-sources\fR
 The `advgetopt' library has the ability to trace where each value is
 read from: which file, the command line, the environment variable.
@@ -213,8 +279,12 @@ Change the logger severity to the TRACE level. All appenders accept all the
 logs that they receive.
 
 .TP
+\fB\-v\fR, \fB\-\-verbose\fR
+Print information as `knock-knock' does work.
+
+.TP
 \fB\-V\fR, \fB\-\-version\fR
-Print the `iplock' version number, then exit.
+Print the `knock-knock' version number, then exit.
 
 .SH AUTHOR
 Written by Alexis Wilke <alexis@m2osw.com>.
@@ -231,5 +301,7 @@ This is free software: you are free to change and redistribute it.
 .br
 There is NO WARRANTY, to the extent permitted by law.
 .SH "SEE ALSO"
-.BR ipload (1),
-.BR ipwall (1)
+.BR ipload (8),
+.BR ipload (5),
+.BR iplock (1),
+.BR ipwall (8)

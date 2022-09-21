@@ -254,9 +254,16 @@ HTTP server). Newer HTTP protocols (i.e. v2 and v3) allow for existing
 connections to be used for long period of time and these will be viewed
 as established for a while.
 
-The iplock package installs a command line tool called knock-knock which
-you want to use to open your ports. Simply repeat the same list of protocols
-and ports on that command line, and it will open access to your service.
+The `iplock' package installs a command line tool called `knock-knock(1)',
+which you want to use to open your ports. Simply repeat the same list of
+protocols and ports on that command line, and it will open access to your
+service.
+
+\fBIMPORTANT\fR: the ports listed in the `knocks' parameter cannot appear
+in the list of destination ports. This is because it can cause some difficult
+to deal with side effects to your port knocking (i.e. running the
+`knock-knock(1)' tool more than once with such a setting would not work).
+At the moment, this test is performed ignoring the protocol.
 
 .TP
 \fBTODO = <value>\fR
@@ -341,6 +348,7 @@ This is free software: you are free to change and redistribute it.
 .br
 There is NO WARRANTY, to the extent permitted by law.
 .SH "SEE ALSO"
-.BR ipload (1),
+.BR ipload (8),
 .BR iplock (1),
-.BR ipwall (1)
+.BR ipwall (8),
+.BR knock-knock (1)

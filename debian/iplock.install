@@ -19,6 +19,7 @@ conf/ipload                                        etc/iplock/
 conf/logger/ipload.conf                            etc/iplock/logger/
 conf/logger/iplock.conf                            etc/iplock/logger/
 conf/logger/ipwall.conf                            etc/iplock/logger/
+conf/logger/knock-knock.conf                       etc/iplock/logger/
 conf/logger/README.md                              etc/iplock/logger/
 conf/iptables                                      etc/logrotate.d/
 conf/01-iptables.conf                              etc/rsyslog.d/

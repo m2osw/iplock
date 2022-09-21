@@ -92,20 +92,17 @@ advgetopt::option const g_options[] =
           advgetopt::Name("delay")
         , advgetopt::Flags(advgetopt::all_flags<
               advgetopt::GETOPT_FLAG_GROUP_OPTIONS
-            , advgetopt::GETOPT_FLAG_REQUIRED
-            , advgetopt::GETOPT_FLAG_COMMAND_LINE
-            , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE
-            , advgetopt::GETOPT_FLAG_CONFIGURATION_FILE>())
+            , advgetopt::GETOPT_FLAG_REQUIRED>())
+        , advgetopt::DefaultValue("0.1s")
         , advgetopt::Validator("duration")
         , advgetopt::Help("Delay between each knock.")
     ),
     advgetopt::define_option(
           advgetopt::Name("protocol")
-        , advgetopt::Flags(advgetopt::option_flags<
+        , advgetopt::Flags(advgetopt::all_flags<
               advgetopt::GETOPT_FLAG_GROUP_OPTIONS
             , advgetopt::GETOPT_FLAG_COMMAND_LINE
-            , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE
-            , advgetopt::GETOPT_FLAG_CONFIGURATION_FILE>())
+            , advgetopt::GETOPT_FLAG_REQUIRED>())
         , advgetopt::DefaultValue("tcp")
         , advgetopt::Help("Default to TCP if protocol is not defined.")
     ),
@@ -125,7 +122,7 @@ advgetopt::option const g_options[] =
             , advgetopt::GETOPT_FLAG_MULTIPLE
             , advgetopt::GETOPT_FLAG_DEFAULT_OPTION
             , advgetopt::GETOPT_FLAG_SHOW_USAGE_ON_ERROR>())
-        , advgetopt::Help("List of knock ports to activate.")
+        , advgetopt::Help(" The hostname to knock followed by the list of protocol and ports to activate (i.e. <hostname> <protocol>:<port> ...).")
     ),
     advgetopt::end_options()
 };
@@ -163,7 +160,7 @@ advgetopt::options_environment const g_options_environment =
     .f_environment_variable_intro = nullptr,
     .f_section_variables_name = nullptr,
     .f_configuration_files = nullptr,
-    .f_configuration_filename = nullptr,
+    .f_configuration_filename = "knock-knock",
     .f_configuration_directories = nullptr,
     .f_environment_flags = advgetopt::GETOPT_ENVIRONMENT_FLAG_SYSTEM_PARAMETERS
                          | advgetopt::GETOPT_ENVIRONMENT_FLAG_PROCESS_SYSTEM_PARAMETERS,
@@ -340,6 +337,7 @@ int knock_knock::run()
                 << hostname
                 << ':'
                 << p.f_port
+                << "\"."
                 << SNAP_LOG_SEND;
         }
 
