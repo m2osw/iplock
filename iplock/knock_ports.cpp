@@ -35,6 +35,26 @@ namespace iplock
 
 
 
+std::string protocol_port::protocol_name() const
+{
+    switch(f_protocol)
+    {
+    case IPPROTO_IP:
+        return "ip";
+
+    case IPPROTO_TCP:
+        return "tcp";
+
+    case IPPROTO_UDP:
+        return "udp";
+
+    default:
+        throw iplock::logic_error("unknown protocol in protocol_port structure.");
+
+    }
+}
+
+
 std::string parse_ports(
       std::string const & ports
     , protocol_port::vector_t & result)
@@ -91,24 +111,26 @@ std::string parse_ports(
 }
 
 
-std::string protocol_port::protocol_name() const
+bool sorted_ports(protocol_port::vector_t const & ports)
 {
-    switch(f_protocol)
+    std::size_t const max(ports.size());
+    if(max < 3)
     {
-    case IPPROTO_IP:
-        return "ip";
-
-    case IPPROTO_TCP:
-        return "tcp";
-
-    case IPPROTO_UDP:
-        return "udp";
-
-    default:
-        throw iplock::logic_error("unknown protocol in protocol_port structure.");
-
+        return false;
     }
+
+    bool up(ports[1].f_port > ports[0].f_port);
+    for(std::size_t idx(2); idx < max; ++idx)
+    {
+        if(up != (ports[idx].f_port > ports[idx - 1].f_port))
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
+
 
 
 } // namespace iplock

@@ -564,6 +564,15 @@ rule::rule(
                         << SNAP_LOG_SEND;
                     f_valid = false;
                 }
+                else if(sorted_ports(f_knock_ports))
+                {
+                    SNAP_LOG_ERROR
+                        << "the ports in \""
+                        << value
+                        << "\" are in forward or backward order. Please try better."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
             }
             else
             {

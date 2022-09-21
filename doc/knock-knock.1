@@ -1,0 +1,235 @@
+.TH KNOCK-KNOCK 1 "September 2022" "iplock 1.x" "User Commands"
+.SH NAME
+knock-knock \- Knock a firewall to allow access to a port
+.SH SYNOPSIS
+.B knock-knock
+[\fIOPTION\fR]... <hostname> [<protocol>:]<port> ...
+.SH DESCRIPTION
+The `knock-knock' tool is used to knock at a firewall to request access to
+an otherwise hidden port. Port knocking is a way to hide administrative
+services such as your SSH daemon. Even with a small number of ports, this
+is a very effective way to protect your administrative ports.
+.PP
+Assuming you are using the `ipload' tool to load your iptables firewall,
+you can simply use the `knock = ...' parameter of the rules to enter
+a sequence of ports. The `ipload' program automatically converts that
+list in a set of iptables rules for you.
+
+.SH "SECURITY"
+The `ipload' tool creates pure iptables rules using the `recent' extension.
+This means the knock-knock tool works on its own. There is no need for a
+server on the other side and the firewall rules do not change over time.
+.PP
+The number of ports available for port knocking is 65,535 (you do not want
+to use port 0, even if it is a legal port). For each port you add to the
+list, there are 65,535 possibilities. This means with just three ports in
+your knocking list you end up with 65,535 power 3 or 281,462,092,005,375
+possibilities.
+.PP
+Tools such `nmap' can be used to scan your ports to discover services that
+are running. By default, it scans the ports in sequence. This means you
+should not chose knocking ports that follow each other. The `ipload' tool
+actually enforces that rule if you specify 3 or more ports. These cannot
+following each other or preceed each other.
+
+.SH "COMMAND LINE OPTIONS"
+.TP
+\fB\-\-build\-date\fR
+Display the date and time when the tool was last built.
+
+.TP
+\fB\-\-command\-help\fR
+List the commands understood by `iplock'.
+
+.TP
+\fB\-\-compiler\-version\fR
+Output the version information of the C++ compiler used to compile the
+`advgetopt' library. In most cases, this is the same as the compiler used
+to compile the `iplock' tool.
+
+.TP
+\fB\-\-config\-dir\fR [\fISOURCE\fR]...
+Define a list of configuration directories to search for configuration files.
+
+.TP
+\fB\-\-configuration\-filenames\fR
+List the filename of each configuration file that the `iplock' will read
+to get initialized. \fBWARNING:\fR this does not include the schemes that
+get loaded later in the process.
+
+.TP
+\fB\-\-config\-warnings\fR \fItrue | false\fR
+Whether to show warnings when reading scheme files. Defaults to false.
+
+.TP
+\fB\-\-console\fR
+Print the logs out to the console. This overrides the logger configuration
+files.
+
+.TP
+\fB\-C\fR, \fB\-\-copyright\fR
+Print out the copyright notice of the `iplock' tool.
+
+.TP
+\fB\-\-debug\fR
+Change the logger severity to the `debug' level. This command line option
+changes the level of all the appenders configured for `iplock'.
+
+.TP
+\fB\-\-environment\-variable\-name\fR
+Print the name of the variable to the console. This variable can be used
+to enter options instead of writing them on the command line or the
+configuration file. Commands are not allowed in the environment variable.
+
+.TP
+\fB\-\-except\-stack\-collect\fR \fIno|yes|simple|complete\fR
+Defines what exceptions are expected to collect from the stack.
+Nearly all our exceptions are expected to stop a process. This command line
+option gives you the ability to define how much information is to be collected
+from the stack trace when that exception occurred. By default, it is set to
+`yes' (which is the synomym of `simple'). With the logger, that exception
+stack information can automatically be logged to your log file. Very useful
+to debug issues in your software running on a remote server.
+
+.TP
+\fB\-\-force\-severity\fR \fIlevel\fR
+Change the logger severity to this specific level. This new level is
+applied to all the defined appenders. The level is changed whether it
+is higher or lower than the current appender's level.
+
+.TP
+\fB\-\-has\-sanitizer\fR
+Print whether this version was compiled with the C++ compiler sanitizer.
+
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print a brief document about the tool usage, then exit.
+
+.TP
+\fB\-L\fR, \fB\-\-license\fR
+Print out the license of `iplock' and exit.
+
+.TP
+\fB--list-appenders\fR
+List the available appenders as used by the logger.
+
+.TP
+\fB\-\-list\-severities\fR
+List the available severities as used by the logger.
+
+.TP
+\fB\-\-log\-component\fR \fIname\fR...
+Define one or more component name to filter the logs. Only logs with that
+component are output, others are ignored. You can use the `!' (exclamation
+mark) character in front of a name to exclude logs with that component.
+
+.TP
+\fB\-\-log\-config\fR \fIfilename\fR
+Only load this very configuration file to setup the logger.
+
+.TP
+\fB\-\-log\-config\-path\fR \fIpath\fR
+Define a path to search for log configuration files instead of using the
+defaults.
+
+.TP
+\fB\-\-log\-file\fR \fIfilename\fR
+Save the logs in this specific file instead of what is defined in the
+configuration files.
+
+.TP
+\fB\-\-log\-severity\fR \fIlevel\fR
+Change the severity to this level unless the appender already accepts logs
+for a lower level. So for example, an appender setup to output logs with a
+severity level of `error' or higher is affected by the `warning' level.
+An appender setup to output logs with a severity level of `info' does not
+changed when setting this command line option to `warning'.
+
+.TP
+\fB\-\-logger\-configuration\-filenames\fR
+List the files that the logger reads to be setup. If no files are found,
+then messages appear in the console by default.
+
+.TP
+\fB\-\-logger\-hide\-banner\fR
+Request that the logger does not print the banner in the console. This is
+particularly useful for command line tools (opposed to a service). The
+`iplock' tool automatically turns this option on.
+
+.TP
+\fB\-\-logger\-plugin\-paths\fR
+This option allows you to change the path(s) to the `snaplogger' plugins. You
+can enter multiple paths by separating them with a colon (:).
+
+.TP
+\fB\-\-logger\-show\-banner\fR
+Request that the logger prints its banner when it starts. This is useful
+if you run a tool from a service and want to make sure the administrator
+knows which version of the tool is being used.
+
+.TP
+\fB\-\-logger\-version\fR
+Print out the version of the Snap! Logger and exit.
+
+.TP
+\fB\-\-no\-log\fR
+Turn off the logger so nothing gets printed out. This is somewhat similar
+to a quiet or silent option that many Unix tools offer.
+
+.TP
+\fB\-\-option\-help\fR
+Print the list of options supported by `ipmgr'.
+
+.TP
+\fB\-\-path\-to\-option\-definitions\fR
+Option definitions can be defined in a .ini file. If it exists, this is the
+path where it can be found.
+
+.TP
+\fB\-\-print\-option\fR \fIname\fR
+This option is useful to debug your command line, environment variable, and
+configuration files by printing the value of the named option. This tells
+you what value the tool or service sees in the end.
+
+Note that `ipwall' uses `fluid-settings'. Some of the options are defined
+there instead. Make sure to use the `fluid-settings-cli(1)' command line
+instead to read those options.
+
+.TP
+\fB\-\-show\-option\-sources\fR
+The `advgetopt' library has the ability to trace where each value is
+read from: which file, the command line, the environment variable.
+This option can be used to determine where a value is defined, which once
+in a while is particularly useful.
+
+.TP
+\fB\-\-syslog\fR [\fIidentity\fR]
+Send the logs to the system `syslog'. If specified, the `identity' is used
+along each message.
+
+.TP
+\fB\-\-trace\fR
+Change the logger severity to the TRACE level. All appenders accept all the
+logs that they receive.
+
+.TP
+\fB\-V\fR, \fB\-\-version\fR
+Print the `iplock' version number, then exit.
+
+.SH AUTHOR
+Written by Alexis Wilke <alexis@m2osw.com>.
+.SH "REPORTING BUGS"
+Report bugs to <https://github.com/m2osw/iplock/issues>.
+.br
+iplock home page: <https://snapwebsites.org/project/iplock>.
+.SH COPYRIGHT
+Copyright \(co 2022 Made to Order Software Corporation
+.br
+License: GPLv3
+.br
+This is free software: you are free to change and redistribute it.
+.br
+There is NO WARRANTY, to the extent permitted by law.
+.SH "SEE ALSO"
+.BR ipload (1),
+.BR ipwall (1)

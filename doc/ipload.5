@@ -241,6 +241,24 @@ It can be useful if you want to use the ipload as a helper tool to generate
 your rules and then save them using the "iptables-save" command.
 
 .TP
+\fBknocks = [<protocol>:]<port>, ...\fR
+Add one or more knock ports along this rule. This is particularly useful
+to hide your administrative services such as SSH and a website port which
+should only be accessed by administrators.
+
+It is most effective for TCP services where you can establish a connection
+and keep it up and running. Services like HTTP/1.0 where a new connection
+is required each time you want to access data, it can becomes tedious (i.e.
+you have to repeat the knocking process each time you want to access that
+HTTP server). Newer HTTP protocols (i.e. v2 and v3) allow for existing
+connections to be used for long period of time and these will be viewed
+as established for a while.
+
+The iplock package installs a command line tool called knock-knock which
+you want to use to open your ports. Simply repeat the same list of protocols
+and ports on that command line, and it will open access to your service.
+
+.TP
 \fBTODO = <value>\fR
 Add other parameters...
 
