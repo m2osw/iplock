@@ -1458,11 +1458,11 @@ void rule::set_log_introducer(std::string const & introducer)
 
 void rule::add_dependency(pointer_t r)
 {
-    f_dependencies.push_back(r);
+    f_dependencies.insert(r);
 }
 
 
-rule::vector_t const & rule::get_dependencies() const
+rule::set_t const & rule::get_dependencies() const
 {
     return f_dependencies;
 }

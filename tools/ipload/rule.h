@@ -111,7 +111,7 @@ public:
     void                                set_log_introducer(std::string const & introducer);
 
     void                                add_dependency(pointer_t s);
-    vector_t const &                    get_dependencies() const;
+    set_t const &                       get_dependencies() const;
     int                                 get_level() const;
     void                                set_level(int level);
 
@@ -208,7 +208,7 @@ private:
     std::string                         f_section = std::string();
     advgetopt::string_list_t            f_before = advgetopt::string_list_t();
     advgetopt::string_list_t            f_after = advgetopt::string_list_t();
-    vector_t                            f_dependencies = vector_t();
+    set_t                               f_dependencies = set_t();
     int                                 f_level = 0;
     bool                                f_condition = true;
     bool                                f_force_ipv4 = false;

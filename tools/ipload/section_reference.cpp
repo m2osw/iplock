@@ -83,7 +83,7 @@ void section_reference::add_rule(rule::pointer_t r)
 
 
 int section_reference::count_levels(
-      rule::vector_t const & dependencies
+      rule::set_t const & dependencies
     , rule::set_t seen_rules) const
 {
     int cnt(1);
@@ -92,18 +92,29 @@ int section_reference::count_levels(
         auto const status(seen_rules.insert(d));
         if(!status.second)
         {
+            std::string seen;
+            for(auto const & r : seen_rules)
+            {
+                if(!seen.empty())
+                {
+                    seen += ", ";
+                }
+                seen += r->get_name();
+            }
             SNAP_LOG_ERROR
-                << "detected a dependency loop for "
+                << "detected a dependency loop for \""
                 << d->get_name()
+                << "\"; trail is: \""
+                << seen
+                << "\"."
                 << SNAP_LOG_SEND;
             return -1;
         }
         int const r(count_levels(d->get_dependencies(), seen_rules));
-        if(r < 0)
+        if(r >= 0)
         {
-            return -1;
+            cnt = std::max(cnt, r + 1);
         }
-        cnt = std::max(cnt, r + 1);
     }
     return cnt;
 }
