@@ -33,6 +33,22 @@ are running. By default, it scans the ports in sequence. This means you
 should not chose knocking ports that follow each other. The `ipload' tool
 actually enforces that rule if you specify 3 or more ports. These cannot
 following each other or preceed each other.
+.PP
+This reduces the number of possibilities, but it is still quite large.
+The number of sequences S of N sorted ports over K = 65,535 possible ports
+is computed as: K! / (N! * (K - N)!) x 2. This is 93,816,402,542,590
+possibilities that are not allowed. So you still have 187,645,689,462,785
+possibilities (187 trillion, or about 1 chance in 93 trillion that the
+hacker finds your 3 port knocking sequence).
+.PP
+Note that the number of possibilities is further diminished by the fact
+that we do not allow your sequence to include the destination ports that
+you are trying to access. So if you are trying to open port 22, the knocking
+sequence cannot include port 22.
+.PP
+If you would like to compute the number of possibilities, there is a script
+which computes the number as described above. The script is named 
+`knock-knock-possibilities`.
 
 .SH "HOW DOES IT WORK?"
 The knocking is simply a connection between the client machine on which

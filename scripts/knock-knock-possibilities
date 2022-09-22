@@ -1,0 +1,38 @@
+#!/bin/sh -e
+#
+# This script computes the number of possibilities defined by the number
+# of ports used to create your knocking sequence.
+
+if test -z "$1" -o "$1" = "-h" -o "$1" = "--help"
+then
+	echo "Usage: `basename $0` <number of knocking ports> [<number of destination ports>]"
+	echo "the <number of destination ports> is set to 1 by default."
+	echo
+	exit 1
+fi
+
+N=$1
+M=1
+if test -n "$2"
+then
+	M=$2
+fi
+K=`expr 65535 - $M`
+
+echo "Calculating... please be patient, this takes a while since we compute the factorial of $K which is a rather large number."
+echo "One of your CPU should be paiged at 100% for a while."
+echo
+
+bc <<EOF
+n=${N}
+k=${K}
+
+define factorial(n) { 
+  if(n < 2) return 1;
+  return n * factorial(n - 1);
+}
+
+k ^ n - factorial(k) / (factorial(n) * factorial(k - n)) * 2;
+EOF
+
+echo
