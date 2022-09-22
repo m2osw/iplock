@@ -23,6 +23,8 @@ echo "Calculating... please be patient, this takes a while since we compute the 
 echo "One of your CPU should be paiged at 100% for a while."
 echo
 
+# Formula is based on these answers:
+# https://math.stackexchange.com/questions/658250/number-of-strictly-increasing-sequences-of-length-k-with-elements-from-1-2
 bc <<EOF
 n=${N}
 k=${K}

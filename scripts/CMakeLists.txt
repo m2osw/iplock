@@ -24,6 +24,7 @@ project(scripts)
 install(
     PROGRAMS
         count-unwanted
+        knock-knock-possibilities
         showfw
         unblock-all
         unblock-ip

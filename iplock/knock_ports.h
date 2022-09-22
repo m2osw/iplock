@@ -47,6 +47,7 @@ std::string         parse_ports(
                             , protocol_port::vector_t & result);
 
 bool                sorted_ports(protocol_port::vector_t const & ports);
+bool                unique_ports(protocol_port::vector_t const & ports);
 
 
 } // namespace iplock

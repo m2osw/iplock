@@ -132,6 +132,17 @@ bool sorted_ports(protocol_port::vector_t const & ports)
 }
 
 
+bool unique_ports(protocol_port::vector_t const & ports)
+{
+    std::set<int> s;
+    for(auto const & pp : ports)
+    {
+        s.insert(pp.f_port);
+    }
+    return s.size() == ports.size();
+}
+
+
 
 } // namespace iplock
 // vim: ts=4 sw=4 et

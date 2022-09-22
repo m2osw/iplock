@@ -569,7 +569,16 @@ rule::rule(
                     SNAP_LOG_ERROR
                         << "the ports in \""
                         << value
-                        << "\" are in forward or backward order. Please try better."
+                        << "\" are in forward or backward order. Please shuffle the ports."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                if(!unique_ports(f_knock_ports))
+                {
+                    SNAP_LOG_ERROR
+                        << "each port in \""
+                        << value
+                        << "\" must be unique. Please replace duplicates."
                         << SNAP_LOG_SEND;
                     f_valid = false;
                 }

@@ -263,7 +263,9 @@ service.
 in the list of destination ports. This is because it can cause some difficult
 to deal with side effects to your port knocking (i.e. running the
 `knock-knock(1)' tool more than once with such a setting would not work).
-At the moment, this test is performed ignoring the protocol.
+At the moment, this test is performed ignoring the protocol. Further, their
+cannot be any duplicates. We do not allow you to knock multiple times on the
+same port.
 
 .TP
 \fBTODO = <value>\fR
