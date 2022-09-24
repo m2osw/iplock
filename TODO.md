@@ -11,5 +11,6 @@
 * Check whether the knock ports are used in the INPUT or a sub-chain of the INPUT chain (We should be able to build a tree).
 * Check that the knock ports do not reference an existing service to avoid potential disruptions (this will be done in ipwall).
 * The knock ports defined in the ipload configurations must be knocked on with 10 seconds and the final duration is 1h. Offer the user a way to define that duration.
+* Finish implementing support for mangle table special actions.
 * Write tests.
 

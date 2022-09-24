@@ -867,6 +867,21 @@ void rule::parse_action(std::string const & action)
                 }
                 return;
             }
+            else if(a == "connsecmark")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"CONNSECMARK\" action must be used with exactly one parameter (mark)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_CONNSECMARK;
+                    f_action_param = action_param[1];
+                }
+            }
             break;
 
         case 'd':
@@ -937,6 +952,21 @@ void rule::parse_action(std::string const & action)
                     f_action = action_t::ACTION_MASQUERADE;
                 }
                 return;
+            }
+            else if(a == "mark")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"MARK\" action must be used with exactly one parameter (mark)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_MARK;
+                    f_action_param = action_param[1];
+                }
             }
             break;
 
@@ -1011,6 +1041,56 @@ void rule::parse_action(std::string const & action)
                 }
                 return;
             }
+            else if(a == "secmark")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"SECMARK\" action must be used with exactly one parameter (mark)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_SECMARK;
+                    f_action_param = action_param[1];
+                }
+            }
+            break;
+
+        case 't':
+            if(a == "ttl")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"TTL\" action must be used with exactly one parameter (time to live)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_TTL;
+                    f_action_param = action_param[1];
+                }
+            }
+            else if(a == "tos")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"TOS\" action must be used with exactly one parameter (type of service)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_TOS;
+                    f_action_param = action_param[1];
+                }
+            }
+            break;
+
         }
     }
 

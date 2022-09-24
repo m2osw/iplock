@@ -707,6 +707,23 @@ messages, manage the database, and run the iplock tool to update the rules.
 The `ipload` tool reads configuration files and build the `iptables` rules.
 
 
+Packets Flow
+============
+
+The following image shows the flow of packets in three of your iptables.
+
+<p align="center">
+<img alt="packets flow" title="Packets Flow -- a graph showing how packets travel through your tables and chains."
+src="https://snapwebsites.org/sites/snapwebsites.org/files/images/tables-traverse.jpg" width="602" height="1024"/>
+</p>
+
+
+Other Documentation
+===================
+
+Some links to various helpful documents about the iptables firewall system:
+
+https://www.frozentux.net/iptables-tutorial/chunkyhtml/index.html
 
 
 Not a Bug
