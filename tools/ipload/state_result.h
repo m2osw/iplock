@@ -63,7 +63,7 @@ public:
     std::string         get_icmp_type() const;
     void                set_icmp_type(std::string type);
 
-    std::string         to_iptables_options(std::string const & protocol) const;
+    std::string         to_iptables_options(std::string const & protocol, bool for_ipv6) const;
 
     bool                operator == (state_result const & rhs) const;
 

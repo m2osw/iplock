@@ -199,6 +199,11 @@ void rule::line_builder::set_protocol(std::string const & protocol)
         set_ipv6();
         f_generating_for_protocol = "icmpv6";
     }
+    else if(protocol == "icmp")
+    {
+        set_ipv4();
+        f_generating_for_protocol = "icmp";
+    }
     else
     {
         f_generating_for_protocol = protocol;
@@ -1812,7 +1817,7 @@ void rule::to_iptables_protocols(result_builder & result, line_builder const & l
             {
                 line_builder sub_line(line);
 
-                sub_line.set_protocol(s);
+                sub_line.set_protocol(s); // if "icmp", this forces IPv4
 
                 sub_line.append_both(" -p " + s);
                 if(is_established_related)
@@ -2323,8 +2328,16 @@ void rule::to_iptables_states(result_builder & result, line_builder const & line
             }
 
             line_builder sub_line(line);
-            sub_line.append_both(" -m " + sub_line.get_protocol());
-            sub_line.append_both(s.to_iptables_options(line.get_protocol()));
+
+            // the state may still be optional
+            //
+            std::string const & protocol(line.get_protocol());
+            std::string const state(s.to_iptables_options(protocol, line.is_ipv6()));
+            if(!state.empty())
+            {
+                sub_line.append_both(" -m " + protocol + state);
+            }
+
             to_iptables_comment(result, sub_line);
         }
     }

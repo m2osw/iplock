@@ -195,7 +195,9 @@ void state_result::set_icmp_type(std::string type)
 }
 
 
-std::string state_result::to_iptables_options(std::string const & protocol) const
+std::string state_result::to_iptables_options(
+      std::string const & protocol
+    , bool for_ipv6) const
 {
     if(!f_valid)
     {
@@ -211,7 +213,8 @@ std::string state_result::to_iptables_options(std::string const & protocol) cons
 
     if(protocol == "icmp")
     {
-        if(!f_icmp_type.empty())
+        if(!for_ipv6
+        && !f_icmp_type.empty())
         {
             return " --icmp-type " + f_icmp_type;
         }
@@ -219,7 +222,9 @@ std::string state_result::to_iptables_options(std::string const & protocol) cons
     }
     if(protocol == "icmpv6")
     {
-        if(!f_icmp_type.empty())
+        if(for_ipv6
+        && !f_icmp_type.empty()
+        && f_icmp_type != "any")    // the name "any" is not supported by IPv6 -- not having a type is equal to any
         {
             return " --icmpv6-type " + f_icmp_type;
         }
