@@ -712,6 +712,8 @@ Packets Flow
 
 The following image shows the flow of packets in three of your iptables.
 
+(Source: [https://www.frozentux.net/iptables-tutorial/chunkyhtml/c962.html](https://www.frozentux.net/iptables-tutorial/chunkyhtml/c962.html))
+
 <p align="center">
 <img alt="packets flow" title="Packets Flow -- a graph showing how packets travel through your tables and chains."
 src="https://snapwebsites.org/sites/snapwebsites.org/files/images/tables-traverse.jpg" width="602" height="1024"/>
