@@ -240,7 +240,7 @@ int knock_knock::run()
     {
         std::string const user_port(f_opts.get_string("--", idx));
 
-        std::string const error(parse_ports(user_port, ports));
+        std::string const error(iplock::parse_ports(user_port, ports));
         if(!error.empty())
         {
             SNAP_LOG_ERROR

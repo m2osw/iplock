@@ -36,11 +36,17 @@ do
 		echo
 		echo "  -4                    to display the IPv4 tables, this is the default"
 		echo "  -6                    to display the IPv6 tables"
+		echo "  --filter              to display the filter tables, this is the default"
 		echo "  -h | --help           print out this help screen"
 		echo "  -l | --line-numbers   show line numbers (rule position)"
-		echo "  --filter              to display the filter tables, this is the default"
 		echo "  --nat                 to display the nat tables"
 		exit 0
+		;;
+
+	*)
+		echo "error: unsupported command line option $1"
+		echo "error: try --help for more information."
+		exit 1
 		;;
 
 	esac

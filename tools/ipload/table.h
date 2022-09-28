@@ -30,34 +30,36 @@
 
 // self
 //
-#include    "chain.h"
+#include    "chain_reference.h"
 
 
 
 class table
 {
 public:
-    typedef std::shared_ptr<table>  pointer_t;
-    typedef std::vector<pointer_t>  vector_t;
+    typedef std::shared_ptr<table>              pointer_t;
+    typedef std::vector<pointer_t>              vector_t;
+    typedef std::map<std::string, pointer_t>    map_t;
 
-                                    table(
-                                          advgetopt::conf_file::parameters_t::iterator & it
-                                        , advgetopt::conf_file::parameters_t const & config_params
-                                        , advgetopt::variables::pointer_t variables);
+                                        table(
+                                              advgetopt::conf_file::parameters_t::iterator & it
+                                            , advgetopt::conf_file::parameters_t const & config_params
+                                            , advgetopt::variables::pointer_t variables);
 
-    bool                            is_valid() const;
-    bool                            empty() const;
-    std::string                     get_name() const;
-    std::string                     get_prefix() const;
+    bool                                is_valid() const;
+    bool                                empty() const;
+    std::string                         get_name() const;
+    std::string                         get_description() const;
 
-    void                            add_chain(chain::pointer_t c);
-    chain::vector_t const &         get_chains() const;
+    void                                add_chain_reference(chain_reference::pointer_t c);
+    chain_reference::pointer_t          get_chain_reference(std::string const & name) const;
+    chain_reference::map_t const &      get_chain_references() const;
 
 private:
-    bool                            f_valid = false;
-    std::string                     f_name = std::string();
-    std::string                     f_prefix = std::string();
-    chain::vector_t                 f_chains = chain::vector_t();
+    bool                                f_valid = false;
+    std::string                         f_name = std::string();
+    std::string                         f_description = std::string();
+    chain_reference::map_t              f_chain_references = chain_reference::map_t();
 };
 
 

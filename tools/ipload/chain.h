@@ -40,6 +40,8 @@ enum class policy_t
     POLICY_DROP,
 };
 
+typedef std::map<std::string, policy_t>     policy_map_t;
+
 
 enum class type_t
 {
@@ -49,6 +51,9 @@ enum class type_t
     TYPE_USER_DEFINED,
 };
 
+typedef std::map<std::string, type_t>       type_map_t;
+
+
 
 class chain
 {
@@ -57,39 +62,33 @@ public:
     typedef std::vector<pointer_t>              vector_t;
     typedef std::map<std::string, pointer_t>    map_t;
 
-                                    chain(
-                                          advgetopt::conf_file::parameters_t::iterator & it
-                                        , advgetopt::conf_file::parameters_t const & config_params
-                                        , advgetopt::variables::pointer_t variables
-                                        , bool verbose);
+                                        chain(
+                                              advgetopt::conf_file::parameters_t::iterator & it
+                                            , advgetopt::conf_file::parameters_t const & config_params
+                                            , advgetopt::variables::pointer_t variables
+                                            , bool verbose);
 
-    bool                            is_valid() const;
-    bool                            empty() const;
-    void                            add_section_reference(section_reference::pointer_t section_reference);
-    section_reference::vector_t const &
-                                    get_section_references() const;
-    bool                            add_rule(rule::pointer_t r);
-    void                            computer_dependencies();
+    bool                                is_valid() const;
 
-    std::string                     get_name() const;
-    policy_t                        get_policy() const;
-    std::string                     get_policy_name() const;
-    type_t                          get_type() const;
-    std::string                     get_log() const;
-    bool                            is_system_chain() const;
+    std::string const &                 get_name() const;
+    policy_t                            get_policy(std::string const & table_name) const;
+    std::string                         get_policy_name(std::string const & table_name) const;
+    type_t                              get_type(std::string const & table_name) const;
+    advgetopt::string_list_t const &    get_tables() const;
+    std::string const &                 get_log() const;
+    bool                                is_system_chain() const;
+    bool                                is_verbose() const;
 
 private:
-    std::string                     f_name = std::string();
-    std::string                     f_description = std::string();
-    policy_t                        f_policy = policy_t::POLICY_DROP;
-    type_t                          f_type = type_t::TYPE_DROP; // this should be RETURN for a user defined chain
-    std::string                     f_log = std::string();
-    section_reference::vector_t     f_section_references = section_reference::vector_t();
-    section_reference::pointer_t    f_default_section_references = section_reference::pointer_t();
-    section_reference::map_t        f_section_references_by_name = section_reference::map_t();
-    bool                            f_valid = true;
-    bool                            f_is_system_chain = false;
-    bool                            f_verbose = false;
+    std::string                         f_name = std::string();
+    std::string                         f_description = std::string();
+    policy_map_t                        f_policy = policy_map_t();
+    type_map_t                          f_type = type_map_t();
+    advgetopt::string_list_t            f_tables = advgetopt::string_list_t();
+    std::string                         f_log = std::string();
+    bool                                f_valid = true;
+    bool                                f_is_system_chain = false;
+    bool                                f_verbose = false;
 };
 
 

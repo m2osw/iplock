@@ -3,7 +3,9 @@
 * Finish up ipwall service (database & testing).
 * Finish up the default ipload set of rules.
 * Use snaplogger in the iplock tool (the tool generally runs on its own through ipwall so saving errors in a log file is probably going to be better).
+* Create some interfaces to make it easier to edit the rules (CLI, browser, GUI)
 * Move the sitter firewall plugin to this project.
+* Moved most of the knock-knock code to the library so we can actually perform a knock-knock from anywhere.
 * Add a vim syntax file for the firewall .conf files.
 * Add safeguard to prevent blocking our own IPs with ipload (i.e. if a rule is DROP or REJECT and the rule matches one of our local IP).
 * Move docs from README.md to man pages.

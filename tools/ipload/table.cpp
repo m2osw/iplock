@@ -154,18 +154,10 @@ table::table(
         bool found(true);
         switch(param_name[0])
         {
-        case 'p':
-            if(param_name == "prefix")
+        case 'd':
+            if(param_name == "description")
             {
-                while(!value.empty() && value.back() == '_')
-                {
-                    value.pop_back();
-                }
-                f_prefix = value;
-                if(!f_prefix.empty())
-                {
-                    f_prefix += '_';
-                }
+                f_description = value;
             }
             else
             {
@@ -198,9 +190,9 @@ bool table::is_valid() const
 
 bool table::empty() const
 {
-    for(auto const & c : f_chains)
+    for(auto const & c : f_chain_references)
     {
-        if(!c->empty())
+        if(!c.second->empty(f_name))
         {
             return false;
         }
@@ -215,21 +207,40 @@ std::string table::get_name() const
 }
 
 
-std::string table::get_prefix() const
+std::string table::get_description() const
 {
-    return f_prefix;
+    return f_description;
 }
 
 
-void table::add_chain(chain::pointer_t c)
+void table::add_chain_reference(chain_reference::pointer_t c)
 {
-    f_chains.push_back(c);
+    if(f_chain_references.find(c->get_name()) != f_chain_references.end())
+    {
+        throw iplock::logic_error(
+                  "table::add_chain_reference() called with a duplicate ("
+                + c->get_name()
+                + ").");
+    }
+
+    f_chain_references[c->get_name()] = c;
 }
 
 
-chain::vector_t const & table::get_chains() const
+chain_reference::pointer_t table::get_chain_reference(std::string const & name) const
 {
-    return f_chains;
+    auto it(f_chain_references.find(name));
+    if(it == f_chain_references.end())
+    {
+        return chain_reference::pointer_t();
+    }
+    return it->second;
+}
+
+
+chain_reference::map_t const & table::get_chain_references() const
+{
+    return f_chain_references;
 }
 
 

@@ -1,18 +1,25 @@
 .TH IPLOAD 1 "August 2022" "ipload 1.x" "User Commands"
+
+
 .SH NAME
 ipload \- Load your firewall on boot
+
+
 .SH SYNOPSIS
 .B /usr/share/iplock/ipload/<name>.conf
 and
 .B /etc/iplock/ipload/<name>.conf
 and
 .B /etc/iplock/ipload/iplock.d/??-<name>.conf
+
+
 .SH DESCRIPTION
 The \fBipload(1)\fR tool runs once at boot time in order to load the firewall
 definitions in your iptables firewall before your network goes up.
 .PP
 The following documents the format of the configuration file supported by
 the \fBipload(1)\fR tool.
+
 
 .SH ORGANIZATION
 The \fBipload(1)\fR tool loads all the files and look for a specific set
@@ -83,12 +90,18 @@ Here is a tree like representation of those definitions:
 .RE
 .RE
 
+
 .SH TABLES
 The \fBipload(1)\fR command reads all the configurations files. It then
 look for tables, chains, sections, and rules (as defined in the ORGANIZATION
 section above).
 .PP
-The default configuration files already defined all the available tables.
+The default configuration files already defines all the available tables.
+In other words, you do not really have to do anything about that section
+of the configuration.
+
+    [table::<table-name>]
+    prefix = <prefix>
 
 .SH CHAINS
 Like with tables, the default system chains are all defined in the default
@@ -113,6 +126,85 @@ cases where some IP address is just plain bad \fIforeever\fR and I add these
 directly in this chain. (And yes, those bad IPs, I tried to remove them from
 my firewall and the hits started coming strong again... some such servers
 are there to stay around forever.)
+
+.PP
+The chains support the following parameters:
+
+    [chain::[<table-prefix>_]<chain-name>]
+    policy = ACCEPT | DROP
+    type = RETURN | DROP | USER-DEFINED
+    log = <message>
+
+Note that the system chain names must be in all caps and match the system
+names exactly (i.e. INPUT, OUTPUT, FORWARD, PREROUTING, POSTROUTING). It is
+customary to use lowercase names for user defined chains as shown above fo
+the `bad_packets' and `unwanted' chains.
+
+A chain must include the table prefix to be added to that specific table.
+For example, to add a rule to the `nat' `INPUT' table, use the name
+`nat_INPUT' for that chain. The `filter' table is the default and it does
+not make use of a prefix. It is mandatory for all the other tables to
+include a prefix.
+
+.TP
+\fBpolicy = <policy>\fR (default: DROP)
+This parameter defines the default policy of a system chain.
+
+With Ubuntu, the default policy is to `ACCEPT` any traffic. You can change
+the policy to `DROP` instead. This means traffic that was not accepted by
+a rule within that chain will be dropped.
+
+Only built-in chains can be assigned a policy.
+
+The `ipload' tool sets the policy of a chain to `DROP` by default, since it
+is more constrained.
+
+In the configuration file, we change the default to ACCEPT for all the tables
+except the `INPUT' table.
+
+.TP
+\fBtype = <type>\fR (default: DROP)
+This parameter defines the _type_ of the chain, which is an `ipload'-only
+concept. The supported types are `DROP', `REJECT', `RETURN', and
+`USER_DEFINED'.
+
+The type defines how the chain is _closed_. In other words, which rule(s) to
+use at the end the chain to make sure packets that went through all the
+preceeding rules are managed as expected.
+
+.RS
+.IP \(bu 2
+DROP
+.PP
+The type set to `DROP' means the chain drops any packet that is not accepted
+by a rule within that chain. This type is most often used in the `INPUT'
+chain to make sure that any input that was not previously handled by
+the chain is dropped (i.e. rejected without feedback to the sender).
+.IP \(bu 2
+REJECT
+.PP
+The type set to `REJECT' means the chain rejects any packet that is not
+accepted by a rule within that chain. It is the type used the most often.
+.IP \(bu 2
+RETURN
+.PP
+The type set to `RETURN` means packets continue as if accepted. A rule
+is still added so you get statistics of how many packets are returned.
+.IP \(bu 2
+USER-DEFINED | ACCEPT | ALLOW | PASSTHROUGH
+.PP
+The type set to `USER-DEFINED` means no rule gets added automatically at
+the end of the chain. Instead, you are expected to handle such rules
+yourself by adding them to your chain in the `footer' section. It can
+also be used if you just do not want to have any terminating rules added.
+.RE
+
+.TP
+\fBlog\fR (default: no message)
+This parameter defines a log message. This message is printed only if
+the `RETURN`, `REJECT' or `DROP` rule added by `ipload' at the end of
+the chain is reached.
+
 
 .SH "SECTIONS"
 As mentioned above, \fISections\fR are a concept in \fBipload(1)\fR only.
@@ -142,6 +234,55 @@ The \fBcontent\fR section is marked as being the default. This means rules
 that do not defined a \fBsection = ...\fR parameter end up in that section.
 You can detect when that happens using the \fB\-\-verbose\fR command
 line option.
+.PP
+The basic section definition looks like this:
+
+    [section::<section-name>]
+    before = <section-name>[, <section-name>]*
+    after = <section-name>[, <section-name>]*
+    default = true | false
+
+The following defines each parameter:
+
+.TP
+\fBdescription = <description>\fR
+The description of the section for documentation purposes.
+
+.TP
+\fBbefore = <section-name>[, <section-name>]*\fR
+Define the name of a section that we want to appear before this one. In the
+final list of rules, all the rules in this section will appear before the
+rules found in the section named in this parameter.
+
+Multiple names can be included. Separate each name with a comma. Spaces
+are ignored.
+
+The `before' and `after' parameter may defined a loop. If that happens, an
+error is generated.
+
+.TP
+\fBafter = <section-name>[, <section-name>]*\fR
+Define the name of a section that we want to appear after this one. In the
+final list of rules, all the rules in this section will appear after the
+rules found in the section named in this parameter.
+
+Multiple names can be included. Separate each name with a comma. Spaces
+are ignored.
+
+The `before' and `after' parameter may defined a loop. If that happens, an
+error is generated.
+
+.TP
+\fBdefault = true | false\fR
+Mark this section as the default one when set to `true'. Only one section
+can be marked as the default. All the others must set this parameter to
+`false' (or not use the parameter).
+
+Rules that do not defined a `section = ...' parameter are automatically
+assigned the default section as a fallback. If no section was marked as
+the default section and a rule has no `section = ...' parameter, then an
+error is raised.
+
 
 .SH "RULES"
 The rules define the actual firewall rules. Contrary to the \fBiptables(8)\fR
@@ -271,6 +412,7 @@ same port.
 \fBTODO = <value>\fR
 Add other parameters...
 
+
 .SH "VARIABLES"
 Any of the configuration files can include a \fB[variables]\fR declaration.
 The variables are simple \fIname = value\fR.
@@ -335,12 +477,36 @@ This command has any instances of \fB[name]\fR replaced by the name of
 the chain being removed. Similarly, it replaces \fB[table]\fR with the
 name of the table in which that chain has to be deleted.
 
+
+.SH KNOWN BUGS
+The tables, chains, sections, and rules must have at least one parameter
+defined to be recognized. For example, in the following, only the section
+marked as the default section will be recognized:
+
+    [section::header]
+
+    [section::content]
+    default=true
+
+    [section::footer]
+
+In most cases, several parameters are required for any one definition so you
+are not likely to see this bug. However, the `[section::header]' does not
+really need a description or before/after definition and it is not the default
+so it could be thought that just `[section::header]' would be enough, which
+is not the case.
+
+
 .SH AUTHOR
 Written by Alexis Wilke <alexis@m2osw.com>.
+
+
 .SH "REPORTING BUGS"
 Report bugs to <https://github.com/m2osw/iplock/issues>.
 .br
 ipload home page: <https://snapwebsites.org/project/iplock>.
+
+
 .SH COPYRIGHT
 Copyright \(co 2022 Made to Order Software Corporation
 .br
@@ -349,6 +515,8 @@ License: GPLv3
 This is free software: you are free to change and redistribute it.
 .br
 There is NO WARRANTY, to the extent permitted by law.
+
+
 .SH "SEE ALSO"
 .BR ipload (8),
 .BR iplock (1),

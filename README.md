@@ -21,7 +21,7 @@ Firewall Editor (SNAP-355 part 3)
 =================================
 
 The iplock project comes with a console and graphical set of tools used
-to edit and setup the firewall. This tool makes use of configuration files
+to edit and setup the firewall (?). This tool makes use of configuration files
 that are read using advgetopt and generates a script supported by iptables.
 
 The configuration files are saved under `/etc/iplock/firewall`. These are
@@ -32,7 +32,7 @@ hacking attempts.
 ## Configuration Files organization
 
 The iplock project makes use of the advgetopt to load configuration files
-from the `/usr/share/iplock/rules` folder. The rules are order using the
+from the `/usr/share/iplock/ipload` folder. The rules are ordered using the
 `before`, `after`, and `section` names defined within the rules.
 This allows us to define the order in which the rules have to be loaded
 in the firewall which, obviously, is very important.
@@ -53,18 +53,8 @@ files to open or block the ports they manage.
 
 The following shows the list of supported tags (see details below):
 
-    [table::<table-name>]
-    prefix = <prefix>
 
-    [chain::<table-prefix>_<chain-name>]
-    policy = ACCEPT | DROP
-    type = RETURN | DROP | USER-DEFINED
-    log = <message>
 
-    [section::<section-name>]
-    before = <section-name>[, <section-name>]*
-    after = <section-name>[, <section-name>]*
-    default = true | false
 
     [rule::<rule-name>]
     chains = <chain-name>[, <chain-name>]*
@@ -124,84 +114,6 @@ The prefix should be the same as the table name: `filter`, `nat`, etc.
 
 The `<table-name>` parameter should be a valid name that the iptables system
 understands.
-
-### `chain::<table-prefix>_<chain-name>::policy`
-
-This parameter defines the default policy of a system chain.
-
-The name is composed of a table prefix (i.e. `"nat"`) and a chain name
-(i.e. `INPUT`). This is done this way to distinguish between chains of the
-same name appearing in different tables (i.e. `"nat_INPUT"` and
-`"filter_INPUT"`). In most cases, the filter table is not given a prefix
-because that's where you get the most rules. In that case the chain name
-does not include the `"<table-prefix>_"`.
-
-With Ubuntu, the default is to `ACCEPT` any traffic. You can change the
-policy to `DROP` instead. This means traffic that was not accepted by
-a rule within that chain will be dropped.
-
-Only built-in chains can be assigned a policy.
-
-**Default:** policy is set to `DROP` by default since it is more constrained.
-
-### `chain::<table-prefix>_<chain-name>::type`
-
-This parameter defines the type of the chain.
-
-At this time, this mainly defines how we close the chain, as in, which rule
-to use to close the chain.
-
-A type set to `DROP` means the chain drops any packet that is not accepted
-by a rule within that chain. If the type is set to `RETURN`, then if none
-of the rules within that chain was set to `DROP`, then the filtering
-continues after the point where that chain was inserted.
-
-Note that we also offer a `USER-DEFINED` type in which case no rule gets
-added automatically. Instead you are expected to handle the rule yourself
-by adding it to your chain in a footer section.
-
-**Default:** `DROP` since this is a stronger constraint.
-
-### `chain::<table-prefix>_<chain-name>::log`
-
-This parameter defines a log message. This message is printed only if
-the `RETURN` or `DROP` rule found at the end is encountered.
-
-**Default:** no message.
-
-### `section::<name>::description`
-
-The description of the section for documentation purposes.
-
-### `section::<name>::before`
-
-Define the name of a section that we want to appear before. In the final
-list of rules, all the rules in this section will appear before the
-rules found in the section named in this parameter.
-
-Multiple names can be included. Separate each name with a comma. Spaces
-are ignored.
-
-### `section::<name>::after`
-
-Define the name of a section that we want to appear after. In the final
-list of rules, all the rules in this section will appear after the
-rules found in the section named in this parameter.
-
-Multiple names can be included. Separate each name with a comma. Spaces
-are ignored.
-
-### `section::<name>::default`
-
-Mark this section as the default one. You are expected to set this parameter
-to true.
-
-Once all the rules for a given chain are defined, the process makes sure that
-at most one default section is defined in the final list. That default is used
-to add all the rules that were not assigned a section name.
-
-If none of the sections were marked as the default section and some rules do
-not specifically name a section, then an error is generated.
 
 ### `rule::<name>::description`
 

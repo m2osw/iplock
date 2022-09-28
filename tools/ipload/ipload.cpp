@@ -584,7 +584,7 @@ bool ipload::load_data()
     if(f_parameters.empty())
     {
         SNAP_LOG_FATAL
-            << "no chains/sections/rules found with path(s) \""
+            << "no tables/chains/sections/rules found within path(s) \""
             << paths
             << "\"."
             << SNAP_LOG_SEND;
@@ -836,6 +836,7 @@ bool ipload::convert()
 bool ipload::process_parameters()
 {
     bool valid(true);
+    chain::map_t chains;
     section::vector_t sections;
     rule::vector_t rules;
 
@@ -877,6 +878,15 @@ bool ipload::process_parameters()
             }
             break;
 
+        case 'o':
+            if(p->first == "output-empty-tables")
+            {
+                f_output_empty_tables = advgetopt::is_true(p->second);
+                ++p;
+                continue;
+            }
+            break;
+
         case 'r':
             if(p->first == "remove-user-chain") // underscores are changed to '-' by advgetopt
             {
@@ -909,23 +919,18 @@ bool ipload::process_parameters()
                 continue;
             }
             table::pointer_t tbl(std::make_shared<table>(p, f_parameters, f_variables));
-            for(auto const & t : f_tables)
+            if(f_tables.find(tbl->get_name()) != f_tables.end())
             {
-                if(t->get_prefix() == tbl->get_prefix())
-                {
-                    SNAP_LOG_ERROR
-                        << "each table must use a different prefix: \""
-                        << t->get_name()
-                        << "\" and \""
-                        << tbl->get_name()
-                        << "\" have the same prefix \""
-                        << t->get_prefix()
-                        << "\". Only one table can use the empty (a.k.a. \"default\") prefix."
-                        << SNAP_LOG_SEND;
-                    valid = false;
-                }
+                SNAP_LOG_ERROR
+                    << "table named \""
+                    << tbl->get_name()
+                    << "\" defined twice."
+                    << SNAP_LOG_SEND;
+                valid = false;
+                ++p;
+                continue;
             }
-            f_tables.push_back(tbl);
+            f_tables[tbl->get_name()] = tbl;
         }
         else if(names[0] == "chain")
         {
@@ -947,7 +952,18 @@ bool ipload::process_parameters()
                                     , f_parameters
                                     , f_variables
                                     , f_verbose));
-            f_chains[snapdev::string_replace_many(c->get_name(), {{"-","_"}})] = c;
+            if(chains.find(c->get_name()) != chains.end())
+            {
+                SNAP_LOG_ERROR
+                    << "chain named \""
+                    << c->get_name()
+                    << "\" defined twice."
+                    << SNAP_LOG_SEND;
+                valid = false;
+                ++p;
+                continue;
+            }
+            chains[c->get_name()] = c;
         }
         else if(names[0] == "section")
         {
@@ -964,7 +980,25 @@ bool ipload::process_parameters()
                 ++p;
                 continue;
             }
-            sections.push_back(std::make_shared<section>(p, f_parameters, f_variables));
+            section::pointer_t sec(std::make_shared<section>(p, f_parameters, f_variables));
+            if(std::find_if(
+                      sections.begin()
+                    , sections.end()
+                    , [sec](auto const & a)
+                        {
+                            return a->get_name() == sec->get_name();
+                        }) != sections.end())
+            {
+                SNAP_LOG_ERROR
+                    << "section named \""
+                    << sec->get_name()
+                    << "\" defined twice."
+                    << SNAP_LOG_SEND;
+                valid = false;
+                ++p;
+                continue;
+            }
+            sections.push_back(sec);
         }
         else if(names[0] == "rule")
         {
@@ -1000,7 +1034,7 @@ bool ipload::process_parameters()
         valid = false;
     }
 
-    if(!process_chains())
+    if(!process_chains(chains))
     {
         valid = false;
     }
@@ -1184,43 +1218,33 @@ bool ipload::sort_sections(section::vector_t & sections)
 }
 
 
-bool ipload::process_chains()
+bool ipload::process_chains(chain::map_t const & chains)
 {
     bool valid(true);
-    for(auto const & c : f_chains)
-    {
-        std::string const & name(c.first);
-        std::int64_t len(-1);
-        table::pointer_t tbl;
-        for(auto const & t : f_tables)
-        {
-            std::string const & prefix(t->get_prefix());
 
-            // the prefix already includes the '_' separator unless empty
-            //
-            if(strncmp(name.c_str(), prefix.c_str(), prefix.length()) == 0)
+    for(auto const & c : chains)
+    {
+        advgetopt::string_list_t tables(c.second->get_tables());
+        if(tables.empty())
+        {
+            tables.push_back("filter");
+        }
+        for(auto const & table_name : tables)
+        {
+            auto t(f_tables.find(table_name));
+            if(t == f_tables.end())
             {
-                // this is a match!
-                //
-                if(static_cast<std::int64_t>(prefix.length()) > len)
-                {
-                    tbl = t;
-                    len = prefix.length();
-                }
+                SNAP_LOG_ERROR
+                    << "could not find table \""
+                    << table_name
+                    << "\" for chain \""
+                    << c.first
+                    << "\"."
+                    << SNAP_LOG_SEND;
+                valid = false;
+                continue;
             }
-        }
-        if(tbl == nullptr)
-        {
-            SNAP_LOG_ERROR
-                << "could not find a table for chain \""
-                << name
-                << "\"."
-                << SNAP_LOG_SEND;
-            valid = false;
-        }
-        else
-        {
-            tbl->add_chain(c.second);
+            t->second->add_chain_reference(std::make_shared<chain_reference>(c.second));
         }
     }
 
@@ -1232,14 +1256,18 @@ bool ipload::process_sections(section::vector_t const & sections)
 {
     bool valid(true);
 
-    for(auto const & c : f_chains)
+    for(auto const & t : f_tables)
     {
-        for(auto const & s : sections)
+        chain_reference::map_t const & chains(t.second->get_chain_references());
+        for(auto const & c : chains)
         {
-            c.second->add_section_reference(std::make_shared<section_reference>(s));
-            if(!c.second->is_valid())
+            for(auto const & s : sections)
             {
-                valid = false;
+                c.second->add_section_reference(std::make_shared<section_reference>(s));
+                if(!c.second->is_valid())
+                {
+                    valid = false;
+                }
             }
         }
     }
@@ -1254,24 +1282,48 @@ bool ipload::process_rules(rule::vector_t rules)
 
     for(auto const & r : rules)
     {
-        advgetopt::string_list_t const & chain_names(r->get_chains());
-        for(auto const & name : chain_names)
+        advgetopt::string_list_t table_names(r->get_tables());
+        if(table_names.empty())
         {
-            auto it(f_chains.find(name));
-            if(it == f_chains.end())
+            table_names.push_back("filter");
+        }
+        for(auto const & table_name : table_names)
+        {
+            auto t(f_tables.find(table_name));
+            if(t == f_tables.end())
             {
                 SNAP_LOG_ERROR
-                    << "could not find a chain \""
-                    << name
+                    << "could not find table \""
+                    << table_name
                     << "\" for rule \""
                     << r->get_name()
                     << "\"."
                     << SNAP_LOG_SEND;
                 valid = false;
+                continue;
             }
-            else if(!it->second->add_rule(r))
+
+            advgetopt::string_list_t const & chain_names(r->get_chains());
+            for(auto const & chain_name : chain_names)
             {
-                valid = false;
+                chain_reference::pointer_t chain_reference(t->second->get_chain_reference(chain_name));
+                if(chain_reference == nullptr)
+                {
+                    SNAP_LOG_ERROR
+                        << "could not find chain \""
+                        << chain_name
+                        << "\" in table \""
+                        << t->first
+                        << "\" for rule \""
+                        << r->get_name()
+                        << "\"."
+                        << SNAP_LOG_SEND;
+                    valid = false;
+                }
+                else if(!chain_reference->add_rule(r))
+                {
+                    valid = false;
+                }
             }
         }
     }
@@ -1286,18 +1338,33 @@ bool ipload::generate_tables(std::ostream & out)
 {
     for(auto const & t : f_tables)
     {
-        if(t->empty())
+        f_generate_for_table = t.second;
+
+        // by default we do not want to generate tables when empty, even
+        // if the rules imply at least a LOG action
+        //
+        if(f_generate_for_table->empty()
+        && !f_output_empty_tables)
         {
+            if(f_verbose)
+            {
+                out << "# Table " << t.first << " is empty.\n";
+            }
             continue;
         }
 
         if(f_show_comments)
         {
-            out << "# Table: " << t->get_name() << "\n";
+            out << "# Table: " << t.first << "\n";
+            if(f_verbose
+            && !f_generate_for_table->get_description().empty())
+            {
+                out << "# " << f_generate_for_table->get_description() << "\n";
+            }
         }
-        out << "*" << t->get_name() << "\n";
+        out << "*" << t.first << "\n";
 
-        chain::vector_t const & chains(t->get_chains());
+        chain_reference::map_t const & chains(f_generate_for_table->get_chain_references());
 
         // first we want a list of chains at the start of the filter
         // definition; we first print iptables internal names, mainly
@@ -1309,22 +1376,22 @@ bool ipload::generate_tables(std::ostream & out)
         }
         for(auto const & c : chains)
         {
-            if(!c->is_system_chain())
+            if(!c.second->is_system_chain())
             {
                 continue;
             }
-            if(!generate_chain_name(out, c))
+            if(!generate_chain_name(out, c.second))
             {
                 return false;
             }
         }
         for(auto const & c : chains)
         {
-            if(c->is_system_chain())
+            if(c.second->is_system_chain())
             {
                 continue;
             }
-            if(!generate_chain_name(out, c))
+            if(!generate_chain_name(out, c.second))
             {
                 return false;
             }
@@ -1336,22 +1403,22 @@ bool ipload::generate_tables(std::ostream & out)
         //
         for(auto const & c : chains)
         {
-            if(!c->is_system_chain())
+            if(!c.second->is_system_chain())
             {
                 continue;
             }
-            if(!generate_chain(out, c))
+            if(!generate_chain(out, c.second))
             {
                 return false;
             }
         }
         for(auto const & c : chains)
         {
-            if(c->is_system_chain())
+            if(c.second->is_system_chain())
             {
                 continue;
             }
-            if(!generate_chain(out, c))
+            if(!generate_chain(out, c.second))
             {
                 return false;
             }
@@ -1375,20 +1442,29 @@ bool ipload::generate_tables(std::ostream & out)
 }
 
 
-bool ipload::generate_chain_name(std::ostream & out, chain::pointer_t c)
+bool ipload::generate_chain_name(std::ostream & out, chain_reference::pointer_t c)
 {
     out << ":"
         << c->get_name()
         << ' '
-        << (c->is_system_chain() ? c->get_policy_name() : "-")
+        << (c->is_system_chain()
+                    ? c->get_policy_name(f_generate_for_table->get_name())
+                    : "-")
         << " [0:0]\n";
 
     return true;
 }
 
 
-bool ipload::generate_chain(std::ostream & out, chain::pointer_t c)
+bool ipload::generate_chain(std::ostream & out, chain_reference::pointer_t c)
 {
+    type_t const chain_type(c->get_type(f_generate_for_table->get_name()));
+    if(c->empty(f_generate_for_table->get_name())
+    && chain_type == type_t::TYPE_USER_DEFINED)
+    {
+        return true;
+    }
+
     // the sections are there to group rules; in themselves they do not
     // generate anything in the output (except if we want to add comments
     // when the --show option is used)
@@ -1412,13 +1488,13 @@ bool ipload::generate_chain(std::ostream & out, chain::pointer_t c)
     std::string const log(c->get_log());
 
     if(f_show_comments
-    && (c->get_type() != type_t::TYPE_USER_DEFINED
-            || !log.empty()))
+    && chain_type != type_t::TYPE_USER_DEFINED)
     {
         out << "# Close with Chain Type:\n";
     }
 
-    if(!log.empty())
+    if(!log.empty()
+    && chain_type != type_t::TYPE_USER_DEFINED)
     {
         std::string prefix(
                   f_log_introducer
@@ -1440,7 +1516,7 @@ bool ipload::generate_chain(std::ostream & out, chain::pointer_t c)
             << "\" --log-uid\n";
     }
 
-    switch(c->get_type())
+    switch(chain_type)
     {
     case type_t::TYPE_RETURN:
         out << "-A "
@@ -1472,7 +1548,7 @@ bool ipload::generate_chain(std::ostream & out, chain::pointer_t c)
 
 bool ipload::generate_rules(
       std::ostream & out
-    , chain::pointer_t c
+    , chain_reference::pointer_t c
     , section_reference::pointer_t s
     , int & count)
 {
@@ -1486,10 +1562,7 @@ bool ipload::generate_rules(
         // therefore here the find() should always find the chain in the list
         //
         advgetopt::string_list_t const & chains(r->get_chains());
-        std::string const chain_name(snapdev::string_replace_many(
-                  c->get_name()
-                , {{"-", "_"}}));
-        if(std::find(chains.begin(), chains.end(), chain_name) == chains.end())
+        if(std::find(chains.begin(), chains.end(), c->get_name()) == chains.end())
         {
             throw iplock::logic_error(
                       "chain \""
@@ -1532,10 +1605,10 @@ bool ipload::sort_rules()
     bool valid(true);
     for(auto const & t : f_tables)
     {
-        chain::vector_t const & chains(t->get_chains());
+        chain_reference::map_t const & chains(t.second->get_chain_references());
         for(auto const & c : chains)
         {
-            section_reference::vector_t refs(c->get_section_references());
+            section_reference::vector_t refs(c.second->get_section_references());
             for(auto const & s : refs)
             {
                 if(!s->sort_rules())
@@ -1559,10 +1632,10 @@ bool ipload::create_sets()
     bool valid(true);
     for(auto const & t : f_tables)
     {
-        chain::vector_t const & chains(t->get_chains());
+        chain_reference::map_t const & chains(t.second->get_chain_references());
         for(auto const & c : chains)
         {
-            section_reference::vector_t refs(c->get_section_references());
+            section_reference::vector_t refs(c.second->get_section_references());
             for(auto const & s : refs)
             {
                 rule::vector_t const & rules(s->get_rules());
@@ -1700,14 +1773,14 @@ bool ipload::remove_from_iptables()
     bool valid(true);
     for(auto const & t : f_tables)
     {
-        chain::vector_t const & chains(t->get_chains());
+        chain_reference::map_t const & chains(t.second->get_chain_references());
         for(auto const & c : chains)
         {
-            if(c->is_system_chain())
+            if(c.second->is_system_chain())
             {
                 continue;
             }
-            if(c->get_name().empty())
+            if(c.second->get_name().empty())
             {
                 SNAP_LOG_EXCEPTION
                     << "found a chain without a name."
@@ -1717,8 +1790,8 @@ bool ipload::remove_from_iptables()
             std::string const cmd(snapdev::string_replace_many(
                       f_remove_user_chain
                     , {
-                        {"[table]", t->get_name()},
-                        {"[name]", c->get_name()},
+                        {"[table]", t.first},
+                        {"[name]", c.first},
                       }));
             if(f_verbose)
             {
@@ -1730,7 +1803,7 @@ bool ipload::remove_from_iptables()
                 int const e(errno);
                 SNAP_LOG_ERROR
                     << "an error occurred trying to delete a user chain \""
-                    << c->get_name()
+                    << c.first
                     << "\" (exit code: "
                     << exit_code
                     << ", errno: "
@@ -1804,12 +1877,12 @@ void ipload::show_dependencies()
 {
     for(auto const & t : f_tables)
     {
-        std::cout << "###\n### Table: " << t->get_name() << "\n###\n\n";
-        chain::vector_t const & chains(t->get_chains());
+        std::cout << "###\n### Table: " << t.first << "\n###\n\n";
+        chain_reference::map_t const & chains(t.second->get_chain_references());
         for(auto const & c : chains)
         {
-            std::cout << "\n##\n## Chain: " << c->get_name() << "\n##\n";
-            section_reference::vector_t refs(c->get_section_references());
+            std::cout << "\n##\n## Chain: " << c.first << "\n##\n";
+            section_reference::vector_t refs(c.second->get_section_references());
             for(auto const & s : refs)
             {
                 rule::vector_t const & list(s->get_rules());

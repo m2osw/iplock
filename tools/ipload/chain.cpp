@@ -42,11 +42,6 @@
 #include    <snaplogger/message.h>
 
 
-// snapdev
-//
-#include    <snapdev/string_replace_many.h>
-
-
 // C++
 //
 #include    <iostream>
@@ -86,6 +81,9 @@ std::set<std::string> g_system_chain_names =
  * This function saves the name of the iptable chain in this object.
  *
  * \param[in] it  The iterator to the chain name.
+ * \param[in] config_params  The complete list of parameters.
+ * \param[in] variables  A pointer to a set of variables.
+ * \param[in] verbose  Whether the --verbose flag was specified.
  */
 chain::chain(
           advgetopt::conf_file::parameters_t::iterator & it
@@ -153,25 +151,41 @@ chain::chain(
         case 'p':
             if(param_name == "policy")
             {
-                value = to_lower(value);
-                if(value == "accept"
-                || value == "allow")
+                advgetopt::string_list_t policies;
+                advgetopt::split_string(to_lower(value), policies, {","});
+                for(auto const & p : policies)
                 {
-                    f_policy = policy_t::POLICY_ACCEPT;
-                }
-                else if(value == "drop"
-                     || value == "blackhole"
-                     || value == "deny")
-                {
-                    f_policy = policy_t::POLICY_DROP;
-                }
-                else
-                {
-                    SNAP_LOG_RECOVERABLE_ERROR
-                        << "unknown chain policy \""
-                        << value
-                        << "\"."
-                        << SNAP_LOG_SEND;
+                    advgetopt::string_list_t table_policy;
+                    advgetopt::split_string(p, table_policy, {":"});
+                    if(table_policy.size() == 1)
+                    {
+                        table_policy.insert(table_policy.begin(), "*");
+                    }
+                    policy_t policy(policy_t::POLICY_DROP);
+                    if(table_policy[1] == "accept"
+                    || table_policy[1] == "allow")
+                    {
+                        policy = policy_t::POLICY_ACCEPT;
+                    }
+                    else if(table_policy[1] != "drop"
+                         && table_policy[1] != "blackhole"
+                         && table_policy[1] != "deny")
+                    {
+                        SNAP_LOG_RECOVERABLE_ERROR
+                            << "unknown chain policy \""
+                            << table_policy[1]
+                            << "\"."
+                            << SNAP_LOG_SEND;
+                    }
+                    if(f_policy.find(table_policy[0]) != f_policy.end())
+                    {
+                        SNAP_LOG_RECOVERABLE_ERROR
+                            << "chain policy for table \""
+                            << table_policy[0]
+                            << "\" defined multiple times."
+                            << SNAP_LOG_SEND;
+                    }
+                    f_policy[table_policy[0]] = policy;
                 }
             }
             else
@@ -183,34 +197,56 @@ chain::chain(
         case 't':
             if(param_name == "type")
             {
-                value = to_lower(value);
-                if(value == "return")
+                advgetopt::string_list_t types;
+                advgetopt::split_string(to_lower(value), types, {","});
+                for(auto const & t : types)
                 {
-                    f_type = type_t::TYPE_RETURN;
+                    advgetopt::string_list_t table_type;
+                    advgetopt::split_string(t, table_type, {":"});
+                    if(table_type.size() == 1)
+                    {
+                        table_type.insert(table_type.begin(), "*");
+                    }
+                    type_t type(type_t::TYPE_USER_DEFINED);
+                    if(table_type[1] == "return")
+                    {
+                        type = type_t::TYPE_RETURN;
+                    }
+                    else if(table_type[1] == "drop")
+                    {
+                        type = type_t::TYPE_DROP;
+                    }
+                    else if(table_type[1] == "reject")
+                    {
+                        type = type_t::TYPE_REJECT;
+                    }
+                    else if(table_type[1] != "user_defined"
+                         && table_type[1] != "user-defined"
+                         && table_type[1] != "accept"
+                         && table_type[1] != "allow"
+                         && table_type[1] != "passthrough")
+                    {
+                        SNAP_LOG_RECOVERABLE_ERROR
+                            << "unknown chain type \""
+                            << value
+                            << "\"."
+                            << SNAP_LOG_SEND;
+                    }
+                    if(f_type.find(table_type[0]) != f_type.end())
+                    {
+                        SNAP_LOG_RECOVERABLE_ERROR
+                            << "chain type for table \""
+                            << table_type[0]
+                            << "\" defined multiple times."
+                            << SNAP_LOG_SEND;
+                    }
+                    f_type[table_type[0]] = type;
                 }
-                else if(value == "drop")
-                {
-                    f_type = type_t::TYPE_DROP;
-                }
-                else if(value == "reject")
-                {
-                    f_type = type_t::TYPE_REJECT;
-                }
-                else if(value == "user_defined"
-                     || value == "accept"
-                     || value == "allow"
-                     || value == "passthrough")
-                {
-                    f_type = type_t::TYPE_USER_DEFINED;
-                }
-                else
-                {
-                    SNAP_LOG_RECOVERABLE_ERROR
-                        << "unknown chain type \""
-                        << value
-                        << "\"."
-                        << SNAP_LOG_SEND;
-                }
+            }
+            else if(param_name == "table"
+                 || param_name == "tables")
+            {
+                advgetopt::split_string(value, f_tables, {","});
             }
             else
             {
@@ -241,96 +277,7 @@ bool chain::is_valid() const
 }
 
 
-bool chain::empty() const
-{
-    for(auto const & s : f_section_references)
-    {
-        if(!s->empty())
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
-
-void chain::add_section_reference(section_reference::pointer_t sr)
-{
-    // note: ipload sorts the sections first so here they get added
-    //       in the correct order
-    //
-    f_section_references.push_back(sr);
-    f_section_references_by_name[sr->get_name()] = sr;
-
-    if(sr->get_default())
-    {
-        if(f_default_section_references != nullptr)
-        {
-            SNAP_LOG_ERROR
-                << "found two sections marked as defaults: \""
-                << f_default_section_references->get_name()
-                << "\" and \""
-                << sr->get_name()
-                << "\"."
-                << SNAP_LOG_SEND;
-            f_valid = false;
-        }
-        else
-        {
-            f_default_section_references = sr;
-        }
-    }
-}
-
-
-section_reference::vector_t const & chain::get_section_references() const
-{
-    return f_section_references;
-}
-
-
-bool chain::add_rule(rule::pointer_t r)
-{
-    std::string const name(r->get_section());
-    auto it(f_section_references_by_name.find(name));
-    if(it == f_section_references_by_name.end())
-    {
-        if(f_default_section_references != nullptr)
-        {
-            // this is the default, add the rule there
-            //
-            if(f_verbose)
-            {
-                SNAP_LOG_VERBOSE
-                    << "rule \""
-                    << r->get_name()
-                    << "\" has no \"section = ...\" parameter so it is being added to default section \""
-                    << f_default_section_references->get_name()
-                    << "\"."
-                    << SNAP_LOG_SEND;
-            }
-            f_default_section_references->add_rule(r);
-            return true;
-        }
-        SNAP_LOG_RECOVERABLE_ERROR
-            << "section \""
-            << name
-            << "\" not found and no section marked as the default section. Cannot add rule \""
-            << r->get_name()
-            << "\" to chain \""
-            << f_name
-            << "\"."
-            << SNAP_LOG_SEND;
-        f_valid = false;
-        return false;
-    }
-
-    it->second->add_rule(r);
-    return true;
-}
-
-
-std::string chain::get_name() const
+std::string const & chain::get_name() const
 {
     return f_name;
 }
@@ -342,15 +289,30 @@ bool chain::is_system_chain() const
 }
 
 
-policy_t chain::get_policy() const
+bool chain::is_verbose() const
 {
-    return f_policy;
+    return f_verbose;
 }
 
 
-std::string chain::get_policy_name() const
+policy_t chain::get_policy(std::string const & table_name) const
 {
-    switch(f_policy)
+    auto it(f_policy.find(table_name));
+    if(it == f_policy.end())
+    {
+        it = f_policy.find("*");
+        if(it == f_policy.end())
+        {
+            return policy_t::POLICY_DROP;
+        }
+    }
+    return it->second;
+}
+
+
+std::string chain::get_policy_name(std::string const & table_name) const
+{
+    switch(get_policy(table_name))
     {
     case policy_t::POLICY_ACCEPT:
         return "ACCEPT";
@@ -364,13 +326,28 @@ std::string chain::get_policy_name() const
 }
 
 
-type_t chain::get_type() const
+type_t chain::get_type(std::string const & table_name) const
 {
-    return f_type;
+    auto it(f_type.find(table_name));
+    if(it == f_type.end())
+    {
+        it = f_type.find("*");
+        if(it == f_type.end())
+        {
+            return type_t::TYPE_DROP;
+        }
+    }
+    return it->second;
 }
 
 
-std::string chain::get_log() const
+advgetopt::string_list_t const & chain::get_tables() const
+{
+    return f_tables;
+}
+
+
+std::string const & chain::get_log() const
 {
     return f_log;
 }

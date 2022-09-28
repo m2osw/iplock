@@ -72,15 +72,15 @@ private:
     bool                    convert();
     bool                    process_parameters();
     bool                    sort_sections(section::vector_t & sections);
-    bool                    process_chains();
+    bool                    process_chains(chain::map_t const & chains);
     bool                    process_sections(section::vector_t const & sections);
     bool                    process_rules(rule::vector_t rules);
     bool                    generate_tables(std::ostream & out);
-    bool                    generate_chain_name(std::ostream & out, chain::pointer_t c);
-    bool                    generate_chain(std::ostream & out, chain::pointer_t c);
+    bool                    generate_chain_name(std::ostream & out, chain_reference::pointer_t c);
+    bool                    generate_chain(std::ostream & out, chain_reference::pointer_t c);
     bool                    generate_rules(
                                   std::ostream & out
-                                , chain::pointer_t c
+                                , chain_reference::pointer_t c
                                 , section_reference::pointer_t s
                                 , int & count);
     bool                    sort_rules();
@@ -91,13 +91,14 @@ private:
     bool                    f_quiet = false;
     bool                    f_show_comments = false;
     bool                    f_show_dependencies = false;
+    bool                    f_output_empty_tables = false;
     int                     f_command = 0;
     advgetopt::variables::pointer_t
                             f_variables = advgetopt::variables::pointer_t();
     advgetopt::conf_file::parameters_t
                             f_parameters = advgetopt::conf_file::parameters_t();
-    table::vector_t         f_tables = table::vector_t();
-    chain::map_t            f_chains = chain::map_t();
+    table::map_t            f_tables = table::map_t();
+    table::pointer_t        f_generate_for_table = table::pointer_t();
     std::string             f_log_introducer = "[iptables]";
     std::string             f_remove_user_chain = std::string();
     std::string             f_create_set_ipv4 = std::string();

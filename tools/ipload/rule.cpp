@@ -45,6 +45,7 @@
 
 // advgetopt
 //
+#include    <advgetopt/validator_duration.h>
 #include    <advgetopt/validator_integer.h>
 
 
@@ -60,6 +61,11 @@
 #include    <snapdev/remove_duplicates.h>
 #include    <snapdev/safe_variable.h>
 #include    <snapdev/string_replace_many.h>
+
+
+// C++
+//
+#include    <cmath>
 
 
 // C
@@ -684,6 +690,18 @@ rule::rule(
             }
             break;
 
+        case 't':
+            if(param_name == "table"
+            || param_name == "tables")
+            {
+                advgetopt::split_string(value, f_tables, {","});
+            }
+            else
+            {
+                found = false;
+            }
+            break;
+
         default:
             found = false;
             break;
@@ -809,7 +827,7 @@ void rule::parse_action(std::string const & action)
             a += c;
         }
     }
-    if(a.length() > 0 )
+    if(a.length() > 0)
     {
         switch(a[0])
         {
@@ -827,6 +845,22 @@ void rule::parse_action(std::string const & action)
                 else
                 {
                     f_action = action_t::ACTION_ACCEPT;
+                }
+                return;
+            }
+            else if(a == "audit")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"AUDIT\" action must be used with exactly one parameter (accept, drop, reject)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_AUDIT;
+                    f_action_param = action_param[1];
                 }
                 return;
             }
@@ -867,6 +901,70 @@ void rule::parse_action(std::string const & action)
                 }
                 return;
             }
+            else if(a == "checksum")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"CHECKSUM\" action must be used with exactly one parameter (fill)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_CHECKSUM;
+                    f_action_param = action_param[1];
+                }
+                return;
+            }
+            else if(a == "classify")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"CLASSIFY\" action must be used with exactly one parameter (major:minor)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_CLASSIFY;
+                    f_action_param = action_param[1];
+                }
+                return;
+            }
+            else if(a == "clusterip")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"CLUSTERIP\" action must be used with exactly one parameter (new, sourceip, sourceip-sourceport, sourceip-sourceport-destport, a mac address, +node-count, #node-number, seed-number)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_CLUSTERIP;
+                    f_action_param = action_param[1];
+                    f_force_ipv4 = true;
+                }
+                return;
+            }
+            else if(a == "connmark")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"CONNMARK\" action must be used with exactly one parameter (mark)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_CONNMARK;
+                    f_action_param = action_param[1];
+                }
+            }
             else if(a == "connsecmark")
             {
                 if(action_param.size() != 2)
@@ -881,6 +979,22 @@ void rule::parse_action(std::string const & action)
                     f_action = action_t::ACTION_CONNSECMARK;
                     f_action_param = action_param[1];
                 }
+            }
+            else if(a == "ct")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"CT\" action must be used with exactly one parameter (notrack, ...)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_CT;
+                    f_action_param = action_param[1];
+                }
+                return;
             }
             break;
 
@@ -906,7 +1020,7 @@ void rule::parse_action(std::string const & action)
                 if(action_param.size() != 2)
                 {
                     SNAP_LOG_ERROR
-                        << "the \"DNAT\" action requires the destination parameter."
+                        << "the \"DNAT\" action requires the destination parameter (ipaddress:port, random, persistent)."
                         << SNAP_LOG_SEND;
                     f_valid = false;
                 }
@@ -917,13 +1031,137 @@ void rule::parse_action(std::string const & action)
                 }
                 return;
             }
+            else if(a == "dnpt")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"DNPT\" action must be used with exactly one parameter (< or > followed by an IPv6 address with a mask)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_DNPT;
+                    f_action_param = action_param[1];
+                    f_force_ipv6 = true;
+                }
+                return;
+            }
+            else if(a == "dscp")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"DSCP\" action must be used with exactly one parameter (number of class name)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_DSCP;
+                    f_action_param = action_param[1];
+                }
+                return;
+            }
+            break;
+
+        case 'e':
+            if(a == "ecn")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"ECN\" action must be used with exactly one parameter (remove)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_ECN;
+                    f_action_param = action_param[1];
+                    f_force_ipv4 = true;
+                }
+                return;
+            }
+            break;
+
+        case 'h':
+            if(a == "hl")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"HL\" action must be used with exactly one parameter ([=]num, +num, -num)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_HL;
+                    f_action_param = action_param[1];
+                }
+                return;
+            }
+            else if(a == "hmark")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"HMARK\" action must be used with exactly one parameter (src, dst, sport, dport, spi, ct, ...)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_HMARK;
+                    f_action_param = action_param[1];
+                }
+                return;
+            }
+            break;
+
+        case 'i':
+            if(a == "idletimer")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"IDLETIMER\" action must be used with exactly one parameter (identifier or number)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_IDLETIMER;
+                    f_action_param = action_param[1];
+                }
+                return;
+            }
             break;
 
         case 'l':
-            if(a == "log")
+            if(a == "led")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"LED\" action must be used with exactly one parameter (a name, a number, \"blink\")."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_LED;
+                    f_action_param = action_param[1];
+                }
+                return;
+            }
+            else if(a == "log")
             {
                 if(action_param.size() != 1)
                 {
+                    // TODO: there are actually parameters: level, prefix, sequence, options, uid
                     SNAP_LOG_ERROR
                         << "the \"LOG\" action does not support a parameter."
                         << SNAP_LOG_SEND;
@@ -938,22 +1176,7 @@ void rule::parse_action(std::string const & action)
             break;
 
         case 'm':
-            if(a == "masquerade")
-            {
-                if(action_param.size() != 1)
-                {
-                    SNAP_LOG_ERROR
-                        << "the \"MASQUERADE\" action does not support a parameter."
-                        << SNAP_LOG_SEND;
-                    f_valid = false;
-                }
-                else
-                {
-                    f_action = action_t::ACTION_MASQUERADE;
-                }
-                return;
-            }
-            else if(a == "mark")
+            if(a == "mark")
             {
                 if(action_param.size() != 2)
                 {
@@ -968,10 +1191,127 @@ void rule::parse_action(std::string const & action)
                     f_action_param = action_param[1];
                 }
             }
+            else if(a == "masquerade")
+            {
+                if(action_param.size() > 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"MASQUERADE\" action does not support a parameter (port, port range, random)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_MASQUERADE;
+                    if(action_param.size() == 2)
+                    {
+                        f_action_param = action_param[1];
+                    }
+                }
+                return;
+            }
+            break;
+
+        case 'n':
+            if(a == "netmap")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"NETMAP\" action must be used with exactly one parameter (address/mask)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_NETMAP;
+                    f_action_param = action_param[1];
+                }
+                return;
+            }
+            else if(a == "nflog")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"NFLOG\" action must be used with exactly one parameter (...)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_NFLOG;
+                    f_action_param = action_param[1];
+                }
+                return;
+            }
+            else if(a == "nfqueue")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"NFQUEUE\" action must be used with exactly one parameter (number, number:number, bypass, cpu-fanout)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_NFQUEUE;
+                    f_action_param = action_param[1];
+                }
+                return;
+            }
+            else if(a == "notrack")
+            {
+                if(action_param.size() != 1)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"NOTRACK\" action does not support parameters."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_NOTRACK;
+                }
+                return;
+            }
             break;
 
         case 'r':
-            if(a == "reject")
+            if(a == "rateest")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"RATEEST\" action must be used with exactly one parameter (name, duration, number)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_RATEEST;
+                    f_action_param = action_param[1];
+                }
+                return;
+            }
+            else if(a == "redirect")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"REDIRECT\" action requires a port parameter or \"random\"."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_REDIRECT;
+                    f_action_param = action_param[1];
+                }
+                return;
+            }
+            else if(a == "reject")
             {
                 if(action_param.size() > 2)
                 {
@@ -988,22 +1328,6 @@ void rule::parse_action(std::string const & action)
                         f_action_param = action_param[1];
                         parse_reject_action();
                     }
-                }
-                return;
-            }
-            else if(a == "redirect")
-            {
-                if(action_param.size() != 2)
-                {
-                    SNAP_LOG_ERROR
-                        << "the \"REDIRECT\" action requires a port parameter."
-                        << SNAP_LOG_SEND;
-                    f_valid = false;
-                }
-                else
-                {
-                    f_action = action_t::ACTION_REDIRECT;
-                    f_action_param = action_param[1];
                 }
                 return;
             }
@@ -1025,7 +1349,38 @@ void rule::parse_action(std::string const & action)
             break;
 
         case 's':
-            if(a == "snat")
+            if(a == "secmark")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"SECMARK\" action must be used with exactly one parameter (mark)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_SECMARK;
+                    f_action_param = action_param[1];
+                }
+            }
+            else if(a == "set")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"SET\" action must be used with exactly one parameter (TODO)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_SET;
+                    f_action_param = action_param[1];
+                }
+                return;
+            }
+            else if(a == "snat")
             {
                 if(action_param.size() != 2)
                 {
@@ -1041,38 +1396,88 @@ void rule::parse_action(std::string const & action)
                 }
                 return;
             }
-            else if(a == "secmark")
+            else if(a == "snpt")
             {
                 if(action_param.size() != 2)
                 {
                     SNAP_LOG_ERROR
-                        << "the \"SECMARK\" action must be used with exactly one parameter (mark)."
+                        << "the \"SNPT\" action must be used with exactly one parameter (<address, >address)."
                         << SNAP_LOG_SEND;
                     f_valid = false;
                 }
                 else
                 {
-                    f_action = action_t::ACTION_SECMARK;
+                    f_action = action_t::ACTION_SNPT;
                     f_action_param = action_param[1];
                 }
+                return;
+            }
+            else if(a == "synproxy")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"SYNPROXY\" action must be used with exactly one parameter (...)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_SYNPROXY;
+                    f_action_param = action_param[1];
+                }
+                return;
             }
             break;
 
         case 't':
-            if(a == "ttl")
+            if(a == "tcpmss")
             {
                 if(action_param.size() != 2)
                 {
                     SNAP_LOG_ERROR
-                        << "the \"TTL\" action must be used with exactly one parameter (time to live)."
+                        << "the \"TCPMSS\" action must be used with exactly one parameter (mss, \"clamp\")."
                         << SNAP_LOG_SEND;
                     f_valid = false;
                 }
                 else
                 {
-                    f_action = action_t::ACTION_TTL;
+                    f_action = action_t::ACTION_TCPMSS;
                     f_action_param = action_param[1];
                 }
+                return;
+            }
+            else if(a == "tcpoptstrip")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"TCPOPTSTRIP\" action must be used with exactly one parameter (option names)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_TCPOPTSTRIP;
+                    f_action_param = action_param[1];
+                }
+                return;
+            }
+            else if(a == "tee")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"TEE\" action must be used with exactly one parameter (address)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_TEE;
+                    f_action_param = action_param[1];
+                }
+                return;
             }
             else if(a == "tos")
             {
@@ -1088,6 +1493,72 @@ void rule::parse_action(std::string const & action)
                     f_action = action_t::ACTION_TOS;
                     f_action_param = action_param[1];
                 }
+            }
+            else if(a == "tproxy")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"TPROXY\" action must be used with exactly one parameter (port, address, value/mask)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_TPROXY;
+                    f_action_param = action_param[1];
+                }
+                return;
+            }
+            else if(a == "trace")
+            {
+                if(action_param.size() != 1)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"TRACE\" action does not accept any parameter."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_TRACE;
+                }
+                return;
+            }
+            else if(a == "ttl")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"TTL\" action must be used with exactly one parameter (time to live)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_TTL;
+                    f_action_param = action_param[1];
+                }
+            }
+            break;
+
+        case 'u':
+            if(a == "ulog")
+            {
+                if(action_param.size() != 2)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"ULOG\" action must be used with exactly one parameter (...)."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_ULOG;
+                    f_action_param = action_param[1];
+                    f_force_ipv4 = true;
+                }
+                return;
             }
             break;
 
@@ -1384,6 +1855,12 @@ std::string const & rule::get_name() const
 }
 
 
+advgetopt::string_list_t const & rule::get_tables() const
+{
+    return f_tables;
+}
+
+
 advgetopt::string_list_t const & rule::get_chains() const
 {
     return f_chains;
@@ -1514,20 +1991,80 @@ std::string rule::get_action_name() const
     case action_t::ACTION_ACCEPT:
         return "ACCEPT";
 
+    case action_t::ACTION_AUDIT:
+        return "AUDIT";
+
     case action_t::ACTION_CALL:
         return std::string();
+
+    case action_t::ACTION_CHECKSUM:
+        return "CHECKSUM";
+
+    case action_t::ACTION_CLASSIFY:
+        return "CLASSIFY";
+
+    case action_t::ACTION_CLUSTERIP:
+        return "CLUSTERIP";
+
+    case action_t::ACTION_CONNMARK:
+        return "CONNMARK";
+
+    case action_t::ACTION_CONNSECMARK:
+        return "CONNSECMARK";
+
+    case action_t::ACTION_CT:
+        return "CT";
 
     case action_t::ACTION_DNAT:
         return "DNAT";
 
+    case action_t::ACTION_DNPT:
+        return "DNPT";
+
+    case action_t::ACTION_DSCP:
+        return "DSCP";
+
     case action_t::ACTION_DROP:
         return "DROP";
+
+    case action_t::ACTION_ECN:
+        return "ECN";
+
+    case action_t::ACTION_HL:
+        return "HL";
+
+    case action_t::ACTION_HMARK:
+        return "HMARK";
+
+    case action_t::ACTION_IDLETIMER:
+        return "IDLETIMER";
+
+    case action_t::ACTION_LED:
+        return "LED";
 
     case action_t::ACTION_LOG:
         return "LOG";
 
+    case action_t::ACTION_MARK:
+        return "MARK";
+
     case action_t::ACTION_MASQUERADE:
         return "MASQUERADE";
+
+    case action_t::ACTION_NETMAP:
+        return "NETMAP";
+
+    case action_t::ACTION_NFLOG:
+        return "NFLOG";
+
+    case action_t::ACTION_NFQUEUE:
+        return "NFQUEUE";
+
+    case action_t::ACTION_NOTRACK:
+        return "NOTRACK";
+
+    case action_t::ACTION_RATEEST:
+        return "RATEEST";
 
     case action_t::ACTION_REDIRECT:
         return "REDIRECT";
@@ -1538,8 +2075,44 @@ std::string rule::get_action_name() const
     case action_t::ACTION_RETURN:
         return "RETURN";
 
+    case action_t::ACTION_SECMARK:
+        return "SECMARK";
+
+    case action_t::ACTION_SET:
+        return "SET";
+
     case action_t::ACTION_SNAT:
         return "SNAT";
+
+    case action_t::ACTION_SNPT:
+        return "SNPT";
+
+    case action_t::ACTION_SYNPROXY:
+        return "SYNPROXY";
+
+    case action_t::ACTION_TCPMSS:
+        return "TCPMSS";
+
+    case action_t::ACTION_TCPOPTSTRIP:
+        return "TCPOPTSTRIP";
+
+    case action_t::ACTION_TEE:
+        return "TEE";
+
+    case action_t::ACTION_TPROXY:
+        return "TPROXY";
+
+    case action_t::ACTION_TOS:
+        return "TOS";
+
+    case action_t::ACTION_TRACE:
+        return "TRACE";
+
+    case action_t::ACTION_TTL:
+        return "TTL";
+
+    case action_t::ACTION_ULOG:
+        return "ULOG";
 
     }
 
@@ -2487,18 +3060,344 @@ void rule::to_iptables_target(result_builder & result, line_builder const & line
 
     switch(f_action)
     {
+    case action_t::ACTION_AUDIT:
+        final_line.append_both(" --type " + f_action_param);
+        break;
+
     case action_t::ACTION_CALL:
         // we need to add the name of the user chain to call
         //
         final_line.append_both(f_action_param);
         break;
 
+    case action_t::ACTION_CHECKSUM:
+        if(f_action_param == "fill")
+        {
+            final_line.append_both(" --checksum-fill");
+        }
+        break;
+
+    case action_t::ACTION_CLASSIFY:
+        final_line.append_both(" --set-class " + f_action_param);
+        break;
+
+    case action_t::ACTION_CLUSTERIP:
+        {
+            advgetopt::string_list_t options;
+            advgetopt::split_string(f_action_param, options, {","});
+            for(auto const & o : options)
+            {
+                if(o == "new")
+                {
+                    final_line.append_both(" --new");
+                    if(options.size() != 1)
+                    {
+                        SNAP_LOG_ERROR
+                            << "the CLUSTERIP \"new\" must be used by itself."
+                            << SNAP_LOG_SEND;
+                        f_valid = false;
+                    }
+                }
+                else if(o == "sourceip"
+                     || o == "sourceip-sourceport"
+                     || o == "sourceip-sourceport-destport")
+                {
+                    final_line.append_both(" --hashmode " + o);
+                }
+                else if(o[0] == '+')
+                {
+                    final_line.append_both(" --total-nodes " + o.substr(1));
+                }
+                else if(o[0] == '#')
+                {
+                    final_line.append_both(" --local-node " + o.substr(1));
+                }
+                else
+                {
+                    advgetopt::string_list_t mac;
+                    advgetopt::split_string(o, mac, {":"});
+                    if(mac.size() == 14)
+                    {
+                        final_line.append_both(" --clustermac " + o);
+                    }
+                    else
+                    {
+                        std::int64_t rnd(0);
+                        bool const valid(advgetopt::validator_integer::convert_string(o, rnd));
+                        if(!valid)
+                        {
+                            SNAP_LOG_ERROR
+                                << "the CLUSTERIP \""
+                                << o
+                                << "\" option was not recognized."
+                                << SNAP_LOG_SEND;
+                            f_valid = false;
+                        }
+                        else
+                        {
+                            final_line.append_both(" --hash-init " + o);
+                        }
+                    }
+                }
+            }
+        }
+        break;
+
+    case action_t::ACTION_CONNMARK:
+        final_line.append_both(" --todo ... " + f_action_param);
+        break;
+
+    case action_t::ACTION_CONNSECMARK:
+        if(f_action_param == "save"
+        || f_action_param == "restore")
+        {
+            final_line.append_both(" --" + f_action_param);
+        }
+        else
+        {
+            SNAP_LOG_ERROR
+                << "the CONNSECMARK \""
+                << f_action_param
+                << "\" option was not recognized."
+                << SNAP_LOG_SEND;
+            f_valid = false;
+        }
+        break;
+
+    case action_t::ACTION_CT:
+        final_line.append_both(" --todo ... " + f_action_param);
+        break;
+
     case action_t::ACTION_DNAT:
-        final_line.append_both(" --to-destination " + f_action_param);
+        if(f_action_param == "random")
+        {
+            final_line.append_both(" --random");
+        }
+        else if(f_action_param == "persistent")
+        {
+            final_line.append_both(" --persistent");
+        }
+        else
+        {
+            final_line.append_both(" --to-destination " + f_action_param);
+        }
+        break;
+
+    case action_t::ACTION_DNPT:
+        if(!f_action_param.empty())
+        {
+            if(f_action_param[0] == '>')
+            {
+                if(f_action_param.length() == 1)
+                {
+                    final_line.append_both(" --dst-pfx");
+                }
+                else
+                {
+                    final_line.append_both(" --dst-pfx " + f_action_param.substr(1));
+                }
+            }
+            else
+            {
+                if(f_action_param[0] == '<')
+                {
+                    f_action_param = f_action_param.substr(1);
+                }
+                if(f_action_param.empty())
+                {
+                    final_line.append_both(" --src-pfx");
+                }
+                else
+                {
+                    final_line.append_both(" --src-pfx " + f_action_param);
+                }
+            }
+        }
+        break;
+
+    case action_t::ACTION_DSCP:
+        {
+            std::int64_t value(0);
+            if(advgetopt::validator_integer::convert_string(f_action_param, value))
+            {
+                final_line.append_both(" --set-dscp " + f_action_param);
+            }
+            else
+            {
+                final_line.append_both(" --set-dscp-class " + f_action_param);
+            }
+        }
+        break;
+
+    case action_t::ACTION_ECN:
+        if(f_action_param == "remove")
+        {
+            final_line.append_both(" --enc-tcp-remove");
+        }
+        break;
+
+    case action_t::ACTION_HL:
+        switch(f_action_param[0])
+        {
+        case '=':
+            final_line.append_both(" --hl-set " + f_action_param.substr(1));
+            break;
+
+        case '+':
+            final_line.append_both(" --hl-inc " + f_action_param.substr(1));
+            break;
+
+        case '-':
+            final_line.append_both(" --hl-dec " + f_action_param.substr(1));
+            break;
+
+        default:
+            final_line.append_both(" --hl-set " + f_action_param);
+            break;
+
+        }
+        break;
+
+    case action_t::ACTION_HMARK:
+        final_line.append_both(" --todo " + f_action_param);
+        break;
+
+    case action_t::ACTION_IDLETIMER:
+        {
+            std::int64_t value(0);
+            if(advgetopt::validator_integer::convert_string(f_action_param, value))
+            {
+                final_line.append_both(" --timeout " + f_action_param);
+            }
+            else
+            {
+                final_line.append_both(" --label " + f_action_param);
+            }
+        }
+        break;
+
+    case action_t::ACTION_LED:
+        {
+            advgetopt::string_list_t options;
+            advgetopt::split_string(f_action_param, options, {","});
+            for(auto const & o : options)
+            {
+                if(o == "blink")
+                {
+                    final_line.append_both(" --led-always-blink");
+                }
+                else
+                {
+                    double duration(0.0);
+                    if(advgetopt::validator_duration::convert_string(
+                                  o
+                                , advgetopt::validator_duration::VALIDATOR_DURATION_DEFAULT_FLAGS
+                                , duration))
+                    {
+                        final_line.append_both(
+                                  " --led-delay "
+                                + std::to_string(static_cast<std::int64_t>(floor(duration * 1000.0))));
+                    }
+                    else
+                    {
+                        final_line.append_both(" --led-trigger-id " + f_action_param);
+                    }
+                }
+            }
+        }
+        break;
+
+    case action_t::ACTION_MARK:
+        final_line.append_both(" --todo " + f_action_param);
+        break;
+
+    case action_t::ACTION_MASQUERADE:
+        if(f_action_param == "random")
+        {
+            final_line.append_both(" --random");
+        }
+        else if(!f_action_param.empty())
+        {
+            final_line.append_both(" --to-ports " + f_action_param);
+        }
+        break;
+
+    case action_t::ACTION_NETMAP:
+        final_line.append_both(" --to " + f_action_param);
+        break;
+
+    case action_t::ACTION_NFLOG:
+        final_line.append_both(" --todo " + f_action_param);
+        break;
+
+    case action_t::ACTION_NFQUEUE:
+        {
+            advgetopt::string_list_t options;
+            advgetopt::split_string(f_action_param, options, {","});
+            for(auto const & o : options)
+            {
+                if(o == "bypass")
+                {
+                    final_line.append_both(" --queue-bypass");
+                }
+                else if(o == "cpu-fanout")
+                {
+                    final_line.append_both(" --queue-cpu-fanout");
+                }
+                else if(o.find(':') == std::string::npos)
+                {
+                    final_line.append_both(" --queue-num " + f_action_param);
+                }
+                else
+                {
+                    final_line.append_both(" --queue-balance " + f_action_param);
+                }
+            }
+        }
+        break;
+
+    case action_t::ACTION_RATEEST:
+        {
+            advgetopt::string_list_t options;
+            advgetopt::split_string(f_action_param, options, {","});
+            for(auto const & o : options)
+            {
+                std::int64_t value(0);
+                if(advgetopt::validator_integer::convert_string(o, value))
+                {
+                    final_line.append_both(" --rateest-ewmalog " + f_action_param);
+                }
+                else
+                {
+                    double duration(0.0);
+                    if(advgetopt::validator_duration::convert_string(
+                              o
+                            , advgetopt::validator_duration::VALIDATOR_DURATION_DEFAULT_FLAGS
+                            , duration))
+                    {
+                        final_line.append_both(
+                                  " --rateest-intervalf "
+                                + std::to_string(static_cast<std::int64_t>(floor(duration * 1000'000.0)))
+                                + "us");
+                    }
+                    else
+                    {
+                        final_line.append_both(" --rateest-name " + f_action_param);
+                    }
+                }
+            }
+        }
         break;
 
     case action_t::ACTION_REDIRECT:
-        final_line.append_both(" --to-port " + f_action_param);
+        if(f_action_param == "random")
+        {
+            final_line.append_both(" --random");
+        }
+        else
+        {
+            final_line.append_both(" --to-port " + f_action_param);
+        }
         break;
 
     case action_t::ACTION_REJECT:
@@ -2508,8 +3407,149 @@ void rule::to_iptables_target(result_builder & result, line_builder const & line
         }
         break;
 
+    case action_t::ACTION_SECMARK:
+        final_line.append_both(" --selctx " + f_action_param);
+        break;
+
+    case action_t::ACTION_SET:
+        final_line.append_both(" --todo " + f_action_param);
+        break;
+
     case action_t::ACTION_SNAT:
-        final_line.append_both(" --to-source " + f_action_param);
+        if(f_action_param == "persistent")
+        {
+            final_line.append_both(" --persistent");
+        }
+        else if(f_action_param == "random")
+        {
+            final_line.append_both(" --random");
+        }
+        else if(f_action_param == "random-fully"
+             || f_action_param == "fully-random")
+        {
+            final_line.append_both(" --random-fully");
+        }
+        else
+        {
+            final_line.append_both(" --to-source " + f_action_param);
+        }
+        break;
+
+    case action_t::ACTION_SNPT:
+        if(!f_action_param.empty())
+        {
+            if(f_action_param[0] == '>')
+            {
+                if(f_action_param.length() == 1)
+                {
+                    final_line.append_both(" --dst-pfx");
+                }
+                else
+                {
+                    final_line.append_both(" --dst-pfx " + f_action_param.substr(1));
+                }
+            }
+            else
+            {
+                if(f_action_param[0] == '<')
+                {
+                    f_action_param = f_action_param.substr(1);
+                }
+                if(f_action_param.empty())
+                {
+                    final_line.append_both(" --src-pfx");
+                }
+                else
+                {
+                    final_line.append_both(" --src-pfx " + f_action_param);
+                }
+            }
+        }
+        break;
+
+    case action_t::ACTION_SYNPROXY:
+        final_line.append_both(" --todo " + f_action_param);
+        break;
+
+    case action_t::ACTION_TCPMSS:
+        if(f_action_param == "clamp")
+        {
+            final_line.append_both(" --clamp-mss-to-pmtu");
+        }
+        else
+        {
+            final_line.append_both(" --set-mss " + f_action_param);
+        }
+        break;
+
+    case action_t::ACTION_TCPOPTSTRIP:
+        if(!f_action_param.empty())
+        {
+            final_line.append_both(" --strip-options " + f_action_param);
+        }
+        break;
+
+    case action_t::ACTION_TEE:
+        if(!f_action_param.empty())
+        {
+            final_line.append_both(" --gateway " + f_action_param);
+        }
+        break;
+
+    case action_t::ACTION_TOS:
+        final_line.append_both(" --todo " + f_action_param);
+        break;
+
+    case action_t::ACTION_TPROXY:
+        {
+            advgetopt::string_list_t options;
+            advgetopt::split_string(f_action_param, options, {","});
+            for(auto const & o : options)
+            {
+                std::int64_t value(0);
+                if(advgetopt::validator_integer::convert_string(o, value))
+                {
+                    final_line.append_both(" --on-port " + f_action_param);
+                }
+                else
+                {
+                    if(o.find('/') == std::string::npos)
+                    {
+                        final_line.append_both(" --tproxy-mark " + f_action_param);
+                    }
+                    else
+                    {
+                        final_line.append_both(" --on-ip " + f_action_param);
+                    }
+                }
+            }
+        }
+        break;
+
+    case action_t::ACTION_TTL:
+        switch(f_action_param[0])
+        {
+        case '=':
+            final_line.append_both(" --ttl-set " + f_action_param.substr(1));
+            break;
+
+        case '+':
+            final_line.append_both(" --ttl-inc " + f_action_param.substr(1));
+            break;
+
+        case '-':
+            final_line.append_both(" --ttl-dec " + f_action_param.substr(1));
+            break;
+
+        default:
+            final_line.append_both(" --ttl-set " + f_action_param);
+            break;
+
+        }
+        break;
+
+    case action_t::ACTION_ULOG:
+        final_line.append_both(" --todo " + f_action_param);
         break;
 
     default:

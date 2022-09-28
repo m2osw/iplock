@@ -55,15 +55,47 @@ enum class action_t
     ACTION_UNDEFINED,
     ACTION_NONE,            // no -j (for things like -m recent)
     ACTION_ACCEPT,
+    ACTION_AUDIT,
     ACTION_CALL,
+    ACTION_CHECKSUM,
+    ACTION_CLASSIFY,
+    ACTION_CLUSTERIP,
+    ACTION_CONNMARK,
+    ACTION_CONNSECMARK,
+    ACTION_CT,
     ACTION_DNAT,
+    ACTION_DNPT,
     ACTION_DROP,
+    ACTION_DSCP,
+    ACTION_ECN,
+    ACTION_HL,
+    ACTION_HMARK,
+    ACTION_IDLETIMER,
+    ACTION_LED,
     ACTION_LOG,
+    ACTION_MARK,
     ACTION_MASQUERADE,
+    ACTION_NETMAP,
+    ACTION_NFLOG,
+    ACTION_NFQUEUE,
+    ACTION_NOTRACK,
+    ACTION_RATEEST,
     ACTION_REDIRECT,
     ACTION_REJECT,
     ACTION_RETURN,
+    ACTION_SECMARK,
+    ACTION_SET,
     ACTION_SNAT,
+    ACTION_SNPT,
+    ACTION_SYNPROXY,
+    ACTION_TCPMSS,
+    ACTION_TCPOPTSTRIP,
+    ACTION_TEE,
+    ACTION_TOS,
+    ACTION_TPROXY,
+    ACTION_TRACE,
+    ACTION_TTL,
+    ACTION_ULOG,
 };
 
 
@@ -83,6 +115,7 @@ public:
     bool                                empty() const;
 
     std::string const &                 get_name() const;
+    advgetopt::string_list_t const &    get_tables() const;
     advgetopt::string_list_t const &    get_chains() const;
     std::string const &                 get_section() const;
     advgetopt::string_list_t const &    get_before() const;
@@ -204,6 +237,7 @@ private:
     std::string                         f_description = std::string();
     bool                                f_valid = true;
 
+    advgetopt::string_list_t            f_tables = advgetopt::string_list_t();
     advgetopt::string_list_t            f_chains = advgetopt::string_list_t();
     std::string                         f_section = std::string();
     advgetopt::string_list_t            f_before = advgetopt::string_list_t();
