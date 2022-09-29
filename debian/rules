@@ -2,7 +2,7 @@
 # -*- makefile -*-
 
 # Uncomment this to turn on verbose mode.
-export DH_VERBOSE=1
+#export DH_VERBOSE=1
 
 %:
 	dh $@ --parallel --with sysuser
@@ -13,5 +13,3 @@ override_dh_auto_configure:
 override_dh_fixperms:
 	dh_fixperms
 	chmod u+s debian/iplock/usr/sbin/iplock
-	find debian/iplock
-

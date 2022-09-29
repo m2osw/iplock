@@ -8,6 +8,10 @@ usr/bin/knock-knock
 usr/bin/knock-knock-possibilities
 usr/bin/showfw
 
+# Libraries
+#
+usr/lib/lib*.so.*
+
 # Configuration Files
 #
 conf/iplock.conf                                   etc/iplock
