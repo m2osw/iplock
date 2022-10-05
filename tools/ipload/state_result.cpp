@@ -125,7 +125,7 @@ bool state_result::is_valid() const
         SNAP_LOG_ERROR
             << "you cannot have TCP compare flags (0x"
             << std::hex << f_tcp_compare
-            << " that are not in the mask (0x"
+            << ") that are not in the mask (0x"
             << f_tcp_mask
             << ") -- i.e. it would never match anything."
             << SNAP_LOG_SEND;
@@ -205,7 +205,8 @@ std::string state_result::to_iptables_options(
     }
 
     // this is not correct, these can be used along TCP flags so we need
-    // to be able to go through
+    // to be able to go through both--also at the moment this is included
+    // early in the rule
     //if(f_established_related)
     //{
     //    return " -m state --state ESTABLISHED,RELATED";
@@ -233,30 +234,31 @@ std::string state_result::to_iptables_options(
 
     if(protocol == "tcp")
     {
-        if(f_tcp_compare != TCP_UNDEFINED)
+        if(f_tcp_mask == TCP_SYN | TCP_RST | TCP_ACK | TCP_FIN
+        && f_tcp_compare == TCP_SYN)
         {
-            if(f_tcp_mask == TCP_SYN | TCP_RST | TCP_ACK | TCP_FIN
-            && f_tcp_compare == TCP_SYN)
+            if(f_tcp_negate)
             {
-                if(f_tcp_negate)
-                {
-                    return " ! --syn";
-                }
-                return " --syn";
+                return " ! --syn";
             }
+            return " --syn";
         }
 
-        // not a specific TCP flags so output the whole thing
-        //
         std::string result;
-        if(f_tcp_negate)
+        if(f_tcp_compare != TCP_UNDEFINED
+        && f_tcp_mask != TCP_UNDEFINED)
         {
-            result += " !";
+            // not a specific TCP flags so output the whole thing
+            //
+            if(f_tcp_negate)
+            {
+                result += " !";
+            }
+            result += " --tcp-flags ";
+            result += tcp_flags_to_string(f_tcp_mask);
+            result += ' ';
+            result += tcp_flags_to_string(f_tcp_compare);
         }
-        result += " --tcp-flags ";
-        result += tcp_flags_to_string(f_tcp_mask);
-        result += ' ';
-        result += tcp_flags_to_string(f_tcp_compare);
 
         return result;
     }
