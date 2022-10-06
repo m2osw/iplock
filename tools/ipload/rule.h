@@ -216,6 +216,7 @@ private:
                                             , addr::addr::vector_t & addresses
                                             , addr::addr_range::vector_t & range);
     bool                                parse_expression(std::string const & expression);
+    bool                                parse_expr_string(char const * & s, std::string & str);
     void                                parse_reject_action();
 
     void                                to_iptables_source_interfaces(result_builder & result, line_builder const & line);

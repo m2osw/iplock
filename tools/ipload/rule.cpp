@@ -1385,7 +1385,9 @@ void rule::parse_action(std::string const & action)
                 if(action_param.size() != 2)
                 {
                     SNAP_LOG_ERROR
-                        << "the \"SNAT\" action requires the source parameter."
+                        << "the \"SNAT\" action requires the source parameter"
+                           " or one of \"persistent\", \"random\","
+                           " \"random-fully\", or \"fully-random\"."
                         << SNAP_LOG_SEND;
                     f_valid = false;
                 }
@@ -1576,43 +1578,20 @@ void rule::parse_action(std::string const & action)
 
 bool rule::parse_expression(std::string const & expression)
 {
+    // TODO: replace with the as2js parser & optimizer
+    //
     if(expression.empty())
     {
         return true;
     }
 
     char const * s(expression.c_str());
-    char quote(s[0]);
-    if(quote != '"'
-    && quote != '\'')
+
+    std::string first;
+    if(!parse_expr_string(s, first))
     {
-        SNAP_LOG_ERROR
-            << "expression ["
-            << expression
-            << "] does not start with a valid quote (\" or ')."
-            << SNAP_LOG_SEND;
-        f_valid = false;
         return true;
     }
-
-    ++s;
-    char const *first_start(s);
-    for(; *s != quote; ++s)
-    {
-        if(*s == '\0')
-        {
-            SNAP_LOG_ERROR
-                << "expression ["
-                << expression
-                << "] closing quote is missing."
-                << SNAP_LOG_SEND;
-            f_valid = false;
-            return true;
-        }
-    }
-    char const *first_end(s);
-
-    ++s;    // skip quote
 
     while(isspace(*s))
     {
@@ -1652,37 +1631,11 @@ bool rule::parse_expression(std::string const & expression)
         ++s;
     }
 
-    quote = s[0];
-    if(quote != '"'
-    && quote != '\'')
+    std::string second;
+    if(!parse_expr_string(s, second))
     {
-        SNAP_LOG_ERROR
-            << "second string in ["
-            << expression
-            << "] does not start with a valid quote (\" or ')."
-            << SNAP_LOG_SEND;
-        f_valid = false;
         return true;
     }
-
-    ++s;
-    char const * second_start(s);
-    for(; *s != quote; ++s)
-    {
-        if(*s == '\0')
-        {
-            SNAP_LOG_ERROR
-                << "second string in ["
-                << expression
-                << "] closing quote is missing."
-                << SNAP_LOG_SEND;
-            f_valid = false;
-            return true;
-        }
-    }
-    char const * second_end(s);
-
-    ++s;    // skip quote
 
     while(isspace(*s) || *s == ';')
     {
@@ -1700,8 +1653,44 @@ bool rule::parse_expression(std::string const & expression)
             return true;
     }
 
-    return (std::string_view(first_start, first_end - first_start)
-        == std::string_view(second_start, second_end - second_start)) == equal;
+    return (first == second) == equal;
+}
+
+
+bool rule::parse_expr_string(char const * & s, std::string & str)
+{
+    char const quote(s[0]);
+    if(quote != '"'
+    && quote != '\'')
+    {
+        SNAP_LOG_ERROR
+            << '\''
+            << quote
+            << "' is not a valid quote to start a string; try with \" or '."
+            << SNAP_LOG_SEND;
+        f_valid = false;
+        return true;
+    }
+
+    ++s;
+    char const *start(s);
+    for(; *s != quote; ++s)
+    {
+        if(*s == '\0')
+        {
+            SNAP_LOG_ERROR
+                << "string closing quote is missing."
+                << SNAP_LOG_SEND;
+            f_valid = false;
+            return true;
+        }
+    }
+
+    ++s;    // skip quote
+
+    str = std::string(start, s);
+
+    return true;
 }
 
 
