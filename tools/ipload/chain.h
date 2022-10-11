@@ -71,6 +71,8 @@ public:
     bool                                is_valid() const;
 
     std::string const &                 get_name() const;
+    std::string const &                 get_exact_name() const;
+    bool                                get_condition() const;
     policy_t                            get_policy(std::string const & table_name) const;
     std::string                         get_policy_name(std::string const & table_name) const;
     type_t                              get_type(std::string const & table_name) const;
@@ -81,6 +83,7 @@ public:
 
 private:
     std::string                         f_name = std::string();
+    std::string                         f_exact_name = std::string();
     std::string                         f_description = std::string();
     policy_map_t                        f_policy = policy_map_t();
     type_map_t                          f_type = type_map_t();
@@ -89,6 +92,7 @@ private:
     bool                                f_valid = true;
     bool                                f_is_system_chain = false;
     bool                                f_verbose = false;
+    bool                                f_condition = true;
 };
 
 

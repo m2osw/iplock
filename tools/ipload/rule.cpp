@@ -29,6 +29,7 @@
 //
 #include    "rule.h"
 
+#include    "conntrack_parser.h"
 #include    "state_parser.h"
 #include    "utils.h"
 
@@ -137,6 +138,14 @@ reject_option g_reject_options[] =
     { "icmp6-tcp-reset",        REJECT_OPTION_IPV6 | REJECT_OPTION_USE_PREVIOUS },   // our extension
 };
 
+
+constexpr char const * const g_original_reply[] =
+{
+    "origsrc",
+    "origdst",
+    "replsrc",
+    "repldst"
+};
 
 
 std::string address_with_mask(addr::addr const & a)
@@ -495,7 +504,26 @@ rule::rule(
             else if(param_name == "condition"
                  || param_name == "conditions")
             {
-                f_condition = parse_expression(value);
+                f_condition = parse_condition(value, f_valid);
+            }
+            else if(param_name == "conntrack")
+            {
+                advgetopt::string_list_t conntracks;
+                advgetopt::split_string(value, conntracks, {","});
+                for(auto const & c : conntracks)
+                {
+                    conntrack_parser::pointer_t ct(std::make_shared<conntrack_parser>());
+                    if(!ct->parse(c))
+                    {
+                        SNAP_LOG_ERROR
+                            << "an error occurred parsing \""
+                            << c
+                            << "\" as a conntrack declaration."
+                            << SNAP_LOG_SEND;
+                        f_valid = false;
+                    }
+                    f_conntrack.push_back(ct);
+                }
             }
             else
             {
@@ -775,7 +803,7 @@ rule::rule(
     }
 
     // TODO: this is not quite correct; it has to be with the INPUT chain
-    //       but could be in a user defined chain...
+    //       but could be in a user defined chain called from the INPUT chain...
     //
     //if(!f_knock_ports.empty()
     //&& f_chains.find("INPUT") == f_chains.end())
@@ -1573,124 +1601,6 @@ void rule::parse_action(std::string const & action)
         << "\"."
         << SNAP_LOG_SEND;
     f_valid = false;
-}
-
-
-bool rule::parse_expression(std::string const & expression)
-{
-    // TODO: replace with the as2js parser & optimizer
-    //
-    if(expression.empty())
-    {
-        return true;
-    }
-
-    char const * s(expression.c_str());
-
-    std::string first;
-    if(!parse_expr_string(s, first))
-    {
-        return true;
-    }
-
-    while(isspace(*s))
-    {
-        ++s;
-    }
-
-    bool equal(true);
-    if(*s == '!')
-    {
-        equal = false;
-    }
-    else if(*s != '=')
-    {
-        SNAP_LOG_ERROR
-            << "expression ["
-            << expression
-            << "] operator missing (expected == or !=)."
-            << SNAP_LOG_SEND;
-        f_valid = false;
-        return true;
-    }
-    ++s;
-    if(*s != '=')
-    {
-        SNAP_LOG_ERROR
-            << "expression ["
-            << expression
-            << "] operator missing (expected == or !=)."
-            << SNAP_LOG_SEND;
-        f_valid = false;
-        return true;
-    }
-    ++s;   // skip second '='
-
-    while(isspace(*s))
-    {
-        ++s;
-    }
-
-    std::string second;
-    if(!parse_expr_string(s, second))
-    {
-        return true;
-    }
-
-    while(isspace(*s) || *s == ';')
-    {
-        ++s;
-    }
-
-    if(*s != '\0')
-    {
-            SNAP_LOG_ERROR
-                << "expression ["
-                << expression
-                << "] has spurious data at the end."
-                << SNAP_LOG_SEND;
-            f_valid = false;
-            return true;
-    }
-
-    return (first == second) == equal;
-}
-
-
-bool rule::parse_expr_string(char const * & s, std::string & str)
-{
-    char const quote(s[0]);
-    if(quote != '"'
-    && quote != '\'')
-    {
-        SNAP_LOG_ERROR
-            << '\''
-            << quote
-            << "' is not a valid quote to start a string; try with \" or '."
-            << SNAP_LOG_SEND;
-        f_valid = false;
-        return true;
-    }
-
-    ++s;
-    char const *start(s);
-    for(; *s != quote; ++s)
-    {
-        if(*s == '\0')
-        {
-            SNAP_LOG_ERROR
-                << "string closing quote is missing."
-                << SNAP_LOG_SEND;
-            f_valid = false;
-            return true;
-        }
-    }
-
-    ++s;    // skip quote
-
-    str = std::string(start, s);
-
-    return true;
 }
 
 
@@ -2761,7 +2671,7 @@ void rule::to_iptables_set(result_builder & result, line_builder const & line)
 {
     if(f_set.empty())
     {
-        to_iptables_limits(result, line);
+        to_iptables_track(result, line);
     }
     else
     {
@@ -2771,14 +2681,174 @@ void rule::to_iptables_set(result_builder & result, line_builder const & line)
             {
                 line_builder sub_line(line);
                 sub_line.append_ipv4line(" -m set --match-set " + s + "_ipv4 src", true);
-                to_iptables_limits(result, sub_line);
+                to_iptables_track(result, sub_line);
             }
             if(!line.is_ipv4())
             {
                 line_builder sub_line(line);
                 sub_line.append_ipv6line(" -m set --match-set " + s + "_ipv6 src", true);
-                to_iptables_limits(result, sub_line);
+                to_iptables_track(result, sub_line);
             }
+        }
+    }
+}
+
+
+void rule::to_iptables_track(result_builder & result, line_builder const & line)
+{
+    if(f_conntrack.empty())
+    {
+        to_iptables_limits(result, line);
+    }
+    else
+    {
+        // the conntrack feature supports the following in iptables:
+        //
+        // [!] --ctstate INVALID | NEW | ESTABLISHED | RELATED | UNTRACKED | SNAT | DNAT
+        // [!] --ctproto l4proto
+        // [!] --ctorigsrc address[/mask]
+        // [!] --ctorigdst address[/mask]
+        // [!] --ctreplsrc address[/mask]
+        // [!] --ctrepldst address[/mask]
+        // [!] --ctorigsrcport port[:port]
+        // [!] --ctorigdstport port[:port]
+        // [!] --ctreplsrcport port[:port]
+        // [!] --ctrepldstport port[:port]
+        // [!] --ctstatus NONE | EXPECTED | SEEN_REPLY | ASSURED | CONFIRMED
+        // [!] --ctexpire time[:time]
+        // --ctdir {ORIGINAL|REPLY}
+        //
+
+        for(auto const & ct : f_conntrack)
+        {
+            std::string l(" -m conntrack");
+            advgetopt::string_set_t states(ct->get_states());
+            if(!states.empty())
+            {
+                if(ct->get_negate(negate_t::NEGATE_STATES))
+                {
+                    l += " !";
+                }
+                l += " --ctstate " + snapdev::join_strings(
+                                                  states.begin()
+                                                , states.end()
+                                                , ",");
+            }
+
+            int protocol(ct->get_protocol());
+            if(protocol != -1)
+            {
+                if(ct->get_negate(negate_t::NEGATE_PROTOCOL))
+                {
+                    l += " !";
+                }
+                l += " --ctproto " + std::to_string(protocol);
+            }
+
+            bool force_ipv4(false);
+            bool force_ipv6(false);
+            for(int idx(0); idx < 4; ++idx)
+            {
+                addr::addr const & a(ct->get_address(idx));
+                if(!a.is_default())
+                {
+                    if(ct->get_negate(static_cast<negate_t>(static_cast<int>(negate_t::NEGATE_ORIGINAL_SRC_ADDRESS) + idx)))
+                    {
+                        l += " !";
+                    }
+                    l += " --ct"
+                       + std::string(g_original_reply[idx])
+                       + ' '
+                       + address_with_mask(a); //.to_ipv4or6_string(addr::string_ip_t::STRING_IP_MASK);
+                    if(a.is_ipv4())
+                    {
+                        force_ipv4 = true;
+                    }
+                    else
+                    {
+                        force_ipv6 = true;
+                    }
+                }
+                int p(ct->get_start_port(idx));
+                if(p != -1)
+                {
+                    if(ct->get_negate(static_cast<negate_t>(static_cast<int>(negate_t::NEGATE_ORIGINAL_SRC_PORTS) + idx)))
+                    {
+                        l += " !";
+                    }
+                    l += " --ct"
+                       + std::string(g_original_reply[idx])
+                       + "port "
+                       + std::to_string(p);
+                    p = ct->get_end_port(idx);
+                    if(p != -1)
+                    {
+                        l += ':';
+                        l += std::to_string(p);
+                    }
+                }
+            }
+            if(force_ipv4 && force_ipv6)
+            {
+                SNAP_LOG_ERROR
+                    << "a conntrack definition includes IPv4 and IPv6 addresses mixed together."
+                      " This is not allowed. We need the IPv4 addresses in the iptables and the"
+                      " IPv6 addresses in the ip6tables."
+                    << SNAP_LOG_SEND;
+                f_valid = false;
+                continue;
+            }
+
+            advgetopt::string_set_t statuses(ct->get_statuses());
+            if(!states.empty())
+            {
+                if(ct->get_negate(negate_t::NEGATE_STATUSES))
+                {
+                    l += " !";
+                }
+                l += " --ctstatus " + snapdev::join_strings(
+                                                  statuses.begin()
+                                                , statuses.end()
+                                                , ",");
+            }
+
+            std::int64_t time(ct->get_expire_start_time());
+            if(time != -1)
+            {
+                if(ct->get_negate(negate_t::NEGATE_EXPIRE))
+                {
+                    l += " !";
+                }
+                l += " --ctexpire "
+                   + std::to_string(time);
+                time = ct->get_expire_end_time();
+                if(time != -1)
+                {
+                    l += ':';
+                    l += std::to_string(time);
+                }
+            }
+
+            direction_t dir(ct->get_direction());
+            if(dir != direction_t::DIRECTION_BOTH)
+            {
+                l += " --ctdir ";
+                l += (dir == direction_t::DIRECTION_ORIGINAL
+                            ? "ORIGINAL"
+                            : "REPLY");
+            }
+
+            line_builder sub_line(line);
+            if(force_ipv4)
+            {
+                sub_line.set_ipv4();
+            }
+            if(force_ipv6)
+            {
+                sub_line.set_ipv6();
+            }
+            sub_line.append_both(l);
+            to_iptables_limits(result, sub_line);
         }
     }
 }

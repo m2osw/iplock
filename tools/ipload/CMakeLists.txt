@@ -63,6 +63,7 @@ project(ipload)
 add_executable(${PROJECT_NAME}
     chain.cpp
     chain_reference.cpp
+    conntrack_parser.cpp
     ipload.cpp
     main.cpp
     rule.cpp

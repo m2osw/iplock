@@ -36,6 +36,7 @@
 
 extern std::string      to_lower(std::string const & s);
 extern void             list_to_lower(advgetopt::string_list_t & l);
+extern bool             parse_condition(std::string const & expression, bool & valid);
 
 
 // vim: ts=4 sw=4 et

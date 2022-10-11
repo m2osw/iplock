@@ -63,6 +63,7 @@
 #include    <snapdev/file_contents.h>
 #include    <snapdev/glob_to_list.h>
 #include    <snapdev/join_strings.h>
+#include    <snapdev/pathinfo.h>
 #include    <snapdev/string_replace_many.h>
 
 
@@ -536,15 +537,29 @@ bool ipload::load_data()
     {
         f_variables = std::make_shared<advgetopt::variables>();
     }
+    if(f_required == nullptr)
+    {
+        f_required = std::make_shared<advgetopt::variables>();
+    }
 
     std::string const paths(f_opts.get_string("rules"));
 
     advgetopt::string_list_t path_list;
     advgetopt::split_string(paths, path_list, {":"});
 
+    // first determine all the filenames; we put "general" files in a separate
+    // list so that way we can load them first and give all the other files
+    // the ability to override data found in the general files
+    //
+    // further we want to load the files under "/usr/share/iplock/ipload" first
+    // then the files under "/etc/iplock/ipload"; finally we reapeat that loop
+    // to load the corresponding "ipload.d"
+    //
+    advgetopt::string_list_t all_generals[3];
+    advgetopt::string_list_t all_filenames[3];
     for(auto const & path : path_list)
     {
-        snapdev::glob_to_list<std::list<std::string>> glob;
+        snapdev::glob_to_list<std::set<std::string>> glob;
         if(!glob.read_path<
                  snapdev::glob_to_list_flag_t::GLOB_FLAG_IGNORE_ERRORS,
                  snapdev::glob_to_list_flag_t::GLOB_FLAG_RECURSIVE>(path + "/*.conf"))
@@ -575,10 +590,57 @@ bool ipload::load_data()
 
         // convert all the files in sets of config parameter loaded by advgetopt
         //
+        advgetopt::string_list_t generals[3];
+        advgetopt::string_list_t filenames[3];
         for(auto const & n : glob)
         {
-            load_config(n);
+            // avoid repeated ipload.d sub-directories
+            //
+            if(n.find("/ipload.d/") == std::string::npos)
+            {
+                std::string const basename(snapdev::pathinfo::basename(n));
+                if(n.find("/general/") != std::string::npos)
+                {
+                    generals[0].push_back(n);
+
+                    advgetopt::string_list_t extra_files(advgetopt::insert_group_name(path + '/' + basename, "ipload", "iplock", false));
+                    generals[1].insert(generals[1].end(), extra_files.begin(), extra_files.end());
+
+                    advgetopt::string_list_t specialized_files(advgetopt::insert_group_name(n, "ipload", "iplock", false));
+                    generals[2].insert(generals[2].end(), specialized_files.begin(), specialized_files.end());
+                }
+                else
+                {
+                    filenames[0].push_back(n);
+
+                    advgetopt::string_list_t extra_files(advgetopt::insert_group_name(path + '/' + basename, "ipload", "iplock", false));
+                    filenames[1].insert(filenames[1].end(), extra_files.begin(), extra_files.end());
+
+                    advgetopt::string_list_t specialized_files(advgetopt::insert_group_name(n, "ipload", "iplock", false));
+                    filenames[2].insert(filenames[2].end(), specialized_files.begin(), specialized_files.end());
+                }
+            }
         }
+        for(int idx(0); idx < 3; ++idx)
+        {
+            all_generals[idx].insert(all_generals[idx].end(), generals[idx].begin(), generals[idx].end());
+            all_filenames[idx].insert(all_filenames[idx].end(), filenames[idx].begin(), filenames[idx].end());
+        }
+    }
+
+    // make it a single variable
+    //
+    all_generals[0].insert(all_generals[0].end(), all_filenames[0].begin(), all_filenames[0].end());
+    all_generals[0].insert(all_generals[0].end(), all_generals[1].begin(), all_generals[1].end());
+    all_generals[0].insert(all_generals[0].end(), all_filenames[1].begin(), all_filenames[1].end());
+    all_generals[0].insert(all_generals[0].end(), all_generals[2].begin(), all_generals[2].end());
+    all_generals[0].insert(all_generals[0].end(), all_filenames[2].begin(), all_filenames[2].end());
+
+    all_filenames[0].swap(all_generals[0]);
+
+    for(auto const & f : all_filenames[0])
+    {
+        load_conf_file(f, f_parameters);
     }
 
     if(f_parameters.empty())
@@ -589,6 +651,59 @@ bool ipload::load_data()
             << "\"."
             << SNAP_LOG_SEND;
         return false;
+    }
+
+    if(f_opts.is_defined("show-variables"))
+    {
+        auto const & vars(f_variables->get_variables());
+        SNAP_LOG_VERBOSE
+            << "found a total of "
+            << vars.size()
+            << " variables."
+            << SNAP_LOG_SEND;
+        for(auto const & v : vars)
+        {
+            SNAP_LOG_VERBOSE
+                << "variable \""
+                << v.first
+                << "\" = \""
+                << v.second
+                << "\"."
+                << SNAP_LOG_SEND;
+        }
+    }
+
+    advgetopt::variables::variable_t const & reqs(f_required->get_variables());
+    for(auto const & r : reqs)
+    {
+        if(!f_variables->has_variable(r.first))
+        {
+            SNAP_LOG_ERROR
+                << "required variable \""
+                << r.first
+                << "\" not found in the [variables] block."
+                << SNAP_LOG_SEND;
+            return false;
+        }
+
+        if(f_variables->get_variable(r.first).empty())
+        {
+            SNAP_LOG_ERROR
+                << "required variable \""
+                << r.first
+                << "\" is defined, but it is still empty."
+                << SNAP_LOG_SEND;
+            return false;
+        }
+
+        if(!advgetopt::is_true(r.second))
+        {
+            SNAP_LOG_RECOVERABLE_ERROR
+                << "required variable \""
+                << r.first
+                << "\" must be set to \"true\", \"1\", or \"on\"."
+                << SNAP_LOG_SEND;
+        }
     }
 
     return true;
@@ -615,89 +730,7 @@ void ipload::create_defaults()
         return;
     }
 
-    advgetopt::conf_file::parameters_t config_params;
-    load_conf_file(defaults.filename(), config_params);
-    add_params(config_params);
-}
-
-
-void ipload::load_config(std::string const & filename)
-{
-    advgetopt::conf_file::parameters_t config_params;
-
-    load_conf_file(filename, config_params);
-
-    advgetopt::string_list_t extra_files(advgetopt::insert_group_name(filename, "ipload", "iplock"));
-    for(auto const & e : extra_files)
-    {
-        load_conf_file(e, config_params);
-    }
-
-    add_params(config_params);
-}
-
-
-void ipload::add_params(advgetopt::conf_file::parameters_t config_params)
-{
-    // now save all the parameters loaded from that one file and overrides
-    // into our main list of parameters; here overrides are not allowed
-    // except for the special case of "rules::<name>::enabled" for which
-    // the value "false" has higher priority
-    //
-    for(auto const & p : config_params)
-    {
-        auto it(f_parameters.find(p.first));
-        if(it == f_parameters.end())
-        {
-            // not yet defined, we can just copy the value
-            //
-            f_parameters[p.first] = p.second;
-            continue;
-        }
-
-        // it exists, we are allowed to diable an entry using the
-        // 'enabled = false' technique, otherwise, it is an error
-        //
-        // size == "rules::" + at least 1 char + "::enabled"
-        //
-        if(p.first.length() >= (7 + 1 + 9)
-        && strncmp(p.first.c_str(), "rules::", 7) == 0
-        && strncmp(p.first.c_str() + p.first.length() - 9, "::enabled", 9) == 0)
-        {
-            if(advgetopt::is_false(it->second))
-            {
-                // it's already false, nothing to change and acceptable
-                //
-                continue;
-            }
-
-            if(advgetopt::is_false(p.second))
-            {
-                // the new one is false, make sure the old one is too
-                //
-                f_parameters[p.first] = "0"; // "0" is shorter than "false"
-                continue;
-            }
-
-            SNAP_LOG_RECOVERABLE_ERROR
-                << "the \""
-                << p.first
-                << "\" parameter cannot be duplicated unless set to true once in the main definition and false everywhere else."
-                << SNAP_LOG_SEND;
-        }
-        else
-        {
-            SNAP_LOG_RECOVERABLE_ERROR
-                << "the \""
-                << p.first
-                << "\" parameter cannot be duplicated (\""
-                << p.second.get_value()
-                << "\" versus \""
-                << it->second.get_value()
-                << "\")."
-                << SNAP_LOG_SEND;
-        }
-    }
+    load_conf_file(defaults.filename(), f_parameters);
 }
 
 
@@ -705,26 +738,85 @@ void ipload::load_conf_file(
       std::string const & filename
     , advgetopt::conf_file::parameters_t & config_params)
 {
-    advgetopt::conf_file_setup conf_setup(filename);
+    advgetopt::conf_file_setup conf_setup(
+              filename
+            , advgetopt::line_continuation_t::line_continuation_unix
+            , advgetopt::ASSIGNMENT_OPERATOR_EQUAL | advgetopt::ASSIGNMENT_OPERATOR_EXTENDED);
     if(!conf_setup.is_valid())
     {
+        SNAP_LOG_RECOVERABLE_ERROR
+            << "info: configuration file \""
+            << filename
+            << "\" is not considered valid."
+            << SNAP_LOG_SEND;
         return;
     }
+
+    if(f_verbose)
+    {
+        SNAP_LOG_VERBOSE
+            << "info: loading configuration file \""
+            << filename
+            << "\"."
+            << SNAP_LOG_SEND;
+    }
+
     advgetopt::conf_file::pointer_t conf(advgetopt::conf_file::get_conf_file(conf_setup));
 
     // any file can include some variables
     //
-    // TODO: look into not allowing overrides
-    //
     snapdev::NOT_USED(conf->section_to_variables("variables", f_variables));
 
+    // define whether a variable is required
+    // (i.e. <var_name>=true)
+    //
+    snapdev::NOT_USED(conf->section_to_variables("required", f_required));
+
     // retrieve all the parameters in our own variable
-    // here parameters are expected to be overwritten between files
+    // by default parameters are overwritten between files
+    // but user can use the +=, ?=, and := operators as well
     //
     advgetopt::conf_file::parameters_t const params(conf->get_parameters());
     for(auto const & p : params)
     {
-        config_params[p.first] = p.second;
+        switch(p.second.get_assignment_operator())
+        {
+        case advgetopt::assignment_t::ASSIGNMENT_SET:
+        case advgetopt::assignment_t::ASSIGNMENT_NONE:
+            config_params[p.first] = p.second;
+            break;
+
+        case advgetopt::assignment_t::ASSIGNMENT_OPTIONAL:
+            if(config_params.find(p.first) == config_params.end())
+            {
+                config_params[p.first] = p.second;
+            }
+            break;
+
+        case advgetopt::assignment_t::ASSIGNMENT_APPEND:
+            config_params[p.first] = config_params[p.first].get_value() + p.second.get_value();
+            break;
+
+        case advgetopt::assignment_t::ASSIGNMENT_NEW:
+            if(config_params.find(p.first) != config_params.end())
+            {
+                SNAP_LOG_RECOVERABLE_ERROR
+                    << "parameter \""
+                    << p.first
+                    << "\" cannot be overwritten (existing value \""
+                    << config_params[p.first].get_value()
+                    << "\" and new value \""
+                    << p.second.get_value()
+                    << "\")."
+                    << SNAP_LOG_SEND;
+            }
+            else
+            {
+                config_params[p.first] = p.second;
+            }
+            break;
+
+        }
     }
 }
 
@@ -956,7 +1048,7 @@ bool ipload::process_parameters()
             {
                 SNAP_LOG_ERROR
                     << "chain named \""
-                    << c->get_name()
+                    << c->get_exact_name()
                     << "\" defined twice."
                     << SNAP_LOG_SEND;
                 valid = false;
@@ -1376,7 +1468,8 @@ bool ipload::generate_tables(std::ostream & out)
         }
         for(auto const & c : chains)
         {
-            if(!c.second->is_system_chain())
+            if(!c.second->is_system_chain()
+            || !c.second->get_condition())
             {
                 continue;
             }
@@ -1387,7 +1480,8 @@ bool ipload::generate_tables(std::ostream & out)
         }
         for(auto const & c : chains)
         {
-            if(c.second->is_system_chain())
+            if(c.second->is_system_chain()
+            || !c.second->get_condition())
             {
                 continue;
             }
@@ -1403,7 +1497,8 @@ bool ipload::generate_tables(std::ostream & out)
         //
         for(auto const & c : chains)
         {
-            if(!c.second->is_system_chain())
+            if(!c.second->is_system_chain()
+            || !c.second->get_condition())
             {
                 continue;
             }
@@ -1414,7 +1509,8 @@ bool ipload::generate_tables(std::ostream & out)
         }
         for(auto const & c : chains)
         {
-            if(c.second->is_system_chain())
+            if(c.second->is_system_chain()
+            || !c.second->get_condition())
             {
                 continue;
             }
@@ -1445,7 +1541,7 @@ bool ipload::generate_tables(std::ostream & out)
 bool ipload::generate_chain_name(std::ostream & out, chain_reference::pointer_t c)
 {
     out << ":"
-        << c->get_name()
+        << c->get_exact_name()
         << ' '
         << (c->is_system_chain()
                     ? c->get_policy_name(f_generate_for_table->get_name())
@@ -1471,7 +1567,7 @@ bool ipload::generate_chain(std::ostream & out, chain_reference::pointer_t c)
     //
     if(f_show_comments)
     {
-        out << "\n# Chain: " << c->get_name() << "\n";
+        out << "\n# Chain: " << c->get_exact_name() << "\n";
     }
     int count(0);
     section_reference::vector_t refs(c->get_section_references());
@@ -1510,7 +1606,7 @@ bool ipload::generate_chain(std::ostream & out, chain_reference::pointer_t c)
         prefix += ':';
 
         out << "-A "
-            << c->get_name()
+            << c->get_exact_name()
             << " -j LOG --log-prefix \""
             << prefix
             << "\" --log-uid\n";
@@ -1520,19 +1616,19 @@ bool ipload::generate_chain(std::ostream & out, chain_reference::pointer_t c)
     {
     case type_t::TYPE_RETURN:
         out << "-A "
-            << c->get_name()
+            << c->get_exact_name()
             << " -j RETURN\n";
         break;
 
     case type_t::TYPE_DROP:
         out << "-A "
-            << c->get_name()
+            << c->get_exact_name()
             << " -j DROP\n";
         break;
 
     case type_t::TYPE_REJECT:
         out << "-A "
-            << c->get_name()
+            << c->get_exact_name()
             << " -j REJECT\n";
         break;
 
@@ -1566,7 +1662,7 @@ bool ipload::generate_rules(
         {
             throw iplock::logic_error(
                       "chain \""
-                    + c->get_name()
+                    + c->get_exact_name()
                     + "\" not found in rule \""
                     + r->get_name()
                     + "\" list of chains.");
@@ -1586,7 +1682,7 @@ bool ipload::generate_rules(
             out << "# Rule " << count << ": " << s->get_name() << '.' << r->get_name() << "\n";
         }
         r->set_log_introducer(f_log_introducer);
-        out << r->to_iptables_rules(c->get_name());
+        out << r->to_iptables_rules(c->get_exact_name());
 
         if(!r->is_valid())
         {

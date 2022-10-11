@@ -63,11 +63,9 @@ private:
     bool                    load_to_iptables(std::string const & flag_name);
     void                    show();
     void                    show_dependencies();
-    void                    load_config(std::string const & filename);
     void                    load_conf_file(
                                   std::string const & filename
                                 , advgetopt::conf_file::parameters_t & config_params);
-    void                    add_params(advgetopt::conf_file::parameters_t config_params);
     void                    create_defaults();
     bool                    convert();
     bool                    process_parameters();
@@ -95,6 +93,8 @@ private:
     int                     f_command = 0;
     advgetopt::variables::pointer_t
                             f_variables = advgetopt::variables::pointer_t();
+    advgetopt::variables::pointer_t
+                            f_required = advgetopt::variables::pointer_t();
     advgetopt::conf_file::parameters_t
                             f_parameters = advgetopt::conf_file::parameters_t();
     table::map_t            f_tables = table::map_t();

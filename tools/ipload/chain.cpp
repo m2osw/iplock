@@ -107,6 +107,7 @@ chain::chain(
     // rules that reference this chain
     //
     f_name = advgetopt::option_with_underscores(name_list[1]);
+    f_exact_name = f_name;
 
     f_is_system_chain = g_system_chain_names.find(f_name) != g_system_chain_names.end();
 
@@ -126,10 +127,33 @@ chain::chain(
         bool found(true);
         switch(param_name[0])
         {
+        case 'c':
+            if(param_name == "condition"
+            || param_name == "conditions")
+            {
+                f_condition = parse_condition(value, f_valid);
+            }
+            else
+            {
+                found = false;
+            }
+            break;
+
         case 'd':
             if(param_name == "description")
             {
                 f_description = value;
+            }
+            else
+            {
+                found = false;
+            }
+            break;
+
+        case 'e':
+            if(param_name == "exact-name")
+            {
+                f_exact_name = value;
             }
             else
             {
@@ -280,6 +304,18 @@ bool chain::is_valid() const
 std::string const & chain::get_name() const
 {
     return f_name;
+}
+
+
+std::string const & chain::get_exact_name() const
+{
+    return f_exact_name;
+}
+
+
+bool chain::get_condition() const
+{
+    return f_condition;
 }
 
 

@@ -49,11 +49,24 @@ works by adding intermediate files in the .d folder.
 This technique allows other projects to add their own configuration
 files to open or block the ports they manage.
 
+## Addresses
+
+Addresses written using a domain name are converted to an IP address at the
+time ipload loads the configuration data. iptables does the same thing when
+it gets loaded.
+
+This means, if the domain name IP addresses change, you can _simply_ reload
+your firewall. However, while running, it will not automatically switch from
+the old address to the new one.
+
+**Note:** _simply_ reload... as you know, the DNS services cache IP
+addresses. Reloading your firewall _too soon_ may not pick the new address.
+
 ## Configuration Format
 
 The following shows the list of supported tags (see details below):
 
-
+_Note: This is being moved to the 'ipload' man page_
 
 
     [rule::<rule-name>]

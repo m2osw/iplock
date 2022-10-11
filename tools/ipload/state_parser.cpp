@@ -445,82 +445,120 @@ void state_parser::next_token()
                     {
                         identifier = c | 0x20;
                     }
-                    else if((c < 'a' || c > 'z')
-                         && c != '-')
+                    else if((c >= 'a' && c <= 'z')
+                         || c == '-')
+                    {
+                        identifier += c;
+                    }
+                    else
                     {
                         if(c != EOF)
                         {
                             unget_last();
                         }
-                        if(identifier == "new")
+
+                        switch(identifier[0])
                         {
-                            f_last_token = TOKEN_NEW;
-                            return;
-                        }
-                        else if(identifier == "old")
-                        {
-                            f_last_token = TOKEN_OLD;
-                            return;
-                        }
-                        else if(identifier == "established")
-                        {
-                            f_last_token = TOKEN_ESTABLISHED;
-                            return;
-                        }
-                        else if(identifier == "related")
-                        {
-                            f_last_token = TOKEN_RELATED;
-                            return;
-                        }
-                        else if(identifier == "all")
-                        {
-                            f_last_token = TOKEN_ALL;
-                            return;
-                        }
-                        else if(identifier == "any")
-                        {
-                            f_last_token = TOKEN_ANY;
-                            return;
-                        }
-                        else if(identifier == "timestamp-request")
-                        {
-                            f_last_token = TOKEN_TIMESTAMP_REQUEST;
-                            return;
-                        }
-                        else if(identifier == "none")
-                        {
-                            f_last_token = TOKEN_NONE;
-                            return;
-                        }
-                        else if(identifier == "syn")
-                        {
-                            f_last_token = TOKEN_SYN;
-                            return;
-                        }
-                        else if(identifier == "ack")
-                        {
-                            f_last_token = TOKEN_ACK;
-                            return;
-                        }
-                        else if(identifier == "fin")
-                        {
-                            f_last_token = TOKEN_FIN;
-                            return;
-                        }
-                        else if(identifier == "rst")
-                        {
-                            f_last_token = TOKEN_RST;
-                            return;
-                        }
-                        else if(identifier == "urg")
-                        {
-                            f_last_token = TOKEN_URG;
-                            return;
-                        }
-                        else if(identifier == "psh")
-                        {
-                            f_last_token = TOKEN_PSH;
-                            return;
+                        case 'a':
+                            if(identifier == "all")
+                            {
+                                f_last_token = TOKEN_ALL;
+                                return;
+                            }
+                            else if(identifier == "any")
+                            {
+                                f_last_token = TOKEN_ANY;
+                                return;
+                            }
+                            else if(identifier == "ack")
+                            {
+                                f_last_token = TOKEN_ACK;
+                                return;
+                            }
+                            break;
+
+                        case 'e':
+                            if(identifier == "established")
+                            {
+                                f_last_token = TOKEN_ESTABLISHED;
+                                return;
+                            }
+                            break;
+
+                        case 'f':
+                            if(identifier == "fin")
+                            {
+                                f_last_token = TOKEN_FIN;
+                                return;
+                            }
+                            break;
+
+                        case 'n':
+                            if(identifier == "new")
+                            {
+                                f_last_token = TOKEN_NEW;
+                                return;
+                            }
+                            else if(identifier == "none")
+                            {
+                                f_last_token = TOKEN_NONE;
+                                return;
+                            }
+                            break;
+
+                        case 'o':
+                            if(identifier == "old")
+                            {
+                                f_last_token = TOKEN_OLD;
+                                return;
+                            }
+                            break;
+
+                        case 'p':
+                            if(identifier == "psh")
+                            {
+                                f_last_token = TOKEN_PSH;
+                                return;
+                            }
+                            break;
+
+                        case 'r':
+                            if(identifier == "related")
+                            {
+                                f_last_token = TOKEN_RELATED;
+                                return;
+                            }
+                            else if(identifier == "rst")
+                            {
+                                f_last_token = TOKEN_RST;
+                                return;
+                            }
+                            break;
+
+                        case 's':
+                            if(identifier == "syn")
+                            {
+                                f_last_token = TOKEN_SYN;
+                                return;
+                            }
+                            break;
+
+                        case 't':
+                            if(identifier == "timestamp-request")
+                            {
+                                f_last_token = TOKEN_TIMESTAMP_REQUEST;
+                                return;
+                            }
+                            break;
+
+                        case 'u':
+                            if(identifier == "urg")
+                            {
+                                f_last_token = TOKEN_URG;
+                                return;
+                            }
+                            break;
+
                         }
 
                         f_valid = false;
@@ -531,10 +569,6 @@ void state_parser::next_token()
                             << SNAP_LOG_SEND;
                         f_last_token = TOKEN_EOF;
                         return;
-                    }
-                    else
-                    {
-                        identifier += c;
                     }
                 }
             }

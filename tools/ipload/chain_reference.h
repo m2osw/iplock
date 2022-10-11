@@ -55,6 +55,8 @@ public:
 
     section_reference::vector_t const & get_section_references() const;
     std::string const &                 get_name() const;
+    std::string const &                 get_exact_name() const;
+    bool                                get_condition() const;
     policy_t                            get_policy(std::string const & table_name) const;
     std::string                         get_policy_name(std::string const & table_name) const;
     type_t                              get_type(std::string const & table_name) const;

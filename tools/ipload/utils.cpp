@@ -30,6 +30,11 @@
 #include    "utils.h"
 
 
+// snaplogger
+//
+#include    <snaplogger/message.h>
+
+
 
 std::string to_lower(std::string const & s)
 {
@@ -59,6 +64,124 @@ void list_to_lower(advgetopt::string_list_t & l)
     {
         s = to_lower(s);
     }
+}
+
+
+bool parse_expr_string(char const * & s, std::string & str, bool & valid)
+{
+    char const quote(s[0]);
+    if(quote != '"'
+    && quote != '\'')
+    {
+        SNAP_LOG_ERROR
+            << '\''
+            << quote
+            << "' is not a valid quote to start a string; try with \" or '."
+            << SNAP_LOG_SEND;
+        valid = false;
+        return true;
+    }
+
+    ++s;
+    char const *start(s);
+    for(; *s != quote; ++s)
+    {
+        if(*s == '\0')
+        {
+            SNAP_LOG_ERROR
+                << "string closing quote is missing."
+                << SNAP_LOG_SEND;
+            valid = false;
+            return true;
+        }
+    }
+
+    ++s;    // skip quote
+
+    str = std::string(start, s);
+
+    return true;
+}
+
+
+bool parse_condition(std::string const & expression, bool & valid)
+{
+    // TODO: replace with the as2js parser & optimizer
+    //
+    if(expression.empty())
+    {
+        return true;
+    }
+
+    char const * s(expression.c_str());
+
+    std::string first;
+    if(!parse_expr_string(s, first, valid))
+    {
+        return true;
+    }
+
+    while(isspace(*s))
+    {
+        ++s;
+    }
+
+    bool equal(true);
+    if(*s == '!')
+    {
+        equal = false;
+    }
+    else if(*s != '=')
+    {
+        SNAP_LOG_ERROR
+            << "expression ["
+            << expression
+            << "] operator missing (expected == or !=)."
+            << SNAP_LOG_SEND;
+        valid = false;
+        return true;
+    }
+    ++s;
+    if(*s != '=')
+    {
+        SNAP_LOG_ERROR
+            << "expression ["
+            << expression
+            << "] operator missing (expected == or !=)."
+            << SNAP_LOG_SEND;
+        valid = false;
+        return true;
+    }
+    ++s;   // skip second '='
+
+    while(isspace(*s))
+    {
+        ++s;
+    }
+
+    std::string second;
+    if(!parse_expr_string(s, second, valid))
+    {
+        return true;
+    }
+
+    while(isspace(*s) || *s == ';')
+    {
+        ++s;
+    }
+
+    if(*s != '\0')
+    {
+        SNAP_LOG_ERROR
+            << "expression ["
+            << expression
+            << "] has spurious data at the end."
+            << SNAP_LOG_SEND;
+        valid = false;
+        return true;
+    }
+
+    return (first == second) == equal;
 }
 
 

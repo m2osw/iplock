@@ -163,6 +163,18 @@ std::string const & chain_reference::get_name() const
 }
 
 
+std::string const & chain_reference::get_exact_name() const
+{
+    return f_chain->get_exact_name();
+}
+
+
+bool chain_reference::get_condition() const
+{
+    return f_chain->get_condition();
+}
+
+
 policy_t chain_reference::get_policy(std::string const & table_name) const
 {
     return f_chain->get_policy(table_name);

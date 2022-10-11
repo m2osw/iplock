@@ -32,6 +32,7 @@
 //
 #include    "state_result.h"
 
+#include    "conntrack_parser.h"
 
 
 // iplock
@@ -229,6 +230,7 @@ private:
     void                                to_iptables_knocks(result_builder & result, line_builder const & line);
     void                                to_iptables_destination_ports(result_builder & result, line_builder const & line);
     void                                to_iptables_set(result_builder & result, line_builder const & line);
+    void                                to_iptables_track(result_builder & result, line_builder const & line);
     void                                to_iptables_limits(result_builder & result, line_builder const & line);
     void                                to_iptables_states(result_builder & result, line_builder const & line);
     void                                to_iptables_comment(result_builder & result, line_builder const & line);
@@ -270,6 +272,7 @@ private:
     advgetopt::string_list_t            f_protocols = advgetopt::string_list_t();
     state_result::vector_t              f_states = state_result::vector_t();
     advgetopt::string_list_t            f_limits = advgetopt::string_list_t();
+    conntrack_parser::vector_t          f_conntrack = conntrack_parser::vector_t();
 
     action_t                            f_action = action_t::ACTION_UNDEFINED;
     std::string                         f_action_param = std::string();     // REJECT [<type>] or CALL <chain-name>
