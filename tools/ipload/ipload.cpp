@@ -98,6 +98,13 @@ advgetopt::option const g_options[] =
     // COMMANDS
     //
     advgetopt::define_option(
+          advgetopt::Name("dry-run")
+        , advgetopt::Flags(advgetopt::standalone_command_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
+        , advgetopt::Alias("verify")
+        , advgetopt::Help("Parse the rules for errors. Do not install them.")
+    ),
+    advgetopt::define_option(
           advgetopt::Name("flush")
         , advgetopt::ShortName('F')
         , advgetopt::Flags(advgetopt::command_flags<
@@ -138,6 +145,12 @@ advgetopt::option const g_options[] =
         , advgetopt::Flags(advgetopt::standalone_command_flags<
                       advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
         , advgetopt::Help("Show the rules dependency tree in a Makefile like format.")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("show-variables")
+        , advgetopt::Flags(advgetopt::standalone_command_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
+        , advgetopt::Help("Show the complete list of variables after all were loaded.")
     ),
     advgetopt::define_option(
           advgetopt::Name("verify")
