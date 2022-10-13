@@ -150,7 +150,7 @@ constexpr char const * const g_original_reply[] =
 
 std::string address_with_mask(addr::addr const & a)
 {
-    return a.to_ipv4or6_string(addr::STRING_IP_ADDRESS | addr::STRING_IP_MASK);
+    return a.to_ipv4or6_string(addr::STRING_IP_ADDRESS | addr::STRING_IP_MASK_IF_NEEDED);
 }
 
 
@@ -3040,25 +3040,26 @@ void rule::to_iptables_recent(result_builder & result, line_builder const & line
         switch(recent)
         {
         case recent_t::RECENT_SET:
-            sub_line.append_both(" --set ");
+            sub_line.append_both(" --set");
             break;
 
         case recent_t::RECENT_CHECK:
-            sub_line.append_both(" --rcheck ");
+            sub_line.append_both(" --rcheck");
             break;
 
         case recent_t::RECENT_UPDATE:
-            sub_line.append_both(" --update ");
+            sub_line.append_both(" --update");
             break;
 
         case recent_t::RECENT_REMOVE:
-            sub_line.append_both(" --remove ");
+            sub_line.append_both(" --remove");
             break;
 
         default:
             throw iplock::logic_error("added a new recent_t type and did not write the handling in this switch?");
 
         }
+        sub_line.append_both(" --name ");
         sub_line.append_both(f_recent.get_name());
         if(f_recent.get_destination())
         {
