@@ -66,6 +66,7 @@ add_executable(${PROJECT_NAME}
     conntrack_parser.cpp
     ipload.cpp
     main.cpp
+    recent_parser.cpp
     rule.cpp
     section.cpp
     section_reference.cpp

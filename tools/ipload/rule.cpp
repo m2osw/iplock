@@ -150,19 +150,7 @@ constexpr char const * const g_original_reply[] =
 
 std::string address_with_mask(addr::addr const & a)
 {
-    std::string ip(a.to_ipv4or6_string(addr::string_ip_t::STRING_IP_ONLY));
-    int mask_size(a.get_mask_size());
-    if(mask_size >= 0
-    && mask_size != 128)
-    {
-        if(a.is_ipv4())
-        {
-            mask_size -= 96;
-        }
-        ip += '/';
-        ip += std::to_string(mask_size);
-    }
-    return ip;
+    return a.to_ipv4or6_string(addr::STRING_IP_ADDRESS | addr::STRING_IP_MASK);
 }
 
 
@@ -663,6 +651,17 @@ rule::rule(
                         p = "icmpv6";
                     }
                 }
+            }
+            else
+            {
+                found = false;
+            }
+            break;
+
+        case 'r':
+            if(param_name == "recent")
+            {
+                f_recent.parse(value);
             }
             else
             {
@@ -2858,7 +2857,7 @@ void rule::to_iptables_limits(result_builder & result, line_builder const & line
 {
     if(f_limits.empty())
     {
-        to_iptables_states(result, line);
+        to_iptables_recent(result, line);
     }
     else
     {
@@ -3018,7 +3017,115 @@ void rule::to_iptables_limits(result_builder & result, line_builder const & line
         {
             sub_line.append_both(l);
         }
-        to_iptables_states(result, sub_line);
+        to_iptables_recent(result, sub_line);
+    }
+}
+
+
+void rule::to_iptables_recent(result_builder & result, line_builder const & line)
+{
+    recent_t recent(f_recent.get_recent());
+    if(recent == recent_t::RECENT_NONE)
+    {
+        to_iptables_states(result, line);
+    }
+    else
+    {
+        line_builder sub_line(line);
+        sub_line.append_both(" -m recent");
+        if(f_recent.get_negate())
+        {
+            sub_line.append_both(" !");
+        }
+        switch(recent)
+        {
+        case recent_t::RECENT_SET:
+            sub_line.append_both(" --set ");
+            break;
+
+        case recent_t::RECENT_CHECK:
+            sub_line.append_both(" --rcheck ");
+            break;
+
+        case recent_t::RECENT_UPDATE:
+            sub_line.append_both(" --update ");
+            break;
+
+        case recent_t::RECENT_REMOVE:
+            sub_line.append_both(" --remove ");
+            break;
+
+        default:
+            throw iplock::logic_error("added a new recent_t type and did not write the handling in this switch?");
+
+        }
+        sub_line.append_both(f_recent.get_name());
+        if(f_recent.get_destination())
+        {
+            sub_line.append_both(" --rdest");
+        }
+        if(f_recent.get_ttl() > 0)
+        {
+            sub_line.append_both(" --seconds ");
+            sub_line.append_both(std::to_string(f_recent.get_ttl()));
+        }
+        if(f_recent.get_reap())
+        {
+            sub_line.append_both(" --reap");
+        }
+        if(f_recent.get_hitcount() > 0)
+        {
+            sub_line.append_both(" --hitcount ");
+            sub_line.append_both(std::to_string(f_recent.get_hitcount()));
+        }
+        if(f_recent.get_rttl())
+        {
+            sub_line.append_both(" --rttl");
+        }
+        std::int64_t const mask(f_recent.get_mask());
+        if(mask > 0
+        && mask < 128)
+        {
+            addr::addr a;
+            a.set_mask_count(mask);
+            if(!a.is_mask_ipv4_compatible())
+            {
+                // mask incompatible with IPv4
+                //
+                sub_line.append_both(" --mask ");
+                sub_line.append_ipv6line(a.to_ipv6_string(addr::STRING_IP_MASK_AS_ADDRESS), true);
+                to_iptables_states(result, sub_line);
+            }
+            else
+            {
+                if(mask == 96)
+                {
+                    // no need for --mask 255.255.255.255 in IPv4
+                    //
+                    line_builder sub_ipv4line(sub_line);
+                    sub_ipv4line.append_both(" --mask ");
+                    sub_ipv4line.append_ipv4line(a.to_ipv4_string(addr::STRING_IP_MASK_AS_ADDRESS), true);
+                    to_iptables_states(result, sub_ipv4line);
+                }
+                else
+                {
+                    line_builder sub_ipv4line(sub_line);
+                    sub_ipv4line.append_both(" --mask ");
+                    sub_ipv4line.append_ipv4line(a.to_ipv4_string(addr::STRING_IP_MASK_AS_ADDRESS), true);
+                    to_iptables_states(result, sub_ipv4line);
+                }
+
+                // no need for --mask 128 in IPv6
+                //
+                sub_line.append_both(" --mask ");
+                sub_line.append_ipv6line(a.to_ipv6_string(addr::STRING_IP_MASK_AS_ADDRESS), true);
+                to_iptables_states(result, sub_line);
+            }
+        }
+        else
+        {
+            to_iptables_states(result, sub_line);
+        }
     }
 }
 
