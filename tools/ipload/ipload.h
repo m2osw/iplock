@@ -94,7 +94,7 @@ private:
     advgetopt::variables::pointer_t
                             f_variables = advgetopt::variables::pointer_t();
     advgetopt::variables::pointer_t
-                            f_required = advgetopt::variables::pointer_t();
+                            f_verify = advgetopt::variables::pointer_t();
     advgetopt::conf_file::parameters_t
                             f_parameters = advgetopt::conf_file::parameters_t();
     table::map_t            f_tables = table::map_t();

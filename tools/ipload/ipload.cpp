@@ -550,9 +550,9 @@ bool ipload::load_data()
     {
         f_variables = std::make_shared<advgetopt::variables>();
     }
-    if(f_required == nullptr)
+    if(f_verify == nullptr)
     {
-        f_required = std::make_shared<advgetopt::variables>();
+        f_verify = std::make_shared<advgetopt::variables>();
     }
 
     std::string const paths(f_opts.get_string("rules"));
@@ -686,34 +686,43 @@ bool ipload::load_data()
         }
     }
 
-    advgetopt::variables::variable_t const & reqs(f_required->get_variables());
-    for(auto const & r : reqs)
+    advgetopt::variables::variable_t const & verify(f_verify->get_variables());
+    for(auto const & v : verify)
     {
-        if(!f_variables->has_variable(r.first))
+        bool const required(v.second == "required");
+        bool const defined(v.second == "defined");
+
+        if(required || defined)
         {
-            SNAP_LOG_ERROR
-                << "required variable \""
-                << r.first
-                << "\" not found in the [variables] block."
-                << SNAP_LOG_SEND;
-            return false;
+            if(!f_variables->has_variable(v.first))
+            {
+                SNAP_LOG_ERROR
+                    << "required variable \""
+                    << v.first
+                    << "\" not found in the [variables] block."
+                    << SNAP_LOG_SEND;
+                return false;
+            }
         }
 
-        if(f_variables->get_variable(r.first).empty())
+        if(required)
         {
-            SNAP_LOG_ERROR
-                << "required variable \""
-                << r.first
-                << "\" is defined, but it is still empty."
-                << SNAP_LOG_SEND;
-            return false;
+            if(f_variables->get_variable(v.first).empty())
+            {
+                SNAP_LOG_ERROR
+                    << "required variable \""
+                    << v.first
+                    << "\" is defined, but it is still empty."
+                    << SNAP_LOG_SEND;
+                return false;
+            }
         }
 
-        if(!advgetopt::is_true(r.second))
+        if(!required && !defined)
         {
             SNAP_LOG_RECOVERABLE_ERROR
                 << "required variable \""
-                << r.first
+                << v.first
                 << "\" must be set to \"true\", \"1\", or \"on\"."
                 << SNAP_LOG_SEND;
         }
@@ -783,7 +792,7 @@ void ipload::load_conf_file(
     // define whether a variable is required
     // (i.e. <var_name>=true)
     //
-    snapdev::NOT_USED(conf->section_to_variables("required", f_required));
+    snapdev::NOT_USED(conf->section_to_variables("verify", f_verify));
 
     // retrieve all the parameters in our own variable
     // by default parameters are overwritten between files
