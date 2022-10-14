@@ -35,6 +35,16 @@
 #include    <snaplogger/message.h>
 
 
+// snapdev
+//
+#include    <snapdev/tokenize_string.h>
+
+
+// C++
+//
+#include    <iostream>
+
+
 
 std::string to_lower(std::string const & s)
 {
@@ -69,6 +79,11 @@ void list_to_lower(advgetopt::string_list_t & l)
 
 bool parse_expr_string(char const * & s, std::string & str, bool & valid)
 {
+    while(isspace(*s))
+    {
+        ++s;
+    }
+
     char const quote(s[0]);
     if(quote != '"'
     && quote != '\'')
@@ -96,9 +111,9 @@ bool parse_expr_string(char const * & s, std::string & str, bool & valid)
         }
     }
 
-    ++s;    // skip quote
-
     str = std::string(start, s);
+
+    ++s;    // skip quote
 
     return true;
 }
@@ -113,75 +128,95 @@ bool parse_condition(std::string const & expression, bool & valid)
         return true;
     }
 
-    char const * s(expression.c_str());
-
-    std::string first;
-    if(!parse_expr_string(s, first, valid))
+    // transform the `&&` expressions in a list
+    //
+    advgetopt::string_list_t list;
+    snapdev::tokenize_string(
+          list
+        , expression
+        , {"&&"}
+        , true
+        , std::string()
+        , &snapdev::string_predicate<decltype(list)>);
+    for(auto const & l : list)
     {
-        return true;
-    }
+        char const * s(l.c_str());
 
-    while(isspace(*s))
-    {
+        std::string first;
+        if(!parse_expr_string(s, first, valid))
+        {
+            // error, return true for safety
+            //
+            return true;
+        }
+
+        while(isspace(*s))
+        {
+            ++s;
+        }
+
+        bool equal(true);
+        if(*s == '!')
+        {
+            equal = false;
+        }
+        else if(*s != '=')
+        {
+            SNAP_LOG_ERROR
+                << "expression ["
+                << expression
+                << "] operator missing (expected == or !=)."
+                << SNAP_LOG_SEND;
+            valid = false;
+            return true;
+        }
         ++s;
+        if(*s != '=')
+        {
+            SNAP_LOG_ERROR
+                << "expression ["
+                << expression
+                << "] operator missing (expected == or !=)."
+                << SNAP_LOG_SEND;
+            valid = false;
+            return true;
+        }
+        ++s;   // skip second '='
+
+        std::string second;
+        if(!parse_expr_string(s, second, valid))
+        {
+            // error, return true for safety
+            //
+            return true;
+        }
+
+        while(isspace(*s) || *s == ';')
+        {
+            ++s;
+        }
+
+        if(*s != '\0')
+        {
+            SNAP_LOG_ERROR
+                << "expression ["
+                << expression
+                << "] has spurious data at the end."
+                << SNAP_LOG_SEND;
+            valid = false;
+            return true;
+        }
+
+        if((first == second) != equal)
+        {
+            // at least one member of the '&&' is false
+            //
+std::cerr << "--- expression [" << expression << "] -> [" << first << "] -- [" << second << "]\n";
+            return false;
+        }
     }
 
-    bool equal(true);
-    if(*s == '!')
-    {
-        equal = false;
-    }
-    else if(*s != '=')
-    {
-        SNAP_LOG_ERROR
-            << "expression ["
-            << expression
-            << "] operator missing (expected == or !=)."
-            << SNAP_LOG_SEND;
-        valid = false;
-        return true;
-    }
-    ++s;
-    if(*s != '=')
-    {
-        SNAP_LOG_ERROR
-            << "expression ["
-            << expression
-            << "] operator missing (expected == or !=)."
-            << SNAP_LOG_SEND;
-        valid = false;
-        return true;
-    }
-    ++s;   // skip second '='
-
-    while(isspace(*s))
-    {
-        ++s;
-    }
-
-    std::string second;
-    if(!parse_expr_string(s, second, valid))
-    {
-        return true;
-    }
-
-    while(isspace(*s) || *s == ';')
-    {
-        ++s;
-    }
-
-    if(*s != '\0')
-    {
-        SNAP_LOG_ERROR
-            << "expression ["
-            << expression
-            << "] has spurious data at the end."
-            << SNAP_LOG_SEND;
-        valid = false;
-        return true;
-    }
-
-    return (first == second) == equal;
+    return true;
 }
 
 
