@@ -1303,6 +1303,21 @@ void rule::parse_action(std::string const & action)
                 }
                 return;
             }
+            else if(a == "none")
+            {
+                if(action_param.size() != 1)
+                {
+                    SNAP_LOG_ERROR
+                        << "the \"NONE\" action does not support parameters."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else
+                {
+                    f_action = action_t::ACTION_NONE;
+                }
+                return;
+            }
             break;
 
         case 'r':
