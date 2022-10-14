@@ -115,17 +115,17 @@ std::cout << "check_command: " << check_command << std::endl << "block_command: 
 std::cout << "check_cmdline: " << check_cmdline << std::endl << "block_cmdline: " << block_cmdline << std::endl;
 #endif
 
-    addr::addr_range::vector_t whitelist_ips;
-    if(f_scheme_opts->is_defined("whitelist"))
+    addr::addr_range::vector_t allowlist_ips;
+    if(f_scheme_opts->is_defined("allowlist"))
     {
-        std::string const whitelist(f_scheme_opts->get_string("whitelist"));
+        std::string const allowlist(f_scheme_opts->get_string("allowlist"));
         addr::addr_parser p;
         p.set_protocol(IPPROTO_TCP);        // define a protocol because otherwise we get same IPs with various protocols...
         p.set_allow(addr::allow_t::ALLOW_MULTI_ADDRESSES_COMMAS, true);
         p.set_allow(addr::allow_t::ALLOW_MULTI_ADDRESSES_SPACES, true);
         p.set_allow(addr::allow_t::ALLOW_MASK, true);
         p.set_allow(addr::allow_t::ALLOW_PORT, false);
-        whitelist_ips = p.parse(whitelist);
+        allowlist_ips = p.parse(allowlist);
     }
 
     int const max(f_opts->size("--"));
@@ -143,18 +143,18 @@ std::cout << "check_cmdline: " << check_cmdline << std::endl << "block_cmdline: 
         //
         if(run_on_result == 1)
         {
-            // is this IP address white listed? if so, skip it
-            // as we do not want to block white listed IPs
+            // is this IP address allowlisted? if so, skip it
+            // as we do not want to block allowlisted IPs
             //
             addr::addr_parser p;
             p.set_allow(addr::allow_t::ALLOW_PORT, false);
             addr::addr_range::vector_t ips(p.parse(ip));
             if(ips.size() > 0
-            && addr::address_match_ranges(whitelist_ips, ips[0].get_from()))
+            && addr::address_match_ranges(allowlist_ips, ips[0].get_from()))
             {
                 if(f_verbose)
                 {
-                    std::cerr << "iplock:notice: ip address " << ip << " is whitelisted, ignoring." << std::endl;
+                    std::cerr << "iplock:notice: ip address " << ip << " is allowlisted, ignoring." << std::endl;
                 }
                 continue;
             }

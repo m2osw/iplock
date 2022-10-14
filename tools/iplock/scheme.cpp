@@ -111,7 +111,7 @@ advgetopt::option const g_iplock_scheme_options[] =
         , advgetopt::Help("Command to unblock the specified IP address.")
     ),
     advgetopt::define_option(
-          advgetopt::Name("whitelist")
+          advgetopt::Name("allowlist")
         , advgetopt::Flags(advgetopt::any_flags<
                       advgetopt::GETOPT_FLAG_CONFIGURATION_FILE
                     , advgetopt::GETOPT_FLAG_REQUIRED>())

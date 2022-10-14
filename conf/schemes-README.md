@@ -27,14 +27,14 @@ special and used as the _global settings_. It gets copied to all your
 machines using `snaprfs` and it overwrites your user settings.
 
 For example, if you make use of a service that attempts penetration tests
-on your system and you want to whitelist those attempts, you can add a
+on your system and you want to allowlist those attempts, you can add a
 file named `/etc/iplock/schemes/schemes.d/50-http.conf` with:
 
     # Prevent system from blocking penetration tests
-    whitelist=192.168.45.0/24
+    allowlist=192.168.45.0/24
 
 This comes particularly handy when you have PCI DSS tests running against
-your machines. Just enter their IP addresses in the whitelist.
+your machines. Just enter their IP addresses in the allowlist.
 
 
 Parameters in a Scheme File
@@ -43,7 +43,7 @@ Parameters in a Scheme File
 A scheme file supports the following definitions:
 
     ports=
-    whitelist=
+    allowlist=
     check=
     block=
     unblock=
@@ -54,15 +54,15 @@ A scheme file supports the following definitions:
 The `ports` parameter defines a list or ports to block whenever this
 scheme is specified. Each port number is separated by a comma.
 
-### whitelist
+### allowlist
 
-The `whitelist` parameter defines a list of IP addresses optionally
-followed by a CIDR. For example, to whitelist all 10.0.0.0 private
+The `allowlist` parameter defines a list of IP addresses optionally
+followed by a CIDR. For example, to allowlist all 10.0.0.0 private
 addresses, you can write:
 
-    whitelist=10.0.0.0/8
+    allowlist=10.0.0.0/8
 
-An IP address which is defined in the `whitelist` parameter never
+An IP address which is defined in the `allowlist` parameter never
 gets blocked.
 
 ### check

@@ -2217,13 +2217,6 @@ void rule::to_iptables_knocks(result_builder & result, line_builder const & line
         //f_destination_ports = save_destination_ports;
         //f_action = save_action;
     }
-    //-A portknock -m recent --rcheck --seconds 3600 --name knock3 -m recent --remove --name blacklist
-    //-A portknock -p tcp -m tcp --dport 22 -m recent --rcheck --seconds 3600 --name knock3 -j ACCEPT
-    //-A portknock -p tcp -m tcp --dport 3456 -m recent --rcheck --seconds 10 --name knock2 -m recent --set --name knock3
-    //-A portknock -m recent --remove --name knock2
-    //-A portknock -p tcp -m tcp --dport 2345 -m recent --rcheck --seconds 10 --name knock1 -m recent --set --name knock2
-    //-A portknock -m recent --remove --name knock1
-    //-A portknock -p tcp -m tcp --dport 1234 --set --name knock1
 }
 
 

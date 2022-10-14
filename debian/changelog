@@ -1,3 +1,11 @@
+iplock (3.0.28.0~bionic) bionic; urgency=high
+
+  * Renamed the "whitelist" as "allowlist".
+  * Implemented the ipload to load the firewall on a boot.
+  * Introduced a "denylist" in the ipload system.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Thu, 13 Oct 2022 19:46:31 -0700
+
 iplock (3.0.27.1~bionic) bionic; urgency=high
 
   * Fixed documentation and CMakeLists.txt files.
