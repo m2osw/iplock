@@ -211,7 +211,6 @@ bool parse_condition(std::string const & expression, bool & valid)
         {
             // at least one member of the '&&' is false
             //
-std::cerr << "--- expression [" << expression << "] -> [" << first << "] -- [" << second << "]\n";
             return false;
         }
     }
