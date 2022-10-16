@@ -98,6 +98,7 @@ constexpr char const * const        g_reject_icmp6_no_route = "icmp6-no-route";
 constexpr char const * const        g_reject_no_route = "no-route";
 constexpr char const * const        g_reject_icmp6_adm_prohibited = "icmp6-adm-prohibited";
 constexpr char const * const        g_reject_icmp_adm_prohibited = "icmp-adm-prohibited";
+constexpr char const * const        g_reject_icmp_admin_prohibited = "icmp-admin-prohibited";
 constexpr char const * const        g_reject_adm_prohibited = "adm-prohibited";
 constexpr char const * const        g_reject_icmp6_addr_unreachable = "icmp6-addr-unreachable";
 constexpr char const * const        g_reject_addr_unreach = "addr-unreach";
@@ -123,12 +124,13 @@ reject_option g_reject_options[] =
 {
     // no route
     { g_reject_icmp6_no_route,         nullptr,                         g_reject_icmp6_no_route },
-    { g_reject_no_route,               nullptr,                         g_reject_no_route },
+    { g_reject_no_route,               nullptr,                         g_reject_no_route       },
 
     // adm prohibited
     { g_reject_icmp6_adm_prohibited,   nullptr,                         g_reject_icmp6_adm_prohibited },
-    { g_reject_icmp_adm_prohibited,    g_reject_icmp_adm_prohibited,    nullptr                },
-    { g_reject_adm_prohibited,         g_reject_icmp_adm_prohibited,    g_reject_adm_prohibited       },
+    { g_reject_icmp_adm_prohibited,    g_reject_icmp_admin_prohibited,  nullptr                       },
+    { g_reject_icmp_admin_prohibited,  g_reject_icmp_admin_prohibited,  nullptr                       },
+    { g_reject_adm_prohibited,         g_reject_icmp_admin_prohibited,  g_reject_adm_prohibited       },
 
     // addr unreachable
     { g_reject_icmp6_addr_unreachable, nullptr,                         g_reject_icmp6_addr_unreachable },
