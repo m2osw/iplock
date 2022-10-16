@@ -2636,7 +2636,8 @@ void rule::to_iptables_destinations(result_builder & result, line_builder const 
     {
         for(auto const & s : f_destinations)
         {
-            if(s.is_default())
+            if(!s.is_mask_defined()
+            && s.is_default())
             {
                 // the default IP applies to both, IPv4 and IPv6
                 //
@@ -2655,12 +2656,27 @@ void rule::to_iptables_destinations(result_builder & result, line_builder const 
             }
             else if(s.is_ipv4())
             {
-                if(!line.is_ipv6())
+                // here we want to handle the very special case of:
+                //    'ffff:0.0.0.0/96'
+                // which we want to output as such in the IPv6 table
+                //
+                if(s.is_default()
+                && s.get_mask_size() == 96
+                && !line.is_ipv4())
                 {
                     line_builder sub_line(line);
-                    std::string const ip(address_with_mask(s));
-                    sub_line.append_ipv4line(" -d " + ip, true);
+                    sub_line.append_ipv6line(" -d ::ffff:0.0.0.0/96", true);
                     to_iptables_destination_ports(result, sub_line);
+                }
+                else
+                {
+                    if(!line.is_ipv6())
+                    {
+                        line_builder sub_line(line);
+                        std::string const ip(address_with_mask(s));
+                        sub_line.append_ipv4line(" -d " + ip, true);
+                        to_iptables_destination_ports(result, sub_line);
+                    }
                 }
             }
             else
