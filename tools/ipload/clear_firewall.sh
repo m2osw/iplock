@@ -42,3 +42,4 @@ sudo ip6tables -t security -F
 sudo ip6tables -t security -P INPUT ACCEPT
 sudo ip6tables -t security -P FORWARD ACCEPT
 sudo ip6tables -t security -P OUTPUT ACCEPT
+sudo ipset destroy

@@ -1991,7 +1991,19 @@ bool ipload::create_sets()
                                     continue;
                                 }
                                 addr::addr const & a(addresses[0].get_from());
-                                if(a.is_ipv4())
+                                bool is_ipv4(a.is_ipv4());
+                                if(is_ipv4)
+                                {
+                                    // we have one very special case of an IPv6
+                                    // which looks like an IPv4 address
+                                    //
+                                    if(a.is_default()
+                                    && a.get_mask_size() == 96)
+                                    {
+                                        is_ipv4 = false;
+                                    }
+                                }
+                                if(is_ipv4)
                                 {
                                     if(f_add_to_set_ipv4.empty())
                                     {
