@@ -1821,7 +1821,9 @@ bool ipload::create_sets()
                                     SNAP_LOG_ERROR
                                         << "an error occurred trying to create ipset \""
                                         << name
-                                        << "\" IPv4 (exit code: "
+                                        << "\" IPv4 with command: \""
+                                        << cmd_ipv4
+                                        << "\" (exit code: "
                                         << exit_code_v4
                                         << ", errno: "
                                         << e
@@ -1854,7 +1856,9 @@ bool ipload::create_sets()
                                     SNAP_LOG_ERROR
                                         << "an error occurred trying to create ipset \""
                                         << name
-                                        << "\" IPv6 (exit code: "
+                                        << "\" IPv6 with command: \""
+                                        << cmd_ipv6
+                                        << "\" (exit code: "
                                         << exit_code_v6
                                         << ", errno: "
                                         << e
@@ -1921,6 +1925,8 @@ bool ipload::create_sets()
                                     SNAP_LOG_ERROR
                                         << "an error occurred trying to create ipset \""
                                         << name
+                                        << "\" with command: \""
+                                        << cmd
                                         << "\" (exit code: "
                                         << exit_code
                                         << ", errno: "
@@ -2007,7 +2013,9 @@ bool ipload::create_sets()
                                         SNAP_LOG_ERROR
                                             << "an error occurred trying to add data to ipset \""
                                             << name
-                                            << "\" IPv4 (exit code: "
+                                            << "\" IPv4 with command: \""
+                                            << cmd_ipv4
+                                            << "\" (exit code: "
                                             << exit_code_v4
                                             << ", errno: "
                                             << e
@@ -2040,7 +2048,9 @@ bool ipload::create_sets()
                                         SNAP_LOG_ERROR
                                             << "an error occurred trying to add data to ipset \""
                                             << name
-                                            << "\" IPv6 (exit code: "
+                                            << "\" IPv6 with command: \""
+                                            << cmd_ipv6
+                                            << "\" (exit code: "
                                             << exit_code_v6
                                             << ", errno: "
                                             << e
@@ -2074,6 +2084,8 @@ bool ipload::create_sets()
                                     SNAP_LOG_ERROR
                                         << "an error occurred trying to add data to ipset \""
                                         << name
+                                        << "\" with command: \""
+                                        << cmd
                                         << "\" (exit code: "
                                         << exit_code
                                         << ", errno: "
