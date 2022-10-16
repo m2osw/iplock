@@ -966,6 +966,12 @@ bool ipload::process_parameters()
         switch(p->first[0])
         {
         case 'a':
+            if(p->first == "add-to-set")
+            {
+                f_add_to_set = p->second;
+                ++p;
+                continue;
+            }
             if(p->first == "add-to-set-ipv4")
             {
                 f_add_to_set_ipv4 = p->second;
@@ -981,7 +987,13 @@ bool ipload::process_parameters()
             break;
 
         case 'c':
-            if(p->first == "create-set-ipv4") // underscores are changed to '-' by advgetopt
+            if(p->first == "create-set")
+            {
+                f_create_set = p->second;
+                ++p;
+                continue;
+            }
+            if(p->first == "create-set-ipv4")
             {
                 f_create_set_ipv4 = p->second;
                 ++p;
@@ -1785,14 +1797,14 @@ bool ipload::create_sets()
                         {
                             found.insert(name);
 
-                            if(set_has_ip || 1)
+                            if(set_has_ip)
                             {
                                 // IPv4
                                 //
                                 if(f_create_set_ipv4.empty())
                                 {
                                     SNAP_LOG_ERROR
-                                        << "the \"create_set\" global variable is empty."
+                                        << "the \"create_set_ipv4\" global variable is empty."
                                         << SNAP_LOG_SEND;
                                     return false;
                                 }
@@ -1825,7 +1837,7 @@ bool ipload::create_sets()
                                 if(f_create_set_ipv6.empty())
                                 {
                                     SNAP_LOG_ERROR
-                                        << "the \"create_setv6\" global variable is empty."
+                                        << "the \"create_set_ipv6\" global variable is empty."
                                         << SNAP_LOG_SEND;
                                     return false;
                                 }
@@ -1855,19 +1867,85 @@ bool ipload::create_sets()
                             }
                             else
                             {
+                                // without IPs, we can create one set and use
+                                // it with IPv4 and IPv6
+                                //
+                                if(f_create_set.empty())
+                                {
+                                    SNAP_LOG_ERROR
+                                        << "the \"create_set\" global variable is empty."
+                                        << SNAP_LOG_SEND;
+                                    return false;
+                                }
+                                std::string cmd(snapdev::string_replace_many(
+                                          f_create_set
+                                        , {
+                                            { "[name]", name },
+                                            { "[type]", type },
+                                          }));
+                                if(type == "bitmap:port")
+                                {
+                                    // in this case we must have a range,
+                                    // check the data to determine the minimum
+                                    // and maximum needed
+                                    //
+                                    std::int64_t min_port(65535);
+                                    std::int64_t max_port(0);
+                                    for(auto const & d : data)
+                                    {
+                                        // TODO: support ports from /etc/services
+                                        //
+                                        addr::addr a;
+                                        if(a.set_port(d.c_str()))
+                                        {
+                                            int const port(a.get_port());
+                                            if(port < min_port)
+                                            {
+                                                min_port = port;
+                                            }
+                                            if(port > max_port)
+                                            {
+                                                max_port = port;
+                                            }
+                                        }
+                                    }
+                                    cmd += " range "
+                                              + std::to_string(min_port)
+                                              + '-'
+                                              + std::to_string(max_port);
+                                }
+                                int const exit_code(system(cmd.c_str()));
+                                if(exit_code != 0)
+                                {
+                                    int const e(errno);
+                                    SNAP_LOG_ERROR
+                                        << "an error occurred trying to create ipset \""
+                                        << name
+                                        << "\" (exit code: "
+                                        << exit_code
+                                        << ", errno: "
+                                        << e
+                                        << ", "
+                                        << strerror(e)
+                                        << ")."
+                                        << SNAP_LOG_SEND;
+                                    valid = false;
+                                }
                             }
                         }
-                        if(!data.empty())
+
+                        // there is data, add it to the set
+                        //
+                        for(auto const & d : data)
                         {
-                            // there is data, add it to the set
-                            //
-                            for(auto const & d : data)
+                            if(set_has_ip)
                             {
-                                // right now we only support data that start
-                                // with an IP address, possibly followed by
-                                // a mask--we check that information to see
-                                // whether it's IPv4 or IPv6 and add the data
-                                // to the corresponding set
+                                // a set with an IP will have that IP first
+                                // (there may be more but all have to be of
+                                // the same type: IPv4 or IPv6)
+                                //
+                                // the IP is parsed to determine which version
+                                // of the set to use
                                 //
                                 std::string::size_type space(d.find(' '));
                                 std::string ip;
@@ -1912,7 +1990,7 @@ bool ipload::create_sets()
                                     if(f_add_to_set_ipv4.empty())
                                     {
                                         SNAP_LOG_ERROR
-                                            << "the \"add_to_setv4\" global variable is empty."
+                                            << "the \"add_to_set_ipv4\" global variable is empty."
                                             << SNAP_LOG_SEND;
                                         return false;
                                     }
@@ -1927,7 +2005,7 @@ bool ipload::create_sets()
                                     {
                                         int const e(errno);
                                         SNAP_LOG_ERROR
-                                            << "an error occurred trying to create ipset \""
+                                            << "an error occurred trying to add data to ipset \""
                                             << name
                                             << "\" IPv4 (exit code: "
                                             << exit_code_v4
@@ -1945,7 +2023,7 @@ bool ipload::create_sets()
                                     if(f_add_to_set_ipv6.empty())
                                     {
                                         SNAP_LOG_ERROR
-                                            << "the \"add_to_setv6\" global variable is empty."
+                                            << "the \"add_to_set_ipv6\" global variable is empty."
                                             << SNAP_LOG_SEND;
                                         return false;
                                     }
@@ -1960,7 +2038,7 @@ bool ipload::create_sets()
                                     {
                                         int const e(errno);
                                         SNAP_LOG_ERROR
-                                            << "an error occurred trying to create ipset \""
+                                            << "an error occurred trying to add data to ipset \""
                                             << name
                                             << "\" IPv6 (exit code: "
                                             << exit_code_v6
@@ -1972,6 +2050,39 @@ bool ipload::create_sets()
                                             << SNAP_LOG_SEND;
                                         valid = false;
                                     }
+                                }
+                            }
+                            else
+                            {
+                                if(f_add_to_set.empty())
+                                {
+                                    SNAP_LOG_ERROR
+                                        << "the \"add_to_set\" global variable is empty."
+                                        << SNAP_LOG_SEND;
+                                    return false;
+                                }
+                                std::string const cmd(snapdev::string_replace_many(
+                                          f_add_to_set
+                                        , {
+                                            { "[name]", name },
+                                            { "[params]", d },
+                                          }));
+                                int const exit_code(system(cmd.c_str()));
+                                if(exit_code != 0)
+                                {
+                                    int const e(errno);
+                                    SNAP_LOG_ERROR
+                                        << "an error occurred trying to add data to ipset \""
+                                        << name
+                                        << "\" (exit code: "
+                                        << exit_code
+                                        << ", errno: "
+                                        << e
+                                        << ", "
+                                        << strerror(e)
+                                        << ")."
+                                        << SNAP_LOG_SEND;
+                                    valid = false;
                                 }
                             }
                         }
