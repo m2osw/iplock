@@ -61,6 +61,7 @@ private:
         TOKEN_ALL,
         TOKEN_ANY,
         TOKEN_TIMESTAMP_REQUEST,
+        TOKEN_TIMESTAMP_REPLY,
         TOKEN_NONE,
         TOKEN_SYN,
         TOKEN_ACK,

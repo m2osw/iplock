@@ -103,6 +103,8 @@ private:
     std::string             f_remove_user_chain = std::string();
     std::string             f_create_set_ipv4 = std::string();
     std::string             f_create_set_ipv6 = std::string();
+    std::string             f_add_to_set_ipv4 = std::string();
+    std::string             f_add_to_set_ipv6 = std::string();
     std::string             f_output = std::string();
 };
 

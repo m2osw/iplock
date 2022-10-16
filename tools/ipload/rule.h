@@ -128,6 +128,9 @@ public:
     bool                                get_condition() const;
 
     advgetopt::string_list_t const &    get_set() const;
+    std::string const &                 get_set_type() const;
+    bool                                set_has_ip() const;
+    advgetopt::string_list_t const &    get_set_data() const;
     advgetopt::string_list_t const &    get_source_interfaces() const;
     //advgetopt::string_list_t const &    get_sources() const;
     //advgetopt::string_list_t const &    get_except_sources() const;
@@ -258,6 +261,9 @@ private:
     advgetopt::string_list_t            f_interfaces = advgetopt::string_list_t();
 
     advgetopt::string_list_t            f_set = advgetopt::string_list_t();
+    std::string                         f_set_type = std::string("hash:ip");
+    bool                                f_set_has_ip = true;
+    advgetopt::string_list_t            f_set_data = advgetopt::string_list_t();
     advgetopt::string_list_t            f_source_interfaces = advgetopt::string_list_t();
     addr::addr::vector_t                f_sources = addr::addr::vector_t();
     addr::addr_range::vector_t          f_source_ranges = addr::addr_range::vector_t();

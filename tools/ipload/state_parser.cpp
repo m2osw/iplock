@@ -98,6 +98,7 @@
  *          | 'established'
  *          | 'related'
  *          | 'timestamp-request'
+ *          | 'timestamp-reply'
  *          | 'any'
  *          | '(' flag_list ')'
  *          | '!' flag_name
@@ -320,6 +321,10 @@ void state_parser::flag_name()
 
     case TOKEN_TIMESTAMP_REQUEST:
         f_result.set_icmp_type("timestamp-request");
+        break;
+
+    case TOKEN_TIMESTAMP_REPLY:
+        f_result.set_icmp_type("timestamp-reply");
         break;
 
     case TOKEN_NONE:
@@ -547,6 +552,11 @@ void state_parser::next_token()
                             if(identifier == "timestamp-request")
                             {
                                 f_last_token = TOKEN_TIMESTAMP_REQUEST;
+                                return;
+                            }
+                            else if(identifier == "timestamp-reply")
+                            {
+                                f_last_token = TOKEN_TIMESTAMP_REPLY;
                                 return;
                             }
                             break;

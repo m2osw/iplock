@@ -674,6 +674,37 @@ rule::rule(
             {
                 advgetopt::split_string(value, f_set, {","});
             }
+            else if(param_name == "set-data")
+            {
+                advgetopt::split_string(value, f_set_data, {","});
+            }
+            else if(param_name == "set-type")
+            {
+                std::string::size_type colon(value.find(':'));
+                if(colon == std::string:npos)
+                {
+                    // user did not specify the structure type, force to "hash"
+                    //
+                    //     [<structure-type>:]<data-type>[,<data-type>,...]
+                    //
+                    value = "hash:" + value;
+                    colon = 4;
+                }
+                f_set_type = value;
+
+                f_set_has_ip = false;
+                advgetopt::string_list_t types;
+                advgetopt::split_string(f_set_type.substr(colon + 1), types, {","});
+                for(auto const & t : types)
+                {
+                    if(t == "ip"
+                    || t == "net")
+                    {
+                        f_set_has_ip = true;
+                        break;
+                    }
+                }
+            }
             else if(param_name == "section")
             {
                 f_section = value;
@@ -1818,6 +1849,24 @@ bool rule::get_condition() const
 advgetopt::string_list_t const & rule::get_set() const
 {
     return f_set;
+}
+
+
+advgetopt::string_list_t const & rule::get_set_data() const
+{
+    return f_set_data;
+}
+
+
+std::string const & rule::get_set_type() const
+{
+    return f_set_type;
+}
+
+
+bool rule::set_has_ip() const
+{
+    return f_set_has_ip;
 }
 
 

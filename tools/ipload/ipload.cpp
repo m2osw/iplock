@@ -191,10 +191,11 @@ advgetopt::option const g_options[] =
     advgetopt::define_option(
           advgetopt::Name("rules")
         , advgetopt::ShortName('r')
-        , advgetopt::Flags(advgetopt::option_flags<
+        , advgetopt::Flags(advgetopt::any_flags<
                       advgetopt::GETOPT_FLAG_GROUP_OPTIONS
                     , advgetopt::GETOPT_FLAG_COMMAND_LINE
-                    , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE>())
+                    , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE
+                    , advgetopt::GETOPT_FLAG_REQUIRED>())
         , advgetopt::DefaultValue("/usr/share/iplock/ipload:/etc/iplock/ipload")
         , advgetopt::Help("Colon separated paths to the rules to load in iptables.")
     ),
@@ -964,6 +965,21 @@ bool ipload::process_parameters()
         }
         switch(p->first[0])
         {
+        case 'a':
+            if(p->first == "add-to-set-ipv4")
+            {
+                f_add_to_set_ipv4 = p->second;
+                ++p;
+                continue;
+            }
+            if(p->first == "add-to-set-ipv6")
+            {
+                f_add_to_set_ipv6 = p->second;
+                ++p;
+                continue;
+            }
+            break;
+
         case 'c':
             if(p->first == "create-set-ipv4") // underscores are changed to '-' by advgetopt
             {
@@ -971,7 +987,7 @@ bool ipload::process_parameters()
                 ++p;
                 continue;
             }
-            if(p->first == "create-set-ipv6") // underscores are changed to '-' by advgetopt
+            if(p->first == "create-set-ipv6")
             {
                 f_create_set_ipv6 = p->second;
                 ++p;
@@ -1759,6 +1775,9 @@ bool ipload::create_sets()
                 rule::vector_t const & rules(s->get_rules());
                 for(auto const & r : rules)
                 {
+                    std::string const & type(r->get_set_type());
+                    advgetopt::string_list_t const & data(r->get_set_data());
+                    bool const set_has_ip(r->set_has_ip());
                     advgetopt::string_list_t const & sets(r->get_set());
                     for(auto const & name : sets)
                     {
@@ -1766,64 +1785,194 @@ bool ipload::create_sets()
                         {
                             found.insert(name);
 
-                            // IPv4
-                            //
-                            if(f_create_set_ipv4.empty())
+                            if(set_has_ip || 1)
                             {
-                                SNAP_LOG_ERROR
-                                    << "the \"create_set\" global variable is empty."
-                                    << SNAP_LOG_SEND;
-                                return false;
-                            }
-                            std::string const cmd_ipv4(snapdev::string_replace_many(
-                                      f_create_set_ipv4
-                                    , {{"[name]", name + "_ipv4"}}));
-                            int const exit_code_v4(system(cmd_ipv4.c_str()));
-                            if(exit_code_v4 != 0)
-                            {
-                                int const e(errno);
-                                SNAP_LOG_ERROR
-                                    << "an error occurred trying to create ipset \""
-                                    << name
-                                    << "\" IPv4 (exit code: "
-                                    << exit_code_v4
-                                    << ", errno: "
-                                    << e
-                                    << ", "
-                                    << strerror(e)
-                                    << ")."
-                                    << SNAP_LOG_SEND;
-                                valid = false;
-                            }
+                                // IPv4
+                                //
+                                if(f_create_set_ipv4.empty())
+                                {
+                                    SNAP_LOG_ERROR
+                                        << "the \"create_set\" global variable is empty."
+                                        << SNAP_LOG_SEND;
+                                    return false;
+                                }
+                                std::string const cmd_ipv4(snapdev::string_replace_many(
+                                          f_create_set_ipv4
+                                        , {
+                                            { "[name]", name + "_ipv4" },
+                                            { "[type]", type },
+                                          }));
+                                int const exit_code_v4(system(cmd_ipv4.c_str()));
+                                if(exit_code_v4 != 0)
+                                {
+                                    int const e(errno);
+                                    SNAP_LOG_ERROR
+                                        << "an error occurred trying to create ipset \""
+                                        << name
+                                        << "\" IPv4 (exit code: "
+                                        << exit_code_v4
+                                        << ", errno: "
+                                        << e
+                                        << ", "
+                                        << strerror(e)
+                                        << ")."
+                                        << SNAP_LOG_SEND;
+                                    valid = false;
+                                }
 
-                            // IPv6
-                            //
-                            if(f_create_set_ipv6.empty())
-                            {
-                                SNAP_LOG_ERROR
-                                    << "the \"create_setv6\" global variable is empty."
-                                    << SNAP_LOG_SEND;
-                                return false;
+                                // IPv6
+                                //
+                                if(f_create_set_ipv6.empty())
+                                {
+                                    SNAP_LOG_ERROR
+                                        << "the \"create_setv6\" global variable is empty."
+                                        << SNAP_LOG_SEND;
+                                    return false;
+                                }
+                                std::string const cmd_ipv6(snapdev::string_replace_many(
+                                          f_create_set_ipv6
+                                        , {
+                                            { "[name]", name + "_ipv6" },
+                                            { "[type]", type },
+                                          }));
+                                int const exit_code_v6(system(cmd_ipv6.c_str()));
+                                if(exit_code_v6 != 0)
+                                {
+                                    int const e(errno);
+                                    SNAP_LOG_ERROR
+                                        << "an error occurred trying to create ipset \""
+                                        << name
+                                        << "\" IPv6 (exit code: "
+                                        << exit_code_v6
+                                        << ", errno: "
+                                        << e
+                                        << ", "
+                                        << strerror(e)
+                                        << ")."
+                                        << SNAP_LOG_SEND;
+                                    valid = false;
+                                }
                             }
-                            std::string const cmd_ipv6(snapdev::string_replace_many(
-                                      f_create_set_ipv6
-                                    , {{"[name]", name + "_ipv6"}}));
-                            int const exit_code_v6(system(cmd_ipv6.c_str()));
-                            if(exit_code_v6 != 0)
+                            else
                             {
-                                int const e(errno);
-                                SNAP_LOG_ERROR
-                                    << "an error occurred trying to create ipset \""
-                                    << name
-                                    << "\" IPv6 (exit code: "
-                                    << exit_code_v6
-                                    << ", errno: "
-                                    << e
-                                    << ", "
-                                    << strerror(e)
-                                    << ")."
-                                    << SNAP_LOG_SEND;
-                                valid = false;
+                            }
+                        }
+                        if(!data.empty())
+                        {
+                            // there is data, add it to the set
+                            //
+                            for(auto const & d : data)
+                            {
+                                // right now we only support data that start
+                                // with an IP address, possibly followed by
+                                // a mask--we check that information to see
+                                // whether it's IPv4 or IPv6 and add the data
+                                // to the corresponding set
+                                //
+                                std::string::size_type space(d.find(' '));
+                                std::string ip;
+                                if(space == std::string::npos)
+                                {
+                                    ip = d;
+                                }
+                                else
+                                {
+                                    ip = d.substr(0, space);
+                                }
+                                addr::addr_parser p;
+                                p.set_protocol(IPPROTO_TCP);
+                                p.set_allow(addr::allow_t::ALLOW_REQUIRED_ADDRESS, true);
+                                p.set_allow(addr::allow_t::ALLOW_MASK, true);
+                                p.set_allow(addr::allow_t::ALLOW_PORT, false);  // at this time, the port is expected to be separated by a space
+                                addr::addr_range::vector_t addresses(p.parse(ip));
+                                if(addresses.empty())
+                                {
+                                    SNAP_LOG_ERROR
+                                        << "ipset data \""
+                                        << d
+                                        << "\" is not a valid IPv4 or IPv6 address. "
+                                        << p.error_messages()
+                                        << SNAP_LOG_SEND;
+                                    valid = false;
+                                    continue;
+                                }
+                                if(!addresses[0].has_from())
+                                {
+                                    SNAP_LOG_ERROR
+                                        << "ipset data \""
+                                        << d
+                                        << "\" does not start with a valid IPv4 or IPv6 address (this should not happen)."
+                                        << SNAP_LOG_SEND;
+                                    valid = false;
+                                    continue;
+                                }
+                                addr::addr const & a(addresses[0].get_from());
+                                if(a.is_ipv4())
+                                {
+                                    if(f_add_to_set_ipv4.empty())
+                                    {
+                                        SNAP_LOG_ERROR
+                                            << "the \"add_to_setv4\" global variable is empty."
+                                            << SNAP_LOG_SEND;
+                                        return false;
+                                    }
+                                    std::string const cmd_ipv4(snapdev::string_replace_many(
+                                              f_add_to_set_ipv4
+                                            , {
+                                                { "[name]", name + "_ipv4" },
+                                                { "[params]", d },
+                                              }));
+                                    int const exit_code_v4(system(cmd_ipv4.c_str()));
+                                    if(exit_code_v4 != 0)
+                                    {
+                                        int const e(errno);
+                                        SNAP_LOG_ERROR
+                                            << "an error occurred trying to create ipset \""
+                                            << name
+                                            << "\" IPv4 (exit code: "
+                                            << exit_code_v4
+                                            << ", errno: "
+                                            << e
+                                            << ", "
+                                            << strerror(e)
+                                            << ")."
+                                            << SNAP_LOG_SEND;
+                                        valid = false;
+                                    }
+                                }
+                                else
+                                {
+                                    if(f_add_to_set_ipv6.empty())
+                                    {
+                                        SNAP_LOG_ERROR
+                                            << "the \"add_to_setv6\" global variable is empty."
+                                            << SNAP_LOG_SEND;
+                                        return false;
+                                    }
+                                    std::string const cmd_ipv6(snapdev::string_replace_many(
+                                              f_add_to_set_ipv6
+                                            , {
+                                                { "[name]", name + "_ipv6" },
+                                                { "[params]", d },
+                                              }));
+                                    int const exit_code_v6(system(cmd_ipv6.c_str()));
+                                    if(exit_code_v6 != 0)
+                                    {
+                                        int const e(errno);
+                                        SNAP_LOG_ERROR
+                                            << "an error occurred trying to create ipset \""
+                                            << name
+                                            << "\" IPv6 (exit code: "
+                                            << exit_code_v6
+                                            << ", errno: "
+                                            << e
+                                            << ", "
+                                            << strerror(e)
+                                            << ")."
+                                            << SNAP_LOG_SEND;
+                                        valid = false;
+                                    }
+                                }
                             }
                         }
                     }
