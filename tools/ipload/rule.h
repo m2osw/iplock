@@ -287,6 +287,7 @@ private:
 
     action_t                            f_action = action_t::ACTION_UNDEFINED;
     std::string                         f_action_param = std::string();     // REJECT [<type>] or CALL <chain-name>
+    std::string                         f_action_param2 = std::string();    // some parameter use a second parameter
     std::string                         f_comment = std::string();
     std::string                         f_log = std::string();
     std::string                         f_log_introducer = "[iptables]";

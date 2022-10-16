@@ -89,53 +89,79 @@ constexpr int       REJECT_OPTION_IPV6          = 0x0002;
 constexpr int       REJECT_OPTION_USE_PREVIOUS  = 0x0004;
 
 struct reject_option {
-    char const *    f_name = nullptr;
-    int             f_flags = 0;
+    char const *    f_alias = nullptr;
+    char const *    f_ipv4_name = nullptr;
+    char const *    f_ipv6_name = nullptr;
 };
+
+constexpr char const * const        g_reject_icmp6_no_route = "icmp6-no-route";
+constexpr char const * const        g_reject_no_route = "no-route";
+constexpr char const * const        g_reject_icmp6_adm_prohibited = "icmp6-adm-prohibited";
+constexpr char const * const        g_reject_icmp_adm_prohibited = "icmp-adm-prohibited";
+constexpr char const * const        g_reject_adm_prohibited = "adm-prohibited";
+constexpr char const * const        g_reject_icmp6_addr_unreachable = "icmp6-addr-unreachable";
+constexpr char const * const        g_reject_addr_unreach = "addr-unreach";
+constexpr char const * const        g_reject_addr_unreachable = "addr-unreachable";
+constexpr char const * const        g_reject_icmp6_port_unreachable = "icmp6-port-unreachable";
+constexpr char const * const        g_reject_icmp_port_unreachable = "icmp-port-unreachable";
+constexpr char const * const        g_reject_port_unreachable = "port-unreachable";
+constexpr char const * const        g_reject_icmp_net_unreachable = "icmp-net-unreachable";
+constexpr char const * const        g_reject_net_unreachable = "net-unreachable";
+constexpr char const * const        g_reject_icmp_net_prohibited = "icmp-net-prohibited";
+constexpr char const * const        g_reject_net_prohibited = "net-prohibited";
+constexpr char const * const        g_reject_icmp_host_unreachable = "icmp-host-unreachable";
+constexpr char const * const        g_reject_host_unreachable = "host-unreachable";
+constexpr char const * const        g_reject_host_unreach = "host-unreach";
+constexpr char const * const        g_reject_icmp_proto_unreachable = "icmp-proto-unreachable";
+constexpr char const * const        g_reject_proto_unreachable = "proto-unreachable";
+constexpr char const * const        g_reject_proto_unreach = "proto-unreach";
+constexpr char const * const        g_reject_tcp_reset = "tcp-reset";
+constexpr char const * const        g_reject_icmp_tcp_reset = "icmp-tcp-reset";
+constexpr char const * const        g_reject_icmp6_tcp_reset = "icmp6-tcp-reset";
 
 reject_option g_reject_options[] =
 {
     // no route
-    { "icmp6-no-route",         REJECT_OPTION_IPV6 },
-    { "no-route",               REJECT_OPTION_IPV6 },
+    { g_reject_icmp6_no_route,         nullptr,                         g_reject_icmp6_no_route },
+    { g_reject_no_route,               nullptr,                         g_reject_no_route },
 
     // adm prohibited
-    { "icmp6-adm-prohibited",   REJECT_OPTION_IPV6 },
-    { "icmp-adm-prohibited",    REJECT_OPTION_IPV6 | REJECT_OPTION_IPV4 },
-    { "adm-prohibited",         REJECT_OPTION_IPV6 | REJECT_OPTION_IPV4 },
+    { g_reject_icmp6_adm_prohibited,   nullptr,                         g_reject_icmp6_adm_prohibited },
+    { g_reject_icmp_adm_prohibited,    g_reject_icmp_adm_prohibited,    nullptr                },
+    { g_reject_adm_prohibited,         g_reject_icmp_adm_prohibited,    g_reject_adm_prohibited       },
 
     // addr unreachable
-    { "icmp6-addr-unreachable", REJECT_OPTION_IPV6 },
-    { "addr-unreach",           REJECT_OPTION_IPV6 },
-    { "addr-unreachable",       REJECT_OPTION_IPV6 | REJECT_OPTION_USE_PREVIOUS },   // our extension
+    { g_reject_icmp6_addr_unreachable, nullptr,                         g_reject_icmp6_addr_unreachable },
+    { g_reject_addr_unreach,           nullptr,                         g_reject_icmp6_addr_unreachable },
+    { g_reject_addr_unreachable,       nullptr,                         g_reject_icmp6_addr_unreachable },   // our extension
 
     // port unreachable (default if unspecified)
-    { "icmp6-port-unreachable", REJECT_OPTION_IPV6 },
-    { "icmp-port-unreachable",  REJECT_OPTION_IPV6 | REJECT_OPTION_IPV4 },
-    { "port-unreachable",       REJECT_OPTION_IPV6 | REJECT_OPTION_IPV4 | REJECT_OPTION_USE_PREVIOUS },   // our extension
+    { g_reject_icmp6_port_unreachable, nullptr,                         g_reject_icmp6_port_unreachable },
+    { g_reject_icmp_port_unreachable,  g_reject_icmp_port_unreachable,  nullptr                         },
+    { g_reject_port_unreachable,       g_reject_icmp_port_unreachable,  g_reject_icmp6_port_unreachable },   // our extension
 
     // net unreachable
-    { "icmp-net-unreachable",   REJECT_OPTION_IPV4 },
-    { "net-unreachable",        REJECT_OPTION_IPV4 | REJECT_OPTION_USE_PREVIOUS },   // our extension
+    { g_reject_icmp_net_unreachable,   g_reject_icmp_net_unreachable,   nullptr },
+    { g_reject_net_unreachable,        g_reject_icmp_net_unreachable,   nullptr },   // our extension
 
     // net prohibited
-    { "icmp-net-prohibited",    REJECT_OPTION_IPV4 },
-    { "net-prohibited",         REJECT_OPTION_IPV4 | REJECT_OPTION_USE_PREVIOUS },   // our extension
+    { g_reject_icmp_net_prohibited,    g_reject_icmp_net_prohibited,    nullptr },
+    { g_reject_net_prohibited,         g_reject_icmp_net_prohibited,    nullptr },   // our extension
 
     // host unreachable
-    { "icmp-host-unreachable",  REJECT_OPTION_IPV4 },
-    { "host-unreachable",       REJECT_OPTION_IPV4 | REJECT_OPTION_USE_PREVIOUS },   // our extension
-    { "host-unreach",           REJECT_OPTION_IPV4 | REJECT_OPTION_USE_PREVIOUS },   // our extension
+    { g_reject_icmp_host_unreachable,  g_reject_icmp_host_unreachable,  nullptr },
+    { g_reject_host_unreachable,       g_reject_icmp_host_unreachable,  nullptr },   // our extension
+    { g_reject_host_unreach,           g_reject_icmp_host_unreachable,  nullptr },   // our extension
 
     // proto unreachable
-    { "icmp-proto-unreachable", REJECT_OPTION_IPV4 },
-    { "proto-unreachable",      REJECT_OPTION_IPV4 | REJECT_OPTION_USE_PREVIOUS },   // our extension
-    { "proto-unreach",          REJECT_OPTION_IPV4 | REJECT_OPTION_USE_PREVIOUS },   // our extension
+    { g_reject_icmp_proto_unreachable, g_reject_icmp_proto_unreachable, nullptr },
+    { g_reject_proto_unreachable,      g_reject_icmp_proto_unreachable, nullptr },   // our extension
+    { g_reject_proto_unreach,          g_reject_icmp_proto_unreachable, nullptr },   // our extension
 
     // tcp reset
-    { "tcp-reset",              REJECT_OPTION_IPV6 | REJECT_OPTION_IPV4 },
-    { "icmp-tcp-reset",         REJECT_OPTION_IPV6 | REJECT_OPTION_IPV4 | REJECT_OPTION_USE_PREVIOUS },   // our extension
-    { "icmp6-tcp-reset",        REJECT_OPTION_IPV6 | REJECT_OPTION_USE_PREVIOUS },   // our extension
+    { g_reject_tcp_reset,              g_reject_tcp_reset,              g_reject_tcp_reset },
+    { g_reject_icmp_tcp_reset,         g_reject_icmp_tcp_reset,         nullptr            },   // our extension
+    { g_reject_icmp6_tcp_reset,        nullptr,                         g_reject_tcp_reset },   // our extension
 };
 
 
@@ -1741,34 +1767,24 @@ void rule::parse_reject_action()
 
     for(std::size_t idx(0); idx < std::size(g_reject_options); ++idx)
     {
-        if(strcmp(g_reject_options[idx].f_name, f_action_param.c_str()) == 0)
+        if(strcmp(g_reject_options[idx].f_alias, f_action_param.c_str()) == 0)
         {
-            if((g_reject_options[idx].f_flags & REJECT_OPTION_USE_PREVIOUS) != 0)
+            f_action_param = g_reject_options[idx].f_ipv4_name;
+            f_action_param2 = g_reject_options[idx].f_ipv6_name;
+            if(f_action_param.empty())
             {
-                if((g_reject_options[idx - 1].f_flags & REJECT_OPTION_USE_PREVIOUS) != 0)
+                if(f_action_param2.empty())
                 {
-                    f_action_param = g_reject_options[idx - 2].f_name;
+                    throw iplock::logic_error("REJECT action option #" + std::to_string(idx) + " has no IPv4 and no IPv6 names.");
                 }
-                else
-                {
-                    f_action_param = g_reject_options[idx - 1].f_name;
-                }
-            }
-            if((g_reject_options[idx].f_flags & (REJECT_OPTION_IPV6 | REJECT_OPTION_IPV4)) == (REJECT_OPTION_IPV6 | REJECT_OPTION_IPV4))
-            {
-                return;
-            }
-            if((g_reject_options[idx].f_flags & REJECT_OPTION_IPV6) != 0)
-            {
                 f_force_ipv6 = true;
-                return;
             }
-            if((g_reject_options[idx].f_flags & REJECT_OPTION_IPV4) != 0)
+            else if(f_action_param2.empty())
             {
                 f_force_ipv4 = true;
-                return;
             }
-            throw iplock::logic_error("the g_reject_options table has an f_flags without either IPv4 or IPv6.");
+            // else -- both are valid, no force IPv4 or IPv6 necessary
+            return;
         }
     }
 
@@ -3643,7 +3659,11 @@ void rule::to_iptables_target(result_builder & result, line_builder const & line
     case action_t::ACTION_REJECT:
         if(!f_action_param.empty())
         {
-            final_line.append_both(" --reject-with " + f_action_param);
+            final_line.append_ipv4line(" --reject-with " + f_action_param);
+        }
+        if(!f_action_param2.empty())
+        {
+            final_line.append_ipv6line(" --reject-with " + f_action_param2);
         }
         break;
 
