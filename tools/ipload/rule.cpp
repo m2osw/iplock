@@ -681,7 +681,7 @@ rule::rule(
             else if(param_name == "set-type")
             {
                 std::string::size_type colon(value.find(':'));
-                if(colon == std::string:npos)
+                if(colon == std::string::npos)
                 {
                     // user did not specify the structure type, force to "hash"
                     //
