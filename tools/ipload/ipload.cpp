@@ -980,18 +980,21 @@ bool ipload::process_parameters()
             if(p->first == "add-to-set")
             {
                 f_add_to_set = p->second;
+                f_add_to_set += '\n';
                 ++p;
                 continue;
             }
-            if(p->first == "add-to-set-ipv4")
+            else if(p->first == "add-to-set-ipv4")
             {
                 f_add_to_set_ipv4 = p->second;
+                f_add_to_set_ipv4 += '\n';
                 ++p;
                 continue;
             }
-            if(p->first == "add-to-set-ipv6")
+            else if(p->first == "add-to-set-ipv6")
             {
                 f_add_to_set_ipv6 = p->second;
+                f_add_to_set_ipv6 += '\n';
                 ++p;
                 continue;
             }
@@ -1026,6 +1029,24 @@ bool ipload::process_parameters()
                 {
                     f_log_introducer.pop_back();
                 }
+                ++p;
+                continue;
+            }
+            else if(p->first == "load-to-set")
+            {
+                f_load_to_set = p->second;
+                ++p;
+                continue;
+            }
+            else if(p->first == "load-to-set-ipv4")
+            {
+                f_load_to_set_ipv4 = p->second;
+                ++p;
+                continue;
+            }
+            else if(p->first == "load-to-set-ipv6")
+            {
+                f_load_to_set_ipv6 = p->second;
                 ++p;
                 continue;
             }
@@ -1961,6 +1982,89 @@ bool ipload::create_sets()
 
                         // there is data, add it to the set
                         //
+                        FILE * ipv4_or_shared(nullptr);
+                        FILE * ipv6(nullptr);
+                        if(set_has_ip)
+                        {
+                            // in this case, we open two pipes to send
+                            // data to the IPv4 and IPv6 sets
+                            //
+                            if(f_load_to_set_ipv4.empty())
+                            {
+                                SNAP_LOG_ERROR
+                                    << "the \"load_to_set_ipv4\" global variable is empty."
+                                    << SNAP_LOG_SEND;
+                                return false;
+                            }
+                            if(f_load_to_set_ipv6.empty())
+                            {
+                                SNAP_LOG_ERROR
+                                    << "the \"load_to_set_ipv6\" global variable is empty."
+                                    << SNAP_LOG_SEND;
+                                return false;
+                            }
+
+                            ipv4_or_shared = popen(f_load_to_set_ipv4.c_str(), "w");
+                            if(ipv4_or_shared == nullptr)
+                            {
+                                int const e(errno);
+                                SNAP_LOG_ERROR
+                                    << "the \"load_to_set_ipv4\" command failed: "
+                                    << e
+                                    << ", "
+                                    << strerror(e)
+                                    << "; command \""
+                                    << f_load_to_set_ipv4
+                                    << "\"."
+                                    << SNAP_LOG_SEND;
+                                return false;
+                            }
+
+                            ipv6 = popen(f_load_to_set_ipv6.c_str(), "w");
+                            if(ipv6 == nullptr)
+                            {
+                                int const e(errno);
+                                SNAP_LOG_ERROR
+                                    << "the \"load_to_set_ipv6\" command failed: "
+                                    << e
+                                    << ", "
+                                    << strerror(e)
+                                    << "; command \""
+                                    << f_load_to_set_ipv6
+                                    << "\"."
+                                    << SNAP_LOG_SEND;
+                                return false;
+                            }
+                        }
+                        else
+                        {
+                            // in this case, we open one pipe to send
+                            // data to the common set
+                            //
+                            if(f_load_to_set.empty())
+                            {
+                                SNAP_LOG_ERROR
+                                    << "the \"load_to_set\" global variable is empty."
+                                    << SNAP_LOG_SEND;
+                                return false;
+                            }
+
+                            ipv4_or_shared = popen(f_load_to_set.c_str(), "w");
+                            if(ipv4_or_shared == nullptr)
+                            {
+                                int const e(errno);
+                                SNAP_LOG_ERROR
+                                    << "the \"load_to_set\" command failed: "
+                                    << e
+                                    << ", "
+                                    << strerror(e)
+                                    << "; command \""
+                                    << f_load_to_set
+                                    << "\"."
+                                    << SNAP_LOG_SEND;
+                                return false;
+                            }
+                        }
                         for(auto const & d : data)
                         {
                             if(set_has_ip)
@@ -2024,21 +2128,13 @@ bool ipload::create_sets()
                                 }
                                 if(is_ipv4)
                                 {
-                                    if(f_add_to_set_ipv4.empty())
-                                    {
-                                        SNAP_LOG_ERROR
-                                            << "the \"add_to_set_ipv4\" global variable is empty."
-                                            << SNAP_LOG_SEND;
-                                        return false;
-                                    }
                                     std::string const cmd_ipv4(snapdev::string_replace_many(
                                               f_add_to_set_ipv4
                                             , {
                                                 { "[name]", name + "_ipv4" },
                                                 { "[params]", d },
                                               }));
-                                    int const exit_code_v4(system(cmd_ipv4.c_str()));
-                                    if(exit_code_v4 != 0)
+                                    if(fwrite(cmd_ipv4.c_str(), 1, cmd_ipv4.length(), ipv4_or_shared) != cmd_ipv4.length())
                                     {
                                         int const e(errno);
                                         SNAP_LOG_ERROR
@@ -2046,9 +2142,7 @@ bool ipload::create_sets()
                                             << name
                                             << "\" IPv4 with command: \""
                                             << cmd_ipv4
-                                            << "\" (exit code: "
-                                            << exit_code_v4
-                                            << ", errno: "
+                                            << "\" (errno: "
                                             << e
                                             << ", "
                                             << strerror(e)
@@ -2056,6 +2150,25 @@ bool ipload::create_sets()
                                             << SNAP_LOG_SEND;
                                         valid = false;
                                     }
+                                    //int const exit_code_v4(system(cmd_ipv4.c_str()));
+                                    //if(exit_code_v4 != 0)
+                                    //{
+                                    //    int const e(errno);
+                                    //    SNAP_LOG_ERROR
+                                    //        << "an error occurred trying to add data to ipset \""
+                                    //        << name
+                                    //        << "\" IPv4 with command: \""
+                                    //        << cmd_ipv4
+                                    //        << "\" (exit code: "
+                                    //        << exit_code_v4
+                                    //        << ", errno: "
+                                    //        << e
+                                    //        << ", "
+                                    //        << strerror(e)
+                                    //        << ")."
+                                    //        << SNAP_LOG_SEND;
+                                    //    valid = false;
+                                    //}
                                 }
                                 else
                                 {
@@ -2072,8 +2185,7 @@ bool ipload::create_sets()
                                                 { "[name]", name + "_ipv6" },
                                                 { "[params]", d },
                                               }));
-                                    int const exit_code_v6(system(cmd_ipv6.c_str()));
-                                    if(exit_code_v6 != 0)
+                                    if(fwrite(cmd_ipv6.c_str(), 1, cmd_ipv6.length(), ipv6) != cmd_ipv6.length())
                                     {
                                         int const e(errno);
                                         SNAP_LOG_ERROR
@@ -2081,9 +2193,7 @@ bool ipload::create_sets()
                                             << name
                                             << "\" IPv6 with command: \""
                                             << cmd_ipv6
-                                            << "\" (exit code: "
-                                            << exit_code_v6
-                                            << ", errno: "
+                                            << "\" (errno: "
                                             << e
                                             << ", "
                                             << strerror(e)
@@ -2091,6 +2201,25 @@ bool ipload::create_sets()
                                             << SNAP_LOG_SEND;
                                         valid = false;
                                     }
+                                    //int const exit_code_v6(system(cmd_ipv6.c_str()));
+                                    //if(exit_code_v6 != 0)
+                                    //{
+                                    //    int const e(errno);
+                                    //    SNAP_LOG_ERROR
+                                    //        << "an error occurred trying to add data to ipset \""
+                                    //        << name
+                                    //        << "\" IPv6 with command: \""
+                                    //        << cmd_ipv6
+                                    //        << "\" (exit code: "
+                                    //        << exit_code_v6
+                                    //        << ", errno: "
+                                    //        << e
+                                    //        << ", "
+                                    //        << strerror(e)
+                                    //        << ")."
+                                    //        << SNAP_LOG_SEND;
+                                    //    valid = false;
+                                    //}
                                 }
                             }
                             else
@@ -2108,8 +2237,7 @@ bool ipload::create_sets()
                                             { "[name]", name },
                                             { "[params]", d },
                                           }));
-                                int const exit_code(system(cmd.c_str()));
-                                if(exit_code != 0)
+                                if(fwrite(cmd.c_str(), 1, cmd.length(), ipv4_or_shared) != cmd.length())
                                 {
                                     int const e(errno);
                                     SNAP_LOG_ERROR
@@ -2117,9 +2245,7 @@ bool ipload::create_sets()
                                         << name
                                         << "\" with command: \""
                                         << cmd
-                                        << "\" (exit code: "
-                                        << exit_code
-                                        << ", errno: "
+                                        << "\" (errno: "
                                         << e
                                         << ", "
                                         << strerror(e)
@@ -2127,6 +2253,69 @@ bool ipload::create_sets()
                                         << SNAP_LOG_SEND;
                                     valid = false;
                                 }
+                                //int const exit_code(system(cmd.c_str()));
+                                //if(exit_code != 0)
+                                //{
+                                //    int const e(errno);
+                                //    SNAP_LOG_ERROR
+                                //        << "an error occurred trying to add data to ipset \""
+                                //        << name
+                                //        << "\" with command: \""
+                                //        << cmd
+                                //        << "\" (exit code: "
+                                //        << exit_code
+                                //        << ", errno: "
+                                //        << e
+                                //        << ", "
+                                //        << strerror(e)
+                                //        << ")."
+                                //        << SNAP_LOG_SEND;
+                                //    valid = false;
+                                //}
+                            }
+                        }
+                        if(ipv4_or_shared != nullptr)
+                        {
+                            int const exit_code(pclose(ipv4_or_shared));
+                            if(exit_code != 0)
+                            {
+                                int const e(errno);
+                                SNAP_LOG_ERROR
+                                    << "an error occurred trying to add data to IPv4/common ipset \""
+                                    << name
+                                    << "\" with command: \""
+                                    << "<todo>"
+                                    << "\" (exit code: "
+                                    << exit_code
+                                    << ", errno: "
+                                    << e
+                                    << ", "
+                                    << strerror(e)
+                                    << ")."
+                                    << SNAP_LOG_SEND;
+                                valid = false;
+                            }
+                        }
+                        if(ipv6 != nullptr)
+                        {
+                            int const exit_code(pclose(ipv6));
+                            if(exit_code != 0)
+                            {
+                                int const e(errno);
+                                SNAP_LOG_ERROR
+                                    << "an error occurred trying to add data to IPv6 ipset \""
+                                    << name
+                                    << "\" with command: \""
+                                    << "<todo>"
+                                    << "\" (exit code: "
+                                    << exit_code
+                                    << ", errno: "
+                                    << e
+                                    << ", "
+                                    << strerror(e)
+                                    << ")."
+                                    << SNAP_LOG_SEND;
+                                valid = false;
                             }
                         }
                     }

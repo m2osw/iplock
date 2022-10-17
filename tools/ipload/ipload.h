@@ -107,6 +107,9 @@ private:
     std::string             f_add_to_set = std::string();
     std::string             f_add_to_set_ipv4 = std::string();
     std::string             f_add_to_set_ipv6 = std::string();
+    std::string             f_load_to_set = std::string();
+    std::string             f_load_to_set_ipv4 = std::string();
+    std::string             f_load_to_set_ipv6 = std::string();
     std::string             f_output = std::string();
 };
 
