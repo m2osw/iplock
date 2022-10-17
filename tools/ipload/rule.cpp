@@ -1811,7 +1811,7 @@ void rule::parse_reject_action()
 }
 
 
-void rule::load_file(std::string const & filename, advgetopt::string_list_t data)
+void rule::load_file(std::string const & filename, advgetopt::string_list_t & data)
 {
     if(filename.empty())
     {

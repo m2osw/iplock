@@ -228,7 +228,7 @@ private:
     void                                parse_reject_action();
     void                                load_file(
                                               std::string const & filename
-                                            , advgetopt::string_list_t data);
+                                            , advgetopt::string_list_t & data);
 
     void                                to_iptables_source_interfaces(result_builder & result, line_builder const & line);
     void                                to_iptables_destination_interfaces(result_builder & result, line_builder const & line);
