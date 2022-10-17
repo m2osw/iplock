@@ -113,7 +113,8 @@ public:
                                         rule(
                                               advgetopt::conf_file::parameters_t::iterator & it
                                             , advgetopt::conf_file::parameters_t const & config_params
-                                            , advgetopt::variables::pointer_t variables);
+                                            , advgetopt::variables::pointer_t variables
+                                            , std::string const & path_to_drop_lists);
 
     bool                                is_valid() const;
     bool                                empty() const;
@@ -225,6 +226,9 @@ private:
     bool                                parse_expression(std::string const & expression);
     bool                                parse_expr_string(char const * & s, std::string & str);
     void                                parse_reject_action();
+    void                                load_file(
+                                              std::string const & filename
+                                            , advgetopt::string_list_t data);
 
     void                                to_iptables_source_interfaces(result_builder & result, line_builder const & line);
     void                                to_iptables_destination_interfaces(result_builder & result, line_builder const & line);
@@ -243,9 +247,11 @@ private:
     void                                to_iptables_comment(result_builder & result, line_builder const & line);
     void                                to_iptables_target(result_builder & result, line_builder const & line);
 
+    std::string                         f_path_to_drop_lists = std::string();
+    bool                                f_valid = true;
+
     std::string                         f_name = std::string();
     std::string                         f_description = std::string();
-    bool                                f_valid = true;
 
     advgetopt::string_list_t            f_tables = advgetopt::string_list_t();
     advgetopt::string_list_t            f_chains = advgetopt::string_list_t();
@@ -257,6 +263,7 @@ private:
     bool                                f_condition = true;
     bool                                f_force_ipv4 = false;
     bool                                f_force_ipv6 = false;
+    bool                                f_enabled = true;
 
     advgetopt::string_list_t            f_interfaces = advgetopt::string_list_t();
 

@@ -14,7 +14,7 @@ usr/lib/lib*.so.*
 
 # Configuration Files
 #
-conf/iplock.conf                                   etc/iplock
+conf/iplock.conf                                   etc/iplock/
 conf/count.conf                                    etc/iplock/
 conf/all.conf                                      etc/iplock/schemes/
 conf/http.conf                                     etc/iplock/schemes/
@@ -28,8 +28,9 @@ conf/logger/README.md                              etc/iplock/logger/
 conf/iptables                                      etc/logrotate.d/
 conf/01-iptables.conf                              etc/rsyslog.d/
 conf/ipload                                        usr/share/iplock/
-conf/ipload/README.md                              etc/iplock/ipload/ipload.d/
+conf/drop-list                                     usr/share/iplock/
 conf/50-variables.conf                             usr/share/iplock/
+conf/ipload/README.md                              etc/iplock/ipload/ipload.d/
 
 # Here I do a rename so it's just "README.md" in the package
 #

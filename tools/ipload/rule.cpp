@@ -57,6 +57,7 @@
 
 // snapdev
 //
+#include    <snapdev/file_contents.h>
 #include    <snapdev/join_strings.h>
 #include    <snapdev/not_reached.h>
 #include    <snapdev/remove_duplicates.h>
@@ -402,7 +403,9 @@ std::string const & rule::result_builder::get_result() const
 rule::rule(
           advgetopt::conf_file::parameters_t::iterator & it
         , advgetopt::conf_file::parameters_t const & config_params
-        , advgetopt::variables::pointer_t variables)
+        , advgetopt::variables::pointer_t variables
+        , std::string const & path_to_drop_lists)
+    : f_path_to_drop_lists(path_to_drop_lists)
 {
     // parse all the parameters we can find
     //
@@ -575,8 +578,13 @@ rule::rule(
             break;
 
         case 'e':
-            if(param_name == "except-destination"
-            || param_name == "except-destinations")
+            if(param_name == "enable"
+            || param_name == "enabled")
+            {
+                f_enabled = advgetopt::is_true(value);
+            }
+            else if(param_name == "except-destination"
+                 || param_name == "except-destinations")
             {
                 advgetopt::split_string(value, except_destinations, {","});
             }
@@ -705,6 +713,10 @@ rule::rule(
             else if(param_name == "set-data")
             {
                 advgetopt::split_string(value, f_set_data, {","});
+            }
+            else if(param_name == "set-from-file")
+            {
+                load_file(value, f_set_data);
             }
             else if(param_name == "set-type")
             {
@@ -1799,6 +1811,83 @@ void rule::parse_reject_action()
 }
 
 
+void rule::load_file(std::string const & filename, advgetopt::string_list_t data)
+{
+    if(filename.empty())
+    {
+        return;
+    }
+    std::string fullname(filename);
+
+    auto invalid_file = [&](std::string const & msg)
+        {
+            SNAP_LOG_ERROR
+                << "could not read file \""
+                << fullname
+                << "\": "
+                << msg
+                << SNAP_LOG_SEND;
+            f_valid = false;
+        };
+
+    if(access(fullname.c_str(), R_OK) != 0)
+    {
+        if(filename[0] == '/')
+        {
+            invalid_file(strerror(errno));
+            return;
+        }
+
+        bool found(false);
+        advgetopt::string_list_t drop_paths;
+        advgetopt::split_string(f_path_to_drop_lists, drop_paths, {","});
+        for(auto const & path : drop_paths)
+        {
+            fullname = path + "/" + filename;
+            if(access(fullname.c_str(), R_OK) == 0)
+            {
+                found = true;
+                break;
+            }
+        }
+        if(!found)
+        {
+            invalid_file("not found anywhere");
+            return;
+        }
+    }
+
+    snapdev::file_contents in(fullname);
+    if(!in.read_all())
+    {
+        invalid_file(in.last_error());
+        return;
+    }
+
+    addr::addr_parser p;
+    p.set_allow(addr::allow_t::ALLOW_PORT, false);
+    p.set_allow(addr::allow_t::ALLOW_MULTI_ADDRESSES_NEWLINES, true);
+    p.set_allow(addr::allow_t::ALLOW_COMMENT_SEMICOLON, true);
+    p.set_allow(addr::allow_t::ALLOW_MASK, true);
+    addr::addr_range::vector_t ranges(p.parse(in.contents()));
+    for(auto const & r : ranges)
+    {
+        if(!r.has_from())
+        {
+            SNAP_LOG_ERROR
+                << "somehow a range does not include a 'from' address when it should; found in \""
+                << fullname
+                << "\"."
+                << SNAP_LOG_SEND;
+            f_valid = false;
+            continue;
+        }
+        addr::addr const & a(r.get_from());
+        data.push_back(a.to_ipv4or6_string(addr::STRING_IP_BRACKET_ADDRESS | addr::STRING_IP_MASK));
+    }
+}
+
+
 bool rule::is_valid() const
 {
     return f_valid;
@@ -1807,7 +1896,7 @@ bool rule::is_valid() const
 
 bool rule::empty() const
 {
-    return !f_valid || !f_condition;
+    return !f_valid || !f_condition || !f_enabled;
 }
 
 

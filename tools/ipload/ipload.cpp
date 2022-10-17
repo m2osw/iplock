@@ -171,6 +171,17 @@ advgetopt::option const g_options[] =
         , advgetopt::Help("Add comments to the output of the --show command.")
     ),
     advgetopt::define_option(
+          advgetopt::Name("ip-lists")
+        , advgetopt::ShortName('l')
+        , advgetopt::Flags(advgetopt::any_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_OPTIONS
+                    , advgetopt::GETOPT_FLAG_COMMAND_LINE
+                    , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE
+                    , advgetopt::GETOPT_FLAG_REQUIRED>())
+        , advgetopt::DefaultValue("/usr/share/iplock/ip-list:/var/lib/iplock/ip-list:/etc/iplock/ip-list")
+        , advgetopt::Help("Colon separated paths to the IP lists to load in ipsets.")
+    ),
+    advgetopt::define_option(
           advgetopt::Name("no-defaults")
         , advgetopt::ShortName('N')
         , advgetopt::Flags(advgetopt::option_flags<
@@ -1157,7 +1168,11 @@ bool ipload::process_parameters()
                 ++p;
                 continue;
             }
-            rules.push_back(std::make_shared<rule>(p, f_parameters, f_variables));
+            rules.push_back(std::make_shared<rule>(
+                      p
+                    , f_parameters
+                    , f_variables
+                    , f_opts.get_string("ip-lists")));
         }
         else
         {
@@ -1719,9 +1734,13 @@ bool ipload::generate_rules(
         }
 #endif
 
-        // if condition did not match, ignore that rule
+        // if empty() means:
         //
-        if(!r->get_condition())
+        //    rule is invalid
+        //    if condition did not match
+        //    enabled = false
+        //
+        if(r->empty())
         {
             continue;
         }
