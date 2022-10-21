@@ -1,4 +1,4 @@
-.TH IPLOAD 1 "August 2022" "ipload 1.x" "User Commands"
+.TH IPLOAD 8 "August 2022" "ipload 1.x" "User Commands"
 .SH NAME
 ipload \- Load your firewall on boot
 .SH SYNOPSIS
@@ -12,25 +12,28 @@ ipload \- Load your firewall on boot
 | \fB\-\-show\-dependencies\fR]
 [\fIOPTIONS\fR]...
 .SH DESCRIPTION
-The \fBipload(1)\fR tool runs once at boot time in order to load the firewall
-definitions in your firewall before your network is up.
+The \fBipload(8)\fR tool runs once at boot time in order to load firewall
+definitions before the network is up. This part of the process is automatic
+as long as the installation functions as expected. However, you still want
+to make sure to turn some services ON or OFF as required by your system.
 .PP
-If your firewall makes use of `ipset' to register lists of IP addresses,
-then it also creates those sets.
+The default rules makes use of several `ipset' to register lists of IP
+addresses and ports. These are automatically created and filled by
+\fBipload(8)\fR.
 
 .SH BASIC USAGE
-The \fBipload(1)\fR command must be called using the one command. Without
+The \fBipload(8)\fR tool must be called using one command. Without
 a command, the process fails. In most cases, you want to use the
-\fB\-\-load\fR command to load your firewall in place. The other commands
-are useful to debug your rules.
+\fB\-\-load\fR command to load your rules in the firewall. The other
+commands are useful to debug your rules.
 .PP
-The commands supported by this version of \fBipload(1)\fR are:
+The commands supported by this version of \fBipload(8)\fR are:
 .PP
-\fB\-\-load\fR -- load the rules in your firewall
+\fB\-\-load\fR -- load the rules in \fBiptables\fR
 .br
-\fB\-\-load\-basic\fR -- just load the basic rules in your firewall
+\fB\-\-load\-basic\fR -- only load the basic rules in \fBiptables\fR
 .br
-\fB\-\-load\-default\fR -- load the default firewall
+\fB\-\-load\-default\fR -- load the default firewall in \fBiptables\fR
 .br
 \fB\-\-verify\fR -- verify that the firewall can be loaded
 .br
@@ -39,6 +42,116 @@ The commands supported by this version of \fBipload(1)\fR are:
 \fB\-\-show\fR -- show the ipload output, do not load it
 .br
 \fB\-\-show-dependencies\fR -- show a Makefile list of targets and dependencies
+.PP
+Additional details about these commands appear in the following sections.
+
+.SH "BASIC & DEFAULT FIREWALLS"
+The \fBbasic\fR firewall is there to make sure that the firewall blocks
+everything in the event it is misconfigured (i.e. \fBipload(8)\fR fails
+to compile all the configuration files). It always gets loaded when you
+run \fBipload(8)\fR with the `--load' command.
+.PP
+The \fBdefault\fR firewall is available to you to setup a decent firewall
+which blocks most everything while you work on fixing your firewall
+configuration files. It is also useful on computers that do not need to
+be accessed from the outside.
+
+.SH "VERIFYING FIREWALL RULES"
+The `--verify' command can be used to make sure that all the rules can be
+loaded. This does not verify everything 100%, but it is very close to
+(i.e. the creation of `ipset', for example, is not currently verified with
+this option).
+.PP
+This command is most useful in a script. Say you are creating a package with
+\fBipload(8)\fR rules, you can run a shell command to verify that it can
+compile all the rules or fail the creating of the package altogether.
+
+.SH "DEBUGGING RULES"
+The number of rules is pretty large. To make sure that the rules are in
+the correct order and include the correct parameters (i.e. correct source
+or destination IP addresses), then you can use the `--show' command line
+option.
+.PP
+The `--show' command should be used with a tool such as \fBless(1)\fR or
+save the output to a file and then check the file.
+
+    ipload --show 2>&1 | less
+      -- or --
+    ipload --show iptables.rules 2>&1
+    vim iptables.rules
+.PP
+First, you may need to make sure that the files are being loaded in the
+correct order. To do so, use the `--verbose' command line option. With
+that option, \fBipload(8)\fR displays the list of files it loads in the
+order they get loaded. By default, this means the following are searched:
+
+    /usr/share/iplock/ipload/*/*.conf
+    /usr/share/iplock/ipload/ipload.d/[0-9][0-9]-*.conf
+    /usr/share/iplock/ipload/ipload.d/*/[0-9][0-9]-*.conf
+    /etc/iplock/ipload/*/*.conf
+    /etc/iplock/ipload/ipload.d/[0-9][0-9]-*.conf
+    /etc/iplock/ipload/ipload.d/*/[0-9][0-9]-*.conf
+
+You can change the `/usr/share/iplock/ipload' and `/etc/iplock/ipload'
+directories with the `--rules' option. Each file has the ability to
+override the parameters defined in a previous file (however, that fails
+within a file--so you cannot define the same parameter more than once
+in a file).
+.PP
+All the \fBipload(8)\fR configuration files support variables. These can
+be debugged using the `--show-variables' option. This option works with
+most of the commands, including `--load', although it is certainly most
+useful when using `--show'.
+.PP
+While working on debugging the firewall rules, you may want to use the
+`--comment' option. This asks the `ipload' tool to add useful comments to
+the output. This is really helps to quickly find your chains and rules
+in the resulting output.
+.PP
+One issue with rules is the order in which they finally appear in `iptables'.
+You must make sure that the order you intended is respected. To help in that
+matter, `ipload' offers two features: \fBSections\fR and \fBBefore/After\fR
+parameters.
+.PP
+The five default ipload \fBSections\fR are already sorted: `header',
+`early_content', `content', `late_content', `footer'. The sorting is made
+possible using the \fBSections\fR `before' and `after' parameters--i.e. the
+`early_content' is defined as being `after' the `header':
+
+    [section::early_content]
+    after = header
+.PP
+The rules are sorted first by assigning them to a specific section. Then
+rules within a section can further be sorted using the `before' and `after'
+parameters.
+.PP
+In most cases, you want to extend the list of opened ports to services your
+server provides. This is done by adding a rule that opens a port and you
+want to place that service in the `content' section of the `INPUT' chain.
+Because of that, you rarely have to use the `before' and `after' parameters.
+The order in which the opened ports appear in the list of services is very
+rarely in need of sorting (i.e. whether HTTP appears before or after DNS
+should not matter).
+.PP
+We have one special service: \fBSSH\fR. That one appears early because
+we do not want to inadvertendly block the administrator before they have
+a chance to connect and manage their server.
+
+.SH "RESETTING IPTABLES"
+The `--flush' command can be used to delete all the rules, reset the
+default chain policies, delete user defined chains, and also destroy
+all the `ipset'.
+.PP
+This is particularly useful while debugging. When I use the `--load' command
+on a VirtualBox, it is not unlikely to block all my network connections
+between that VirtualBox and the host/Internet. That means I can't use commands
+such as `git pull' to refresh my code and try my changes. With the `--flush'
+command, I can reset the firewall of that VirtualBox, update the code, and
+try again.
+.PP
+You should never use this option on a production system. This would completely
+open your firewall and that's exactly the time when hackers connect to your
+unprotected services and take over your computer.
 
 .SH "COMMAND LINE OPTIONS"
 .TP
@@ -141,9 +254,10 @@ List the available severities as used by the logger.
 .TP
 \fB\-L\fR, \fB\-\-load\fR
 Load the firewall. This command can be used any number of times. It reloads
-the most current files and always refreshes the firewall. This ensures that
-the latest is loaded. Packages that install new firewall rules should have
-a `postinst' script which runs this command: `ipload \-\-load'.
+the most current files and always refreshes the firewall atomically. This
+ensures that the latest is loaded. Packages that install new firewall rules
+should have a trigger if they do not install them in the expected location
+(i.e. under /usr/share/iplock/ipload).
 
 .TP
 \fB\-B\fR, \fB\-\-load\-basic\fR

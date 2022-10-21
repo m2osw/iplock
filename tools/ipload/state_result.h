@@ -50,12 +50,20 @@ public:
 
     bool                is_valid() const;
 
+    bool                get_invalid() const;
+    void                set_invalid(bool invalid);
     bool                get_tcp_negate() const;
     void                set_tcp_negate(bool negate);
     int                 get_tcp_mask() const;
     void                set_tcp_mask(int flags);
     int                 get_tcp_compare() const;
     void                set_tcp_compare(int flags);
+    int                 get_tcpmss_negate() const;
+    void                set_tcpmss_negate(bool negate);
+    int                 get_tcpmss_min() const;
+    void                set_tcpmss_min(int mss);
+    int                 get_tcpmss_max() const;
+    void                set_tcpmss_max(int mss);
 
     bool                get_established_related() const;
     void                set_established_related(bool established_related);
@@ -70,11 +78,15 @@ public:
 private:
     mutable bool        f_valid = true;
 
+    bool                f_invalid = false;
     bool                f_established_related = false;
 
     bool                f_tcp_negate = false;
+    bool                f_tcpmss_negate = false;
     int                 f_tcp_mask = TCP_UNDEFINED;
     int                 f_tcp_compare = TCP_UNDEFINED;
+    std::int64_t        f_tcpmss_min = -1;
+    std::int64_t        f_tcpmss_max = -1;
 
     std::string         f_icmp_type = std::string();
 };

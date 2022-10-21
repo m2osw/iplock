@@ -1,4 +1,4 @@
-.TH IPLOAD 1 "August 2022" "ipload 1.x" "User Commands"
+.TH IPLOAD 5 "August 2022" "ipload 5.x" "User Commands"
 
 
 .SH NAME
@@ -6,28 +6,32 @@ ipload \- Load your firewall on boot
 
 
 .SH SYNOPSIS
-.B /usr/share/iplock/ipload/<name>.conf
-and
-.B /etc/iplock/ipload/<name>.conf
-and
-.B /etc/iplock/ipload/iplock.d/??-<name>.conf
+.B /usr/share/iplock/ipload/.../<name>.conf
+.br
+.B /usr/share/iplock/ipload/ipload.d/.../??-<name>.conf
+.br
+.B /etc/iplock/ipload/.../<name>.conf
+.br
+.B /etc/iplock/ipload/iplock.d/.../??-<name>.conf
+.PP
+Where `...' represent the current folder or a sub-folder and '??' represents
+a number from 00 to 99.
 
 
 .SH DESCRIPTION
-The \fBipload(1)\fR tool runs once at boot time in order to load the firewall
-definitions in your iptables firewall before your network goes up.
+The \fBipload(8)\fR tool runs once at boot time in order to load the firewall
+definitions in your `iptables' firewall before the network goes up.
 .PP
 The following documents the format of the configuration file supported by
-the \fBipload(1)\fR tool.
+the \fBipload(8)\fR tool.
 
 
 .SH ORGANIZATION
-The \fBipload(1)\fR tool loads all the files and look for a specific set
+The \fBipload(8)\fR tool loads all the files and look for a specific set
 of options as defined below. All the files are loaded first. Then the
 data gets organized in \fITables\fR, \fIChains\fR, \fISections\fR, and
-\fIRules\fR. The \fISections\fR is a concept added by \fBipload(1)\fR
-to ease the defining the order in which your rules get added to the
-firewall.
+\fIRules\fR. The \fISections\fR is a concept added by \fBipload(8)\fR
+to ease defining the order in which rules get added to the firewall.
 .PP
 The names of the \fITables\fR are the same as defined in \fBiptables(8)\fR:
 .RS
@@ -44,36 +48,39 @@ defined chains. At the moment, all chains have to be explicitly defined
 before they can be referenced.
 .PP
 All tables do not support all system defined chains. Here is a table of
-the system defined chains are and the tables in which they can be used:
+the system defined chains and the tables in which they can be used:
 .RS
 .TP 15
 .B Chains
 .B Corresponding Tables
 .TP 15
 .B FORWARD
-filter mangle security
+filter, mangle, security
 .TP 15
 .B INPUT
-filter nat mangle security
+filter, nat, mangle, security
 .TP 15
 .B OUTPUT
-filter nat mangle raw security
+filter, nat, mangle, raw, security
 .TP 15
 .B PREROUTING
-nat mangle raw
+nat, mangle, raw
 .TP 15
 .B POSTROUTING
-nat mangle
+nat, mangle
 .RE
 .PP
-User defined chains cannot reuse those names in any table.
+User defined chains cannot reuse those names in any table (i.e. you cannot
+create a user chain named `INPUT' and add it to the `raw' table). Also,
+by convention, user defined chains use lowercase names (those names are
+case sensitive).
 .PP
 \fIChains\fR include \fISections\fR. \fISections\fB are a concept introduced
-by \fBipload(1)\fR to give you a way to group rules instead of having them
+by \fBipload(8)\fR to give you a way to group rules instead of having them
 all sorted with just \fBbefore = ...\fR and \fBafter = ...\fR parameters.
 .PP
 Finally, \fISections\fR include \fIRules\fR. \fBRules\fR are the actual
-rules that appear in your \fBiptables(8)\fR, however, one \fBipload(1)\fR
+rules that appear in your \fBiptables(8)\fR, however, one \fBipload(8)\fR
 rule may result in zero to many \fBiptables(8)\fR rules.
 .PP
 Here is a tree like representation of those definitions:
@@ -92,23 +99,40 @@ Here is a tree like representation of those definitions:
 
 
 .SH TABLES
-The \fBipload(1)\fR command reads all the configurations files. It then
+The \fBipload(8)\fR tool reads all the configurations files. It then
 look for tables, chains, sections, and rules (as defined in the ORGANIZATION
 section above).
 .PP
-The default configuration files already defines all the available tables.
-In other words, you do not really have to do anything about that section
-of the configuration.
+The default configuration files already defines all the tables supported
+by `iptables'. In other words, you do not really have to do anything about
+that part of the configuration.
 
     [table::<table-name>]
-    prefix = <prefix>
+    description = <description>
+
+.TP
+\fBdescription\fR
+A brief description of the table.
+
+Note: this is really necessary because we need at least one parameter in
+      a section for the section to be defined by a configuration file.
 
 .SH CHAINS
 Like with tables, the default system chains are all defined in the default
-configuration files. The \fBipload(1)\fR tool also defined two user chains:
+configuration files. The \fBipload(8)\fR tool also defined several user
+chains:
 
 .TP
-\fBbad_packets\fR
+\fBadd_to_denylist\fR
+The sole purpose of this chain is to add the packet source IP address to
+a set managed by the `recent' module. This is why there is only one rule
+in this chain. You should not have to do anything about it.
+
+You may add more IP address to this set by calling it with the
+`CALL add_to_denylist' action in another rule.
+
+.TP
+\fBbad_ips\fR
 To list a default set of IP addresses that is not supported on your system
 such as 10.x.x.x (i.e. if you use 192.168.x.x, then you can as well block
 all traffic on 10.x.x.x).
@@ -116,6 +140,11 @@ all traffic on 10.x.x.x).
 It happens that some hackers simulate those IP addresses in an attempt to
 directly connect to a service on your LAN. The IP protocol is such that there
 is no good way to prevent such attempts except through your firewall.
+
+.TP
+\fBforward_traffic\fR
+The chain to add rules for the `FORWARD' chain. This is necesary because
+of of the `DOCKER-USER' chain which also uses these rules.
 
 .TP
 \fBunwanted\fR
@@ -130,47 +159,73 @@ are there to stay around forever.)
 .PP
 The chains support the following parameters:
 
-    [chain::[<table-prefix>_]<chain-name>]
-    policy = ACCEPT | DROP
+    [chain::<chain-name>]
+    exact_name = <name>
+    table = <name>[, <name>]*
+    policy = <policy>[, <policy>]*
     type = RETURN | DROP | USER-DEFINED
     log = <message>
 
 Note that the system chain names must be in all caps and match the system
-names exactly (i.e. INPUT, OUTPUT, FORWARD, PREROUTING, POSTROUTING). It is
-customary to use lowercase names for user defined chains as shown above fo
-the `bad_packets' and `unwanted' chains.
-
-A chain must include the table prefix to be added to that specific table.
-For example, to add a rule to the `nat' `INPUT' table, use the name
-`nat_INPUT' for that chain. The `filter' table is the default and it does
-not make use of a prefix. It is mandatory for all the other tables to
-include a prefix.
+names exactly (i.e. INPUT, OUTPUT, FORWARD, PREROUTING, POSTROUTING).
+These are already defined in the \fBipload(8)\fR configuration files.
+It is customary to use lowercase names for user defined chains as shown
+above for the `bad_ips' and `unwanted' chains.
 
 .TP
-\fBpolicy = <policy>\fR (default: DROP)
-This parameter defines the default policy of a system chain.
+\fBexact_name = <name>[, <name>]*\fR (optional)
+The exact name of the chain. The name of a chain defined in the square
+brackets (`[chain::this_name]') cannot include a dash. Yet, the iptables
+can support dashes and you may need to define a chain with such a name.
+The solution is to define an exact name instead. We actually use this
+feature with the `DOCKER-USER' chain:
 
-With Ubuntu, the default policy is to `ACCEPT` any traffic. You can change
-the policy to `DROP` instead. This means traffic that was not accepted by
-a rule within that chain will be dropped.
+    [chain::docker_user]
+    exact_name = DOCKER-USER
+    ...
+
+.TP
+\fBtable = <name>[, <name>]*\fR (mandatory)
+The name of the table or tables that this chain appear in.
+
+.TP
+\fBpolicy = <policy>[, <policy>]*\fR (default: DROP)
+This parameter defines the default policy of a system chain. This appears
+in the policy of the chain (i.e. not as a rule).
+
+With Ubuntu, the default policy is `ACCEPT'. You can change the policy to
+`DROP' instead. This means traffic that was not accepted by a rule within
+that chain is dropped.
 
 Only built-in chains can be assigned a policy.
 
-The `ipload' tool sets the policy of a chain to `DROP` by default, since it
-is more constrained.
+The \fBipload(8)\fR tool sets the policy of a chain to `DROP' by default,
+since it is more constrained and thus safer.
 
 In the configuration file, we change the default to ACCEPT for all the tables
 except the `INPUT' table.
 
+For a chain in a specific table to be assigned a specific policy, you
+can use a namespace like so:
+
+    <table-name>:<policy>
+
+Where <table-name> must be the name of a table or the `*' character for any
+table. The asterisk has to be used as the last namespace and it is not
+required (it is the default when not specified).
+
 .TP
-\fBtype = <type>\fR (default: DROP)
-This parameter defines the _type_ of the chain, which is an `ipload'-only
+\fBtype = <type>[, <type>]*\fR (default: DROP)
+This parameter defines the _type_ of the chain, which is an `ipload'-specific
 concept. The supported types are `DROP', `REJECT', `RETURN', and
 `USER_DEFINED'.
 
 The type defines how the chain is _closed_. In other words, which rule(s) to
 use at the end the chain to make sure packets that went through all the
-preceeding rules are managed as expected.
+preceeding rules are managed as expected. In most cases, you want to `DROP'
+all the other packets. This can also be achieved by setting `DROP' as the
+policy of the chain. The advantage of using this `type' is that you can
+also define a log.
 
 .RS
 .IP \(bu 2
@@ -202,12 +257,11 @@ also be used if you just do not want to have any terminating rules added.
 .TP
 \fBlog\fR (default: no message)
 This parameter defines a log message. This message is printed only if
-the `RETURN`, `REJECT' or `DROP` rule added by `ipload' at the end of
-the chain is reached.
+the type is set to one of `RETURN`, `REJECT' or `DROP`.
 
 
 .SH "SECTIONS"
-As mentioned above, \fISections\fR are a concept in \fBipload(1)\fR only.
+As mentioned above, \fISections\fR are a concept in \fBipload(8)\fR only.
 This allows us to create groups of rules that get sorted as per the sorting
 order of the sections.
 .PP
@@ -235,48 +289,49 @@ that do not defined a \fBsection = ...\fR parameter end up in that section.
 You can detect when that happens using the \fB\-\-verbose\fR command
 line option.
 .PP
-The basic section definition looks like this:
+The section definition looks like this:
 
     [section::<section-name>]
+    description = <description>
     before = <section-name>[, <section-name>]*
     after = <section-name>[, <section-name>]*
     default = true | false
 
-The following defines each parameter:
+The following defines each parameter in detail:
 
 .TP
-\fBdescription = <description>\fR
+\fBdescription = <description>\fR (default: <empty>)
 The description of the section for documentation purposes.
 
 .TP
-\fBbefore = <section-name>[, <section-name>]*\fR
+\fBbefore = <section-name>[, <section-name>]*\fR (default: <empty>)
 Define the name of a section that we want to appear before this one. In the
 final list of rules, all the rules in this section will appear before the
-rules found in the section named in this parameter.
+rules found in the sections named in this parameter.
 
 Multiple names can be included. Separate each name with a comma. Spaces
 are ignored.
 
-The `before' and `after' parameter may defined a loop. If that happens, an
+The `before' and `after' parameters may defined a loop. If that happens, an
 error is generated.
 
 .TP
-\fBafter = <section-name>[, <section-name>]*\fR
+\fBafter = <section-name>[, <section-name>]*\fR (default: <empty>)
 Define the name of a section that we want to appear after this one. In the
 final list of rules, all the rules in this section will appear after the
-rules found in the section named in this parameter.
+rules found in the sections named in this parameter.
 
 Multiple names can be included. Separate each name with a comma. Spaces
 are ignored.
 
-The `before' and `after' parameter may defined a loop. If that happens, an
+The `before' and `after' parameters may defined a loop. If that happens, an
 error is generated.
 
 .TP
-\fBdefault = true | false\fR
+\fBdefault = true | false\fR (default: false)
 Mark this section as the default one when set to `true'. Only one section
 can be marked as the default. All the others must set this parameter to
-`false' (or not use the parameter).
+`false' (or not define the parameter).
 
 Rules that do not defined a `section = ...' parameter are automatically
 assigned the default section as a fallback. If no section was marked as
@@ -287,11 +342,12 @@ error is raised.
 .SH "RULES"
 The rules define the actual firewall rules. Contrary to the \fBiptables(8)\fR
 rules, our rules do not require advance knowledge of all the command line
-options. Instead of offer a \fIfew\fR parameters that you can set with
-various values and you end up with the rules as required by \fBiptables(8)\fR.
+options. Instead a rule offers a \fIfew\fR parameters that are set to
+various values and \fBipload(8)\fR does the rest to generate rules as
+required by \fBiptables(8)\fR.
 Not only that, some of the parameters generate a product, meaning that it
-can end up generating multiple. For example, if you define two chains, two
-interfaces and three sources in one \fBipload(1)\fR rule, you end up with
+can end up generating multiple rules. For example, if you define two chains,
+two interfaces and three sources in one \fBipload(8)\fR rule, you end up with
 2 x 2 x 3 = 12 rules in \fBiptables(8)\fR.
 .PP
 Rules should be assigned a \fBsection = ...\fR parameter. When that
@@ -305,8 +361,44 @@ another.
 .PP
 Rules can include a \fBcondition = ...\fR to dynamically define whether the
 rule should be included or not. At the moment, the condition is limited to
-whether two strings are equal or not equal. This is still very useful since
-we can then test whether a variable is set. If not set, skip that rule.
+whether two strings are equal or not equal and it supports the OR and AND
+operators. This is still very useful since we can then test whether a
+variable is set. If not set or not set to a specific value, skip that rule.
+.PP
+The rules definition looks like this:
+
+    [rule::<rule-name>]
+    table = <table-name>[, <table-name>]*
+    chains = <chain-name>[, <chain-name>]*
+    section = <section-name>
+    before = <rule-name>[, <rule-name>]*
+    after = <rule-name>[, <rule-name>]*
+    condition = <condition>
+    enabled = true | false
+    interfaces = <interface>[, <interface>]*
+    source_interfaces = <interface>[, <interface>]*
+    sources = <source>[, <source>]*
+    except_sources = <source>[, <source>]*
+    source_ports = <port>[, <port>]*
+    destination_interfaces = <interface>[, <interface>]*
+    destinations = <destination>[, <destination>]*
+    except_destinations = <destination>[, <destination>]*
+    destination_ports = <port>[, <port>]*
+    protocols = tcp, udp, icmp, ...
+    state = <flag> | <flag> | ..., [!] ( <flag> | <flag> | ... ), !<flag>
+    limit = [<|<=|>]<number>[, [<-|->]<number>]
+    knocks = [<protocol>:]<port>, ...
+    conntrack = ...
+    recent = ...
+    set = ...
+    set_type = ...
+    set_data = ...
+    set_from_file = ...
+    action = <action>
+    descriptiont = <description>
+    comment = <comment>
+    log = <message>
+
 .PP
 The following is the list of available parameters supported by the rules
 blocks:
@@ -395,7 +487,7 @@ HTTP server). Newer HTTP protocols (i.e. v2 and v3) allow for existing
 connections to be used for long period of time and these will be viewed
 as established for a while.
 
-The `iplock' package installs a command line tool called `knock-knock(1)',
+The `iplock' package installs a command line tool called \fBknock-knock(1)\fR,
 which you want to use to open your ports. Simply repeat the same list of
 protocols and ports on that command line, and it will open access to your
 service.
@@ -403,7 +495,7 @@ service.
 \fBIMPORTANT\fR: the ports listed in the `knocks' parameter cannot appear
 in the list of destination ports. This is because it can cause some difficult
 to deal with side effects to your port knocking (i.e. running the
-`knock-knock(1)' tool more than once with such a setting would not work).
+\fBknock-knock(1)\fR tool more than once with such a setting would not work).
 At the moment, this test is performed ignoring the protocol. Further, their
 cannot be any duplicates. We do not allow you to knock multiple times on the
 same port.
@@ -428,7 +520,7 @@ The default variables are defined under
 \fI/usr/share/iplock/general/variables.conf\fR.
 
 .SS "Dynamic Variables"
-Some of the available variables are dynamically assigned by \fBipload(1)\fR.
+Some of the available variables are dynamically assigned by \fBipload(8)\fR.
 These variables can be used like any others and also overwritten.
 
 TODO: actually implement such variables (i.e. list of interfaces and IP
@@ -441,7 +533,7 @@ The global variables are defined under
 \fI/usr/share/iplock/general/global.conf\fR.
 
 .TP
-\fBlog_introducer\fR
+\fBlog_introducer=<string>\fR
 The log introducer is prepended to all the \fBiptables(8)\fR rules using
 the \fBLOG\fR target. We reuse this introducer in our file,
 \fI/etc/rsyslog.d/01-iptables.conf\fR, to capture those logs and send them
@@ -450,24 +542,28 @@ to a separate file (under \fB/var/log/iptables/...\fR).
 It is unlikely that you would want to change this introducer.
 
 .TP
-\fBcreate_set\fR
+\fBcreate_set=<command>\fR
+.br
+\fBcreate_set_ipv4=<command>\fR
+.br
+\fBcreate_set_ipv6=<command>\fR
 The system command line to be used to create an \fBipset(8)\fR. The
-\fBipload(1)\fR command transforms any instances of \fB[name]\fR with
+\fBipload(8)\fR command transforms any instances of \fB[name]\fR with
 the name of the set it is attempting to create.
 
-Note that \fBipload(1)\fR always attempts to create the set.
+Note that \fBipload(8)\fR always attempts to create the set.
 The command should use a condition to avoid errors if the set already
 exists. At this time, this is the \fB\-exist\fR command line option.
 
 .TP
-\fBremove_user_chain\fR
+\fBremove_user_chain=<command>\fR
 The \fBiptables-restore(8)\fR and \fBip6tables-restore(8)\fR commands
 automatically create new user chains. The \fB\-\-flush\fR command line
 option can be used to completely flush the firewall and that includes
 removing all user defined chains. This variable includes the command
 to be used to remove that user chain.
 
-Note that \fBipload(1)\fR always attempts to remove the user chain.
+Note that \fBipload(8)\fR always attempts to remove the user chain.
 The command should include a conition to not return an error if the
 chain does not exist. This is currently done using the \fB\-\-list\fR
 command line option. If that does not fail, the chain exists and it

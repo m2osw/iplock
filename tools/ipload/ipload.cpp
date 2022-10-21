@@ -102,62 +102,56 @@ advgetopt::option const g_options[] =
         , advgetopt::Flags(advgetopt::standalone_command_flags<
                       advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
         , advgetopt::Alias("verify")
-        , advgetopt::Help("Parse the rules for errors. Do not install them.")
+        , advgetopt::Help("parse the rules for errors; do not install them.")
     ),
     advgetopt::define_option(
           advgetopt::Name("flush")
         , advgetopt::ShortName('F')
-        , advgetopt::Flags(advgetopt::command_flags<
+        , advgetopt::Flags(advgetopt::standalone_command_flags<
                       advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
-        , advgetopt::Help("Flush the firewall back to its defaults.")
+        , advgetopt::Help("flush the firewall back to its defaults.")
     ),
     advgetopt::define_option(
           advgetopt::Name("load")
         , advgetopt::ShortName('L')
-        , advgetopt::Flags(advgetopt::command_flags<
+        , advgetopt::Flags(advgetopt::standalone_command_flags<
                       advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
-        , advgetopt::Help("Load or reload all the rules.")
+        , advgetopt::Help("load or reload all the rules.")
     ),
     advgetopt::define_option(
           advgetopt::Name("load-basic")
         , advgetopt::ShortName('B')
-        , advgetopt::Flags(advgetopt::command_flags<
+        , advgetopt::Flags(advgetopt::standalone_command_flags<
                       advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
-        , advgetopt::Help("Only load the basic firewall (mainly for test purposes).")
+        , advgetopt::Help("only load the basic firewall (mainly for test purposes).")
     ),
     advgetopt::define_option(
           advgetopt::Name("load-default")
         , advgetopt::ShortName('D')
-        , advgetopt::Flags(advgetopt::command_flags<
+        , advgetopt::Flags(advgetopt::standalone_command_flags<
                       advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
-        , advgetopt::Help("Only load the default firewall (mainly for test purposes).")
+        , advgetopt::Help("only load the default firewall (mainly for test purposes).")
     ),
     advgetopt::define_option(
           advgetopt::Name("show")
         , advgetopt::ShortName('s')
         , advgetopt::Flags(advgetopt::standalone_command_flags<
                       advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
-        , advgetopt::Help("Show the rules. Like --load but instead of loading the rules to iptables, show them in your console.")
+        , advgetopt::Help("show the rules; like --load but instead of loading the rules to iptables, show them in your console.")
     ),
     advgetopt::define_option(
           advgetopt::Name("show-dependencies")
         , advgetopt::ShortName('d')
         , advgetopt::Flags(advgetopt::standalone_command_flags<
                       advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
-        , advgetopt::Help("Show the rules dependency tree in a Makefile like format.")
-    ),
-    advgetopt::define_option(
-          advgetopt::Name("show-variables")
-        , advgetopt::Flags(advgetopt::standalone_command_flags<
-                      advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
-        , advgetopt::Help("Show the complete list of variables after all were loaded.")
+        , advgetopt::Help("show the rules dependency tree in a Makefile like format.")
     ),
     advgetopt::define_option(
           advgetopt::Name("verify")
         , advgetopt::ShortName('V')
         , advgetopt::Flags(advgetopt::standalone_command_flags<
                       advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
-        , advgetopt::Help("Verify the rules. Like --load but without the final step of actually loading the rules in iptables.")
+        , advgetopt::Help("verify the rules; like --load but without the final step actually loading the rules in iptables.")
     ),
 
     // OPTIONS
@@ -167,7 +161,8 @@ advgetopt::option const g_options[] =
         , advgetopt::Flags(advgetopt::option_flags<
                       advgetopt::GETOPT_FLAG_GROUP_OPTIONS
                     , advgetopt::GETOPT_FLAG_COMMAND_LINE
-                    , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE>())
+                    , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE
+                    , advgetopt::GETOPT_FLAG_CONFIGURATION_FILE>())
         , advgetopt::Help("Add comments to the output of the --show command.")
     ),
     advgetopt::define_option(
@@ -177,6 +172,7 @@ advgetopt::option const g_options[] =
                       advgetopt::GETOPT_FLAG_GROUP_OPTIONS
                     , advgetopt::GETOPT_FLAG_COMMAND_LINE
                     , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE
+                    , advgetopt::GETOPT_FLAG_CONFIGURATION_FILE
                     , advgetopt::GETOPT_FLAG_REQUIRED>())
         , advgetopt::DefaultValue("/usr/share/iplock/ip-list:/var/lib/iplock/ip-list:/etc/iplock/ip-list")
         , advgetopt::Help("Colon separated paths to the IP lists to load in ipsets.")
@@ -187,16 +183,15 @@ advgetopt::option const g_options[] =
         , advgetopt::Flags(advgetopt::option_flags<
                       advgetopt::GETOPT_FLAG_GROUP_OPTIONS
                     , advgetopt::GETOPT_FLAG_COMMAND_LINE
-                    , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE>())
-        , advgetopt::Help("Prevent ipload from using defaults to setup the firewall.")
+                    , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE
+                    , advgetopt::GETOPT_FLAG_CONFIGURATION_FILE>())
+        , advgetopt::Help("Prevent ipload from loading the default firewall rules.")
     ),
     advgetopt::define_option(
           advgetopt::Name("quiet")
         , advgetopt::ShortName('q')
-        , advgetopt::Flags(advgetopt::option_flags<
-                      advgetopt::GETOPT_FLAG_GROUP_OPTIONS
-                    , advgetopt::GETOPT_FLAG_COMMAND_LINE
-                    , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE>())
+        , advgetopt::Flags(advgetopt::standalone_command_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_OPTIONS>())
         , advgetopt::Help("Prevent iptables from printing messages in stdout or stderr.")
     ),
     advgetopt::define_option(
@@ -206,17 +201,22 @@ advgetopt::option const g_options[] =
                       advgetopt::GETOPT_FLAG_GROUP_OPTIONS
                     , advgetopt::GETOPT_FLAG_COMMAND_LINE
                     , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE
+                    , advgetopt::GETOPT_FLAG_CONFIGURATION_FILE
                     , advgetopt::GETOPT_FLAG_REQUIRED>())
         , advgetopt::DefaultValue("/usr/share/iplock/ipload:/etc/iplock/ipload")
         , advgetopt::Help("Colon separated paths to the rules to load in iptables.")
     ),
     advgetopt::define_option(
+          advgetopt::Name("show-variables")
+        , advgetopt::Flags(advgetopt::standalone_command_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_OPTIONS>())
+        , advgetopt::Help("Show the complete list of variables after all were loaded from configuration files.")
+    ),
+    advgetopt::define_option(
           advgetopt::Name("verbose")
         , advgetopt::ShortName('v')
-        , advgetopt::Flags(advgetopt::option_flags<
-                      advgetopt::GETOPT_FLAG_GROUP_OPTIONS
-                    , advgetopt::GETOPT_FLAG_COMMAND_LINE
-                    , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE>())
+        , advgetopt::Flags(advgetopt::standalone_command_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_OPTIONS>())
         , advgetopt::Help("Show comands being executed.")
     ),
     advgetopt::end_options()
@@ -255,7 +255,7 @@ advgetopt::options_environment const g_options_environment =
     .f_environment_variable_intro = nullptr,
     .f_section_variables_name = nullptr,
     .f_configuration_files = nullptr,
-    .f_configuration_filename = nullptr,
+    .f_configuration_filename = "ipload.conf",
     .f_configuration_directories = nullptr,
     .f_environment_flags = advgetopt::GETOPT_ENVIRONMENT_FLAG_SYSTEM_PARAMETERS
                          | advgetopt::GETOPT_ENVIRONMENT_FLAG_PROCESS_SYSTEM_PARAMETERS,
@@ -371,6 +371,8 @@ ipload::ipload(int argc, char * argv[])
         break;
 
     case COMMAND_SHOW | COMMAND_SHOW_DEPENDENCIES:
+        // we will show both in this case
+        //
         f_command = COMMAND_SHOW;
         f_show_dependencies = true;
         break;
@@ -520,6 +522,10 @@ int ipload::run()
         if(!convert())
         {
             return 1;
+        }
+        if(f_show_dependencies)
+        {
+            show_dependencies();
         }
         show();
         break;
@@ -1769,7 +1775,12 @@ bool ipload::generate_rules(
         if(f_show_comments && f_verbose)
         {
             ++count;
-            out << "# Rule " << count << ": " << s->get_name() << '.' << r->get_name() << "\n";
+            out << "# Rule " << count << ": " << s->get_name() << '.' << r->get_name() << '\n';
+            std::string const & description(r->get_description());
+            if(!description.empty())
+            {
+                out << "#      " << description << '\n';
+            }
         }
         r->set_log_introducer(f_log_introducer);
         out << r->to_iptables_rules(c->get_exact_name());
@@ -2485,6 +2496,10 @@ void ipload::show()
 
 void ipload::show_dependencies()
 {
+    std::cout << "# --------------------\n";
+    std::cout << "# --- dependencies ---\n";
+    std::cout << "# --------------------\n";
+    std::cout << "\n";
     for(auto const & t : f_tables)
     {
         std::cout << "###\n### Table: " << t.first << "\n###\n\n";
@@ -2515,6 +2530,9 @@ void ipload::show_dependencies()
         }
         std::cout << '\n';
     }
+
+    std::cout << "# --------------------\n";
+    std::cout << "\n";
 }
 
 

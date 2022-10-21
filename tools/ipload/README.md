@@ -1,19 +1,28 @@
 
+# Basic Usage
+
+Please, see the manual page for additional information:
+
+    man 5 ipload
+    man 8 ipload
+
+    # from within the source (without having to install the package)
+    man doc/ipload.5
+    man doc/ipload.8
+
 # Implementation
 
 ## ipload
 
 The base class is `ipload`. It reads all the configuration files and
-then starts parsing each parameter entry found.
+then starts parsing each parameter entry.
 
-The ipload class takes care of the creating chains and sections.
+The order in which the files are loaded matters. The last one has the
+highest priority. It can override all the other file's parameters. To
+determine the order in your environment, you can use the `--verbose`
+command line option:
 
-Chains takes care of creating rules.
-
-The parsing happens in the respective chain, section, or rule. The chain
-also manages the section references. This is because the same section can
-be used in any number of chains so we use a reference to make sure we do
-not duplicate the sections, which would complicate updates of their data).
+    ipload --verbose --show [<other parameters as needed>]
 
 ## Basic Rules
 
@@ -21,22 +30,25 @@ The `basic.rules` file is used to setup a first very basic firewall to block
 any incoming and outgoing connections. The system should work as if the
 network was down, except for the localhost (lo) interface.
 
-This files is used to install the firewall as IPv4 and IPv6. If you have
-rules that are specific to IPv4, may sure to include the `--ipv4` flag.
+This file is used to install the firewall as IPv4 and IPv6. If you have
+rules that are specific to IPv4, make sure to include the `--ipv4` flag.
 Similarly, if you have rules specific to IPv6, then include the `--ipv6`
 flag in the rule.
 
-## Organizatio Tree
+## Organization Tree
 
     ipload
-      sections
-      chains
-        section-references (points to one section)
-          rules
+      tables
+        chains-references (points to one chain)
+          chains
+            section-references (points to one section)
+              sections
+                rules
 
 The `rules` objects may generate many `iptables` rules. This tree represents
 the rules as found in the configuration files. Not as in the `iptables`.
-Once the parsing is done, the `ipload` class makes sure that the sections
-and rules are sorted properly (according to their before/after parameters)
-and then start the `rules` to `iptables` conversion.
+Once the parsing is done, the `ipload` class makes sure that the chains,
+sections, and rules are sorted properly (according to their before/after
+parameters) and then start the `rules` to `iptables` conversion.
 
+# vim: ts=4 sw=4 et

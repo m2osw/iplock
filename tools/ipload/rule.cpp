@@ -1888,6 +1888,26 @@ void rule::load_file(std::string const & filename, advgetopt::string_list_t & da
 }
 
 
+/** \brief Whether this rule can use the multi-port extension.
+ *
+ * For some reason, the multi-port extension only supports source or
+ * destination ports or ranges of ports. Any other mix and the rule
+ * fails.
+ *
+ * This function checks that we can indeed use multi-port. If not
+ * then the system reverts to using one port for the source and one
+ * port for the destination. If you do have many ports (counting
+ * ranges as 1), then you may want to switch to using a set instead.
+ *
+ * \return true if this rule supports the multi-port feature.
+ */
+bool rule::is_multi_port() const
+{
+    return f_source_ports.size() > 1 && f_destination_ports.empty()
+        || f_destination_ports.size() > 1 && f_source_ports.empty();
+}
+
+
 bool rule::is_valid() const
 {
     return f_valid;
@@ -1903,6 +1923,12 @@ bool rule::empty() const
 std::string const & rule::get_name() const
 {
     return f_name;
+}
+
+
+std::string const & rule::get_description() const
+{
+    return f_description;
 }
 
 
@@ -2499,6 +2525,23 @@ void rule::to_iptables_protocols(result_builder & result, line_builder const & l
                 , std::placeholders::_2);
     }
 
+    bool is_established_related(false);
+    bool is_invalid(false);
+    for(auto const & s : f_states)
+    {
+        if(s.is_valid())
+        {
+            if(s.get_established_related())
+            {
+                is_established_related = true;
+            }
+            if(s.get_invalid())
+            {
+                is_invalid = true;
+            }
+        }
+    }
+
     if(f_protocols.empty())
     {
         if(!f_source_ports.empty()
@@ -2512,35 +2555,49 @@ void rule::to_iptables_protocols(result_builder & result, line_builder const & l
             f_valid = false;
         }
 
-        next(result, line);
+        if(is_established_related || is_invalid)
+        {
+            line_builder sub_line(line);
+            sub_line.append_both(" -m state");
+            if(is_established_related)
+            {
+                sub_line.append_both(" --state ESTABLISHED,RELATED");
+            }
+            if(is_invalid)
+            {
+                sub_line.append_both(" --state INVALID");
+            }
+            next(result, sub_line);
+        }
+        else
+        {
+            next(result, line);
+        }
     }
     else
     {
-        bool is_established_related(false);
-        for(auto const & s : f_states)
-        {
-            if(s.is_valid()
-            && s.get_established_related())
-            {
-                is_established_related = true;
-                break;
-            }
-        }
         for(auto const & s : f_protocols)
         {
+            line_builder sub_line(line);
+
             if(s != "icmpv6")
             {
-                line_builder sub_line(line);
-
                 sub_line.set_protocol(s); // if "icmp", this forces IPv4
 
                 sub_line.append_both(" -p " + s);
-                if(is_established_related)
+                if(is_established_related || is_invalid)
                 {
-                    sub_line.append_both(" -m state --state ESTABLISHED,RELATED");
+                    sub_line.append_both(" -m state");
+                    if(is_established_related)
+                    {
+                        sub_line.append_both(" --state ESTABLISHED,RELATED");
+                    }
+                    if(is_invalid)
+                    {
+                        sub_line.append_both(" --state INVALID");
+                    }
                 }
-                if(f_source_ports.size() > 1
-                || f_destination_ports.size() > 1)
+                if(is_multi_port())
                 {
                     sub_line.append_both(" -m multiport");
                 }
@@ -2548,17 +2605,22 @@ void rule::to_iptables_protocols(result_builder & result, line_builder const & l
             }
             else //if(s == "icmpv6")
             {
-                line_builder sub_line(line);
-
                 sub_line.set_protocol("icmpv6"); // this forces IPv6
 
                 sub_line.append_ipv6line(" -p icmpv6");
-                if(is_established_related)
+                if(is_established_related || is_invalid)
                 {
-                    sub_line.append_ipv6line(" -m state --state ESTABLISHED,RELATED");
+                    sub_line.append_ipv6line(" -m state");
+                    if(is_established_related)
+                    {
+                        sub_line.append_ipv6line(" --state ESTABLISHED,RELATED");
+                    }
+                    if(is_invalid)
+                    {
+                        sub_line.append_ipv6line(" --state INVALID");
+                    }
                 }
-                if(f_source_ports.size() > 1
-                || f_destination_ports.size() > 1)
+                if(is_multi_port())
                 {
                     sub_line.append_ipv6line(" -m multiport");
                 }
@@ -2668,13 +2730,16 @@ void rule::to_iptables_source_ports(result_builder & result, line_builder const 
     }
     else
     {
-        if(f_source_ports.size() == 1)
+        if(!is_multi_port())
         {
-            // for just one port, use --sport
+            // when multi-port cannot be used
             //
-            line_builder sub_line(line);
-            sub_line.append_both(" --sport " + f_source_ports[0]);
-            to_iptables_destinations(result, sub_line);
+            for(std::size_t idx(0); idx < f_source_ports.size(); ++idx)
+            {
+                line_builder sub_line(line);
+                sub_line.append_both(" --sport " + f_source_ports[idx]);
+                to_iptables_destinations(result, sub_line);
+            }
         }
         else
         {
@@ -2809,13 +2874,16 @@ void rule::to_iptables_destination_ports(result_builder & result, line_builder c
     }
     else
     {
-        if(f_destination_ports.size() == 1)
+        if(!is_multi_port())
         {
-            // for just one port, use --dport
+            // when multi-port cannot be used
             //
-            line_builder sub_line(line);
-            sub_line.append_both(" --dport " + f_destination_ports[0]);
-            to_iptables_set(result, sub_line);
+            for(std::size_t idx(0); idx < f_destination_ports.size(); ++idx)
+            {
+                line_builder sub_line(line);
+                sub_line.append_both(" --dport " + f_destination_ports[idx]);
+                to_iptables_set(result, sub_line);
+            }
         }
         else
         {
@@ -3248,8 +3316,13 @@ void rule::to_iptables_recent(result_builder & result, line_builder const & line
             throw iplock::logic_error("added a new recent_t type and did not write the handling in this switch?");
 
         }
+
+        // there is always a name, if not defined on the command, iptables
+        // uses the "DEFAULT" name
+        //
         sub_line.append_both(" --name ");
         sub_line.append_both(f_recent.get_name());
+
         if(f_recent.get_destination())
         {
             sub_line.append_both(" --rdest");
@@ -3338,13 +3411,34 @@ void rule::to_iptables_states(result_builder & result, line_builder const & line
 
             line_builder sub_line(line);
 
+            // tcpmss needs separate handling
+            //
+            // TODO: make sure that the current protocol is TCP
+            // TODO: verify that the chain is PREROUTING or ...
+            // TODO: verify that the table is MANGLE
+            //
+            if(s.get_tcpmss_min() != -1)
+            {
+                sub_line.append_both(" -m tcpmss");
+                if(s.get_tcpmss_negate())
+                {
+                    sub_line.append_both(" !");
+                }
+                sub_line.append_both(" --mss " + std::to_string(s.get_tcpmss_min()));
+                if(s.get_tcpmss_min() != s.get_tcpmss_max()
+                && s.get_tcpmss_max() != -1)
+                {
+                    sub_line.append_both(':' + std::to_string(s.get_tcpmss_max()));
+                }
+            }
+
             // the state may still be optional
             //
             std::string const & protocol(line.get_protocol());
             std::string const state(s.to_iptables_options(protocol, line.is_ipv6()));
             if(!state.empty())
             {
-                sub_line.append_both(" -m " + protocol + state);
+                sub_line.append_both(state);
             }
 
             to_iptables_comment(result, sub_line);

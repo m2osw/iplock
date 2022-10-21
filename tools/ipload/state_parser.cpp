@@ -100,6 +100,7 @@
  *          | 'timestamp-request'
  *          | 'timestamp-reply'
  *          | 'any'
+ *          | 'tcpmss' INTEGER
  *          | '(' flag_list ')'
  *          | '!' flag_name
  * \endcode
@@ -249,9 +250,11 @@ void state_parser::flag_name()
     //      | 'psh'
     //      | 'new'
     //      | 'old'
+    //      | 'invalid'
     //      | 'established'
     //      | 'related'
     //      | 'all'
+    //      | 'tcpmss' <integer>
     //      | 'none'
     //      | '(' flag_list ')'
     //      | '!' flag_name
@@ -310,6 +313,10 @@ void state_parser::flag_name()
         f_result.set_established_related(true);
         break;
 
+    case TOKEN_INVALID:
+        f_result.set_invalid(true);
+        break;
+
     case TOKEN_ALL:
         f_special_flag_name = true;
         f_result.set_tcp_compare(TCP_ALL);
@@ -352,6 +359,43 @@ void state_parser::flag_name()
         next_token();
         flag_name();
         f_result.set_tcp_negate(!f_result.get_tcp_negate());
+        break;
+
+    case token_t::TOKEN_TCPMSS:
+        next_token();
+        if(f_last_token == token_t::TOKEN_NEGATE)
+        {
+            f_result.set_tcpmss_negate(true);
+            next_token();
+        }
+        if(f_last_token != token_t::TOKEN_INTEGER)
+        {
+            f_valid = false;
+            SNAP_LOG_ERROR
+                << "the 'tcpmss' state must be followed by an integer or a range."
+                << SNAP_LOG_SEND;
+            return;
+        }
+        f_result.set_tcpmss_min(f_integer);
+        next_token();
+        if(f_last_token == token_t::TOKEN_DASH)
+        {
+            next_token();
+            if(f_last_token != token_t::TOKEN_INTEGER)
+            {
+                f_valid = false;
+                SNAP_LOG_ERROR
+                    << "the 'tcpmss' state range must include an integer after the dash."
+                    << SNAP_LOG_SEND;
+                return;
+            }
+            f_result.set_tcpmss_max(f_integer);
+            next_token();
+        }
+        else
+        {
+            f_result.set_tcpmss_max(f_result.get_tcpmss_min());
+        }
         break;
 
     default:
@@ -412,7 +456,35 @@ void state_parser::next_token()
         case ',':
         case '|':
         case '=':
+        case '-':
             f_last_token = static_cast<token_t>(c); // as is (it happens to match one to one)
+            return;
+
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9':
+            f_integer = c - '0';
+            for(;;)
+            {
+                c = getc();
+                if(c < '0' || c > '9')
+                {
+                    break;
+                }
+                f_integer = f_integer * 10 + c - '0';
+            }
+            if(c != EOF)
+            {
+                unget_last();
+            }
+            f_last_token = TOKEN_INTEGER;
             return;
 
         default:
@@ -498,6 +570,14 @@ void state_parser::next_token()
                             }
                             break;
 
+                        case 'i':
+                            if(identifier == "invalid")
+                            {
+                                f_last_token = TOKEN_INVALID;
+                                return;
+                            }
+                            break;
+
                         case 'n':
                             if(identifier == "new")
                             {
@@ -557,6 +637,11 @@ void state_parser::next_token()
                             else if(identifier == "timestamp-reply")
                             {
                                 f_last_token = TOKEN_TIMESTAMP_REPLY;
+                                return;
+                            }
+                            else if(identifier == "tcpmss")
+                            {
+                                f_last_token = TOKEN_TCPMSS;
                                 return;
                             }
                             break;

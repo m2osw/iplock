@@ -88,6 +88,7 @@ private:
     bool                    f_verbose = false;
     bool                    f_quiet = false;
     bool                    f_show_comments = false;
+    bool                    f_show_descriptions = false;
     bool                    f_show_dependencies = false;
     bool                    f_output_empty_tables = false;
     int                     f_command = 0;

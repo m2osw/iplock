@@ -120,6 +120,7 @@ public:
     bool                                empty() const;
 
     std::string const &                 get_name() const;
+    std::string const &                 get_description() const;
     advgetopt::string_list_t const &    get_tables() const;
     advgetopt::string_list_t const &    get_chains() const;
     std::string const &                 get_section() const;
@@ -229,6 +230,7 @@ private:
     void                                load_file(
                                               std::string const & filename
                                             , advgetopt::string_list_t & data);
+    bool                                is_multi_port() const;
 
     void                                to_iptables_source_interfaces(result_builder & result, line_builder const & line);
     void                                to_iptables_destination_interfaces(result_builder & result, line_builder const & line);

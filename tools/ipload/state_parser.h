@@ -53,11 +53,15 @@ private:
         TOKEN_OR = '|',
         TOKEN_COMMA = ',',
         TOKEN_EQUAL = '=',
+        TOKEN_DASH = '-',
 
         TOKEN_NEW = 1000,
         TOKEN_OLD,
+        TOKEN_INVALID,
         TOKEN_ESTABLISHED,
         TOKEN_RELATED,
+        TOKEN_TCPMSS,
+        TOKEN_INTEGER,
         TOKEN_ALL,
         TOKEN_ANY,
         TOKEN_TIMESTAMP_REQUEST,
@@ -83,6 +87,7 @@ private:
     bool                f_valid = true;
     char const *        f_in = nullptr;
     token_t             f_last_token = TOKEN_EOF;
+    std::int64_t        f_integer = 0;
 
     state_result        f_result = state_result();
     state_result::vector_t

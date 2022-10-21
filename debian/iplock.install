@@ -15,6 +15,7 @@ usr/lib/lib*.so.*
 # Configuration Files
 #
 conf/iplock.conf                                   etc/iplock/
+conf/ipload.conf                                   etc/iplock/
 conf/count.conf                                    etc/iplock/
 conf/all.conf                                      etc/iplock/schemes/
 conf/http.conf                                     etc/iplock/schemes/

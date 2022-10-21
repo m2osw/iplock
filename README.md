@@ -69,26 +69,6 @@ The following shows the list of supported tags (see details below):
 _Note: This is being moved to the 'ipload' man page_
 
 
-    [rule::<rule-name>]
-    chains = <chain-name>[, <chain-name>]*
-    section = <section-name>
-    before = <rule-name>[, <rule-name>]*
-    after = <rule-name>[, <rule-name>]*
-    condition = <condition>
-    interfaces = <interface>[, <interface>]*
-    source_interfaces = <interface>[, <interface>]*
-    sources = <source>[, <source>]*
-    except_sources = <source>[, <source>]*
-    source_ports = <port>[, <port>]*
-    destination_interfaces = <interface>[, <interface>]*
-    destinations = <destination>[, <destination>]*
-    except_destinations = <destination>[, <destination>]*
-    destination_ports = <port>[, <port>]*
-    protocols = tcp, udp, icmp, ...
-    state = <flag> | <flag> | ..., [!] ( <flag> | <flag> | ... ), !<flag>
-    limit = [<|<=|>]<number>[, [<-|->]<number>]
-    action = <action>
-    log = <message>
 
     [variables]
     <variable-name> = <value>

@@ -10,7 +10,7 @@
 #
 if [ "$1" = "configure" ]
 then
-    /usr/bin/ipload
+    /usr/sbin/ipload
 
     # We add `01-iptables.conf`, make sure it is taken in account
     #

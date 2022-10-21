@@ -135,6 +135,18 @@ bool state_result::is_valid() const
 }
 
 
+bool state_result::get_invalid() const
+{
+    return f_invalid;
+}
+
+
+void state_result::set_invalid(bool invalid)
+{
+    f_invalid = invalid;
+}
+
+
 bool state_result::get_tcp_negate() const
 {
     return f_tcp_negate;
@@ -168,6 +180,42 @@ int state_result::get_tcp_compare() const
 void state_result::set_tcp_compare(int flags)
 {
     f_tcp_compare = flags;
+}
+
+
+int state_result::get_tcpmss_negate() const
+{
+    return f_tcpmss_negate;
+}
+
+
+void state_result::set_tcpmss_negate(bool negate)
+{
+    f_tcpmss_negate = negate;
+}
+
+
+int state_result::get_tcpmss_min() const
+{
+    return f_tcpmss_min;
+}
+
+
+void state_result::set_tcpmss_min(int mss)
+{
+    f_tcpmss_min = mss;
+}
+
+
+int state_result::get_tcpmss_max() const
+{
+    return f_tcpmss_max;
+}
+
+
+void state_result::set_tcpmss_max(int mss)
+{
+    f_tcpmss_max = mss;
 }
 
 
@@ -217,7 +265,7 @@ std::string state_result::to_iptables_options(
         if(!for_ipv6
         && !f_icmp_type.empty())
         {
-            return " --icmp-type " + f_icmp_type;
+            return " -m icmp --icmp-type " + f_icmp_type;
         }
         return std::string();
     }
@@ -227,7 +275,7 @@ std::string state_result::to_iptables_options(
         && !f_icmp_type.empty()
         && f_icmp_type != "any")    // the name "any" is not supported by IPv6 -- not having a type is equal to any
         {
-            return " --icmpv6-type " + f_icmp_type;
+            return " -m icmpv6 --icmpv6-type " + f_icmp_type;
         }
         return std::string();
     }
@@ -239,9 +287,9 @@ std::string state_result::to_iptables_options(
         {
             if(f_tcp_negate)
             {
-                return " ! --syn";
+                return " -m tcp ! --syn";
             }
-            return " --syn";
+            return " -m tcp --syn";
         }
 
         std::string result;
@@ -250,6 +298,7 @@ std::string state_result::to_iptables_options(
         {
             // not a specific TCP flags so output the whole thing
             //
+            result += " -m tcp";
             if(f_tcp_negate)
             {
                 result += " !";
@@ -261,6 +310,19 @@ std::string state_result::to_iptables_options(
         }
 
         return result;
+    }
+
+    if(protocol == "udp")
+    {
+        if(f_tcp_mask == TCP_SYN | TCP_RST | TCP_ACK | TCP_FIN
+        && f_tcp_compare == TCP_SYN)
+        {
+            if(f_tcp_negate)
+            {
+                return " -m state ! --state NEW";
+            }
+            return " -m state --state NEW";
+        }
     }
 
     return std::string();

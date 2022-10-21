@@ -145,17 +145,6 @@ section::section(
             }
             break;
 
-        case 'n':
-            if(param_name == "name")
-            {
-                f_name = value;
-            }
-            else
-            {
-                found = false;
-            }
-            break;
-
         default:
             found = false;
             break;
