@@ -1,0 +1,74 @@
+.TH SHOWFW 1 "August 2022" "showfw 1.x" "User Commands"
+.SH NAME
+showfw \- Show the firewall without blocking it
+.SH SYNOPSIS
+.B sudo showfw
+[\fI\-\-OPTION\fR] [<chain>]
+.SH DESCRIPTION
+The \fBshowfw(1)\fR script is used to display the current firewall.
+In most cases, complete firewalls are many pages long. This script
+outputs the firewall in a file and then sends it to \fBless(1)\fR.
+This way, the firewall itself doesn't remain locked and you can
+take your time to look at your rules, apply fixes and then test
+them.
+
+Without options, the IPv4 filter chains are shown.
+
+.SH "COMMAND LINE OPTIONS"
+.TP
+\fB\-4\fR
+Display the IPv4 firewall. This is the default.
+
+.TP
+\fB\-6\fR
+Display the IPv6 firewall.
+
+.TP
+\fB\-\-filter\fR
+Display the `filter' table. This is the default.
+
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print a brief document about the tool usage, then exit.
+
+.TP
+\fB\-\-line-numbers\fR, \fB\-l\fR
+Include the line number of each rule. This can be useful if you want to
+insert a new rule and delete a specific rule.
+
+.TP
+\fB\-\-mangle\fR
+Display the `mangle' table.
+
+.TP
+\fB\-\-nat\fR
+Display the `nat' table.
+
+.TP
+\fB\-\-raw\fR
+Display the `raw' table.
+
+.TP
+\fB\-\-security\fR
+Display the `security' table.
+
+.SH AUTHOR
+Written by Alexis Wilke <alexis@m2osw.com>.
+.SH "REPORTING BUGS"
+Report bugs to <https://github.com/m2osw/iplock/issues>.
+.br
+iplock home page: <https://snapwebsites.org/project/iplock>.
+.SH COPYRIGHT
+Copyright \(co 2022 Made to Order Software Corporation
+.br
+License: GPLv3
+.br
+This is free software: you are free to change and redistribute it.
+.br
+There is NO WARRANTY, to the extent permitted by law.
+.SH "SEE ALSO"
+.BR ipload (5),
+.BR ipload (8),
+.BR iplock (1),
+.BR ipwall (8),
+.BR knock-knock (1)

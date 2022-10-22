@@ -574,6 +574,32 @@ the chain being removed. Similarly, it replaces \fB[table]\fR with the
 name of the table in which that chain has to be deleted.
 
 
+.SH OVERRIDING PARAMETERS
+
+As mentioned earlier, you can override parameters from earlier configuration
+files using the same name in later configuration files.
+
+For example, the `lo_block' rule does not log anything by default. You may
+want to know whether some traffic gets blocked when it shouldn't. In that
+case you can enter the follow in your override configuration:
+
+    [rule::lo_block]
+    log = "lo"
+
+This small addition means two `LOG' rules get added. One in the `INPUT' chain
+and one in the `OUTPUT' chain:
+
+    -A INPUT -i lo -j LOG --log-prefix "[iptables] lo:" --log-uid
+    -A OUTPUT -o lo -j LOG --log-prefix "[iptables] lo:" --log-uid
+
+Note that is useful only if you see the counters of the corresponding REJECT
+rule increase. You can see such using the `showfw' script:
+
+    sudo showfw -4
+    sudo showfw -6
+
+to show the IPv4 and IPv6 firewalls.
+
 .SH KNOWN BUGS
 The tables, chains, sections, and rules must have at least one parameter
 defined to be recognized. For example, in the following, only the section
@@ -617,4 +643,5 @@ There is NO WARRANTY, to the extent permitted by law.
 .BR ipload (8),
 .BR iplock (1),
 .BR ipwall (8),
-.BR knock-knock (1)
+.BR knock-knock (1),
+.BR showfw (1)

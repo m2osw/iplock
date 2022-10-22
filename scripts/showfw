@@ -8,6 +8,7 @@
 
 IPTABLES=iptables
 TYPE=filter
+CHAIN=
 while test ! -z "$1"
 do
 	case "$1" in
@@ -23,12 +24,24 @@ do
 		TYPE=filter
 		;;
 
+	-l|"--line-numbers")
+		LINE_NUMBERS="--line-numbers"
+		;;
+
+	"--mangle")
+		TYPE=mangle
+		;;
+
 	"--nat")
 		TYPE=nat
 		;;
 
-	-l|"--line-numbers")
-		LINE_NUMBERS="--line-numbers"
+	"--raw")
+		TYPE=raw
+		;;
+
+	"--security")
+		TYPE=security
 		;;
 
 	-h|"--help")
@@ -36,17 +49,23 @@ do
 		echo
 		echo "  -4                    to display the IPv4 tables, this is the default"
 		echo "  -6                    to display the IPv6 tables"
-		echo "  --filter              to display the filter tables, this is the default"
+		echo "  --filter              to display the filter table, this is the default"
 		echo "  -h | --help           print out this help screen"
 		echo "  -l | --line-numbers   show line numbers (rule position)"
-		echo "  --nat                 to display the nat tables"
+		echo "  --mangle              to display the mangle table"
+		echo "  --nat                 to display the nat table"
+		echo "  --raw                 to display the raw table"
 		exit 0
 		;;
 
-	*)
+	"-"*)
 		echo "error: unsupported command line option $1"
 		echo "error: try --help for more information."
 		exit 1
+		;;
+
+	*)
+		CHAIN=$1
 		;;
 
 	esac
@@ -66,6 +85,6 @@ rm -rf "${OUTPUT}"
 touch "${OUTPUT}"
 chown root:root "${OUTPUT}"
 chmod 600 "${OUTPUT}"
-${IPTABLES} -t ${TYPE} -L -nvx ${LINE_NUMBERS} > "${OUTPUT}"
+${IPTABLES} -t ${TYPE} -L ${CHAIN} -nvx ${LINE_NUMBERS} > "${OUTPUT}"
 less -S "${OUTPUT}"
 rm -rf "${OUTPUT}"

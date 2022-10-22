@@ -5,15 +5,15 @@ iplock \- Block and Unblock IP addresses in your firewall
 .B iplock
 [\fIOPTION\fR]...
 .SH DESCRIPTION
-The `iplock' tool is used to block and unblock IP addresses directly
+The \fBiplock(1)\fR tool is used to block and unblock IP addresses directly
 whithin your firewall. The tool is setup so you do not need to be root
-to do so. That allows the \fBipwall\fR service to add and remove IP
+to do so. That allows the \fBipwall(8)\fR service to add and remove IP
 addresses from the firewall on all the computers in your cluster with
 one call.
 
 .SH "SECURITY"
-The `iplock' tool only allows the update of one user defined chain or
-am IP set. Which is all defined in the `iplock' configuration files.
+The \fBiplock(1)\fR tool only allows the update of one user defined chain
+or am IP set. Which is all defined in the `iplock' configuration files.
 This is why we allow anyone from blocking and unblocking IP addresses.
 The unblocking can only unblock IP addresses that are in that user defined
 chain or IP set.
@@ -220,4 +220,5 @@ There is NO WARRANTY, to the extent permitted by law.
 .BR ipload (5),
 .BR ipload (8),
 .BR ipwall (8),
-.BR knock-knock (1)
+.BR knock-knock (1),
+.BR showfw (1)
