@@ -14,5 +14,8 @@
 * Check that the knock ports do not reference an existing service to avoid potential disruptions (this will be done in ipwall).
 * The knock ports defined in the ipload configurations must be knocked on within 10 seconds and the port also remains opened for 10 seconds. Offer the user a way to define these durations.
 * Finish implementing support for mangle table special actions.
+* Add support for bad TCP state i.e. --syn means NEW so both states must be the same:
+      ... -p tcp ! --syn -m state --state NEW ...
+      ... -p tcp --syn -m state ! --state NEW ...
 * Write tests.
 

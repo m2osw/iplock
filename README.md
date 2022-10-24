@@ -7,20 +7,22 @@ src="https://snapwebsites.org/sites/snapwebsites.org/files/images/iplock-logo.jp
 iplock
 ======
 
-The `iplock` command line is an `iptable` firewall IP address blocker.
+The `iplock` project is an `iptables` firewall extension managing the
+rules and allowing for instantly blocking an IP address when various
+events happens.
 
-We use it with Snap! to block unwanted users either through tools
-such as `fail2ban` or from within our `libsnapwebsites` library.
+The `libiplock` offers a way to send a message to the `ipwall` service
+to add and remove IP addresses to the firewall. The `ipwall` service uses
+the `iplock` command line to update the firewall lists as required.
 
-The library comes with setup files which control how we add and remove
-IP addresses to the firewall. There are several methods depending on
-what `iplock` does.
+The project comes with configuration files which control how IP addresses
+are added and removed from the firewall.
 
 
 Firewall Editor (SNAP-355 part 3)
 =================================
 
-The iplock project comes with a console and graphical set of tools used
+The `iplock` project comes with a console and graphical set of tools used
 to edit and setup the firewall (?). This tool makes use of configuration files
 that are read using advgetopt and generates a script supported by iptables.
 
