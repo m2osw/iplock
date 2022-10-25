@@ -1864,7 +1864,10 @@ void rule::load_file(std::string const & filename, advgetopt::string_list_t & da
         return;
     }
 
+    addr::addr::vector_t list;
+
     addr::addr_parser p;
+    p.set_protocol(IPPROTO_TCP);
     p.set_allow(addr::allow_t::ALLOW_PORT, false);
     p.set_allow(addr::allow_t::ALLOW_MULTI_ADDRESSES_NEWLINES, true);
     p.set_allow(addr::allow_t::ALLOW_COMMENT_SEMICOLON, true);
@@ -1883,7 +1886,12 @@ void rule::load_file(std::string const & filename, advgetopt::string_list_t & da
             continue;
         }
         addr::addr const & a(r.get_from());
-        data.push_back(a.to_ipv4or6_string(addr::STRING_IP_BRACKET_ADDRESS | addr::STRING_IP_MASK));
+        list.push_back(a);
+    }
+    addr::optimize_vector(list);
+    for(auto const & l : list)
+    {
+        data.push_back(l.to_ipv4or6_string(addr::STRING_IP_BRACKET_ADDRESS | addr::STRING_IP_MASK));
     }
 }
 
