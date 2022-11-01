@@ -1,8 +1,16 @@
 iplock (3.0.28.0~bionic) bionic; urgency=high
 
-  * Renamed the "whitelist" as "allowlist".
+  * Reorganize the the project.
+  * Added an iplock library.
+  * Moved the snapfirewall as the ipwall. Not yet updated fully (it compiles).
   * Implemented the ipload to load the firewall on a boot.
+  * Reorganized the .conf template of ipload to the new working scheme.
+  * Tweaked the pre/post installation script to handle ipload properly.
+  * Addded the knock-knock tool (new!).
+  * Renamed the "whitelist" as "allowlist".
   * Introduced a "denylist" in the ipload system.
+  * Updated the license to GPV v3.
+  * Enhanced the showfw script.
 
  -- Alexis Wilke <alexis@m2osw.com>  Thu, 13 Oct 2022 19:46:31 -0700
 
