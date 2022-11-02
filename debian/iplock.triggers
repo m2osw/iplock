@@ -1,2 +1,3 @@
 interest /usr/share/iplock/ipload
+interest /usr/share/iplock/ip-list
 interest /etc/iplock/ipload
