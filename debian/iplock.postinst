@@ -27,7 +27,7 @@ then
     db_get iplock/admin_ips
     admin_ips="${RET}"
 
-    SYSTEM_VARIABLES="/etc/iplock/ipload/iplock.d/00-variables.conf"
+    SYSTEM_VARIABLES="/etc/iplock/ipload/ipload.d/00-variables.conf"
     echo "## AUTO-GENERATED FILE -- DO NOT EDIT" > "${SYSTEM_VARIABLES}"
     echo "" >> "${SYSTEM_VARIABLES}"
     echo "## See `basename ${SYSTEM_VARIABLES}`/README.md for details" >> "${SYSTEM_VARIABLES}"
