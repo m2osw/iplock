@@ -1,16 +1,13 @@
 #!/bin/sh -e
 
 
-# In case the firewall was modified, we want to update it
-# (i.e. updates in iptables rules and similar)
+# TBD: I'm not sure why I thought that... if it works as it is now, I'll
+#      leave it that way
 #
 # We MUST run this command before the deb helpers otherwise it
 # can remove the unwanted rules that ipload adds and thus we
 # would not have the correct firewall rules
-#
-if [ "$1" = "configure" ]
-then
-fi
+
 
 # At the moment there is nothing else to do
 #
