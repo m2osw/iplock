@@ -29,10 +29,10 @@ conf/logger/README.md                              etc/iplock/logger/
 conf/iptables                                      etc/logrotate.d/
 conf/01-iptables.conf                              etc/rsyslog.d/
 conf/ipload                                        usr/share/iplock/
-conf/drop-list                                     usr/share/iplock/
 conf/50-variables.conf                             usr/share/iplock/
 conf/ipload/README.md                              etc/iplock/ipload/ipload.d/
 
-# Here I do a rename so it's just "README.md" in the package
+# With some renames
 #
 conf/schemes-README.md                          => etc/iplock/schemes/schemes.d/README.md
+conf/drop-list                                  => usr/share/iplock/ip-list

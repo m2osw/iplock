@@ -1840,7 +1840,7 @@ void rule::load_file(std::string const & filename, advgetopt::string_list_t & da
 
         bool found(false);
         advgetopt::string_list_t drop_paths;
-        advgetopt::split_string(f_path_to_drop_lists, drop_paths, {","});
+        advgetopt::split_string(f_path_to_drop_lists, drop_paths, {":"});
         for(auto const & path : drop_paths)
         {
             fullname = path + "/" + filename;

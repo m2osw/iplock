@@ -10,11 +10,25 @@
 #
 if [ "$1" = "configure" ]
 then
-    /usr/sbin/ipload
+    if ! /usr/sbin/ipload --load
+    then
+        echo "ERROR: the ipload command failed to load the firewall on installation."
+    fi
 
     # We add `01-iptables.conf`, make sure it is taken in account
     #
     invoke-rc.d rsyslog restart
+fi
+
+if [ "$1" = "triggered" ]
+then
+    if [ "$2" = "/usr/share/iplock/ipload" -o "$2" = "/etc/iplock/ipload" ]
+    then
+        if ! /usr/sbin/ipload --load
+        then
+            echo "ERROR: the ipload command failed to load your latest firewall."
+        fi
+    fi
 fi
 
 
