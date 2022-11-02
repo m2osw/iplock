@@ -1,3 +1,15 @@
+iplock (3.0.30.0~bionic) bionic; urgency=high
+
+  * Fixed paths about files loaded by ipload. The path uses "ipload.d".
+  * Added a command to let people know how to list which files are loaded.
+  * Fixed the list of files, avoid duplicates & allow files in sub-folders
+    even if not present in that parent folder.
+  * Prevent usage of .../iplock.d/... for ipload files.
+  * Added db configuration for the public interface and admin IPs.
+  * Fixed the default_firewall.conf: replaced prefix= with description=...
+
+ -- Alexis Wilke <alexis@m2osw.com>  Tue, 01 Nov 2022 22:11:44 -0700
+
 iplock (3.0.29.1~bionic) bionic; urgency=high
 
   * Properly rename drop-list as ip-list when installing.

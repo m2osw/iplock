@@ -578,6 +578,23 @@ bool ipload::load_data()
     advgetopt::string_list_t path_list;
     advgetopt::split_string(paths, path_list, {":"});
 
+    // for each file we find anywhere we want to remember about it othewise
+    // we will miss the "??-<name>.conf" in directories where upper folders
+    // do not include a file.
+    //
+    // For example, we have this variables file:
+    //
+    //     /usr/share/iplock/ipload/general/variables.conf
+    //
+    // and without this, we would never find:
+    //
+    //     /etc/iplock/ipload/general/ipload.d/50-variables.conf
+    //
+    // the conf_files registers the filenames withouth the "path" part
+    // and that gets re-added to the glob variable on the following iteration
+    //
+    std::set<std::string> conf_files;
+
     // first determine all the filenames; we put "general" files in a separate
     // list so that way we can load them first and give all the other files
     // the ability to override data found in the general files
@@ -588,12 +605,17 @@ bool ipload::load_data()
     //
     advgetopt::string_list_t all_generals[3];
     advgetopt::string_list_t all_filenames[3];
-    for(auto const & path : path_list)
+    for(auto const & p : path_list)
     {
+        std::string path(p);
+        if(p.back() != '/')
+        {
+            path += '/';
+        }
         snapdev::glob_to_list<std::set<std::string>> glob;
         if(!glob.read_path<
                  snapdev::glob_to_list_flag_t::GLOB_FLAG_IGNORE_ERRORS,
-                 snapdev::glob_to_list_flag_t::GLOB_FLAG_RECURSIVE>(path + "/*.conf"))
+                 snapdev::glob_to_list_flag_t::GLOB_FLAG_RECURSIVE>(path + "*.conf"))
         {
             if(glob.get_last_error_errno() == ENOENT)
             {
@@ -607,6 +629,14 @@ bool ipload::load_data()
                 << "/*.conf\"."
                 << SNAP_LOG_SEND;
             return false;
+        }
+
+        // files found in previous folders are cumulative
+        // if they do not exist in the new folders, it's simply ignored
+        //
+        for(auto const & n : conf_files)
+        {
+            glob.insert(path + n);
         }
 
         if(glob.empty())
@@ -626,29 +656,69 @@ bool ipload::load_data()
         for(auto const & n : glob)
         {
             // avoid repeated ipload.d sub-directories
+            // and ignore invalid iplock.d (this could be a mistake since
+            // we are inthe iplock project...)
             //
-            if(n.find("/ipload.d/") == std::string::npos)
+            if(n.find("/iplock.d/") != std::string::npos)
             {
+                SNAP_LOG_MINOR
+                    << "an \".../iplock.d/...\" sub-folder is not supported in \""
+                    << n
+                    << "\"; did you mean to use \".../ipload.d/...\"?"
+                    << SNAP_LOG_SEND;
+            }
+            else if(n.find("/ipload.d/") == std::string::npos)
+            {
+                conf_files.insert(n.substr(path.length()));
+
                 std::string const basename(snapdev::pathinfo::basename(n));
                 if(n.find("/general/") != std::string::npos)
                 {
                     generals[0].push_back(n);
 
-                    advgetopt::string_list_t extra_files(advgetopt::insert_group_name(path + '/' + basename, "ipload", "iplock", false));
-                    generals[1].insert(generals[1].end(), extra_files.begin(), extra_files.end());
+                    advgetopt::string_list_t extra_files(advgetopt::insert_group_name(path + basename, "ipload", "iplock", false));
+                    for(auto const & f : extra_files)
+                    {
+                        if(std::find(generals[1].begin(), generals[1].end(), f) == generals[1].end()
+                        && std::find(generals[2].begin(), generals[2].end(), f) == generals[2].end())
+                        {
+                            generals[1].push_back(f);
+                        }
+                    }
 
                     advgetopt::string_list_t specialized_files(advgetopt::insert_group_name(n, "ipload", "iplock", false));
-                    generals[2].insert(generals[2].end(), specialized_files.begin(), specialized_files.end());
+                    for(auto const & f : specialized_files)
+                    {
+                        if(std::find(generals[1].begin(), generals[1].end(), f) == generals[1].end()
+                        && std::find(generals[2].begin(), generals[2].end(), f) == generals[2].end())
+                        {
+                            generals[2].push_back(f);
+                        }
+                    }
                 }
                 else
                 {
                     filenames[0].push_back(n);
 
-                    advgetopt::string_list_t extra_files(advgetopt::insert_group_name(path + '/' + basename, "ipload", "iplock", false));
-                    filenames[1].insert(filenames[1].end(), extra_files.begin(), extra_files.end());
+                    advgetopt::string_list_t extra_files(advgetopt::insert_group_name(path + basename, "ipload", "iplock", false));
+                    for(auto const & f : extra_files)
+                    {
+                        if(std::find(filenames[1].begin(), filenames[1].end(), f) == filenames[1].end()
+                        && std::find(filenames[2].begin(), filenames[2].end(), f) == filenames[2].end())
+                        {
+                            filenames[1].push_back(f);
+                        }
+                    }
 
                     advgetopt::string_list_t specialized_files(advgetopt::insert_group_name(n, "ipload", "iplock", false));
-                    filenames[2].insert(filenames[2].end(), specialized_files.begin(), specialized_files.end());
+                    for(auto const & f : extra_files)
+                    {
+                        if(std::find(filenames[1].begin(), filenames[1].end(), f) == filenames[1].end()
+                        && std::find(filenames[2].begin(), filenames[2].end(), f) == filenames[2].end())
+                        {
+                            filenames[2].push_back(f);
+                        }
+                    }
                 }
             }
         }

@@ -34,24 +34,37 @@ When a path starts with `/etc/...` the search further looks for a file under
 the `ipload.d` sub-directory. These files can be numbered to sort them out
 as in:
 
-    # Base file (do not edit)
-    /etc/ipload/ipload/network/docker.conf
-
-    # Administrator's file (create & edit at will)
-    /etc/ipload/ipload/network/ipload.d/docker.conf
-
-Finally, the ipload tool searches for one last directory which is defined
-by the `rule_overrides=...` parameter (or command line `--rule-overrides`).
-By default, this directory is set to:
-
-* `/etc/iplock/ipload/ipload.d` -- final directory searched for overrides.
-
-So for the `docker.conf` file shown above, `ipload` will look at:
-
+    # Base file (not editable)
     /usr/share/iplock/ipload/network/docker.conf
+
+    # Administrator's most specific file (last loaded)
+    # which can be created & edited at will
+    /etc/iplock/ipload/network/ipload.d/50-docker.conf
+
+To see all the folders and files that the `ipload` tool reads, use the
+following command line:
+
+    sudo ipload --show --verbose --trace 2>&1 | less
+
+The list shows the exact order in which the rules are loaded. This is
+important since a later instance of a parameter overrides any previous
+instances.
+
+There is one exception about the sorting order: the `general` directory
+is loaded before all the others, even though it may not appear first in
+your directory (i.e. by default we have the "forward" folder that gets
+loaded after). This allows for easier override of the general parameters
+in other system files.
+
+For the `docker.conf` file shown above, `ipload` will look at:
+
+    /usr/share/iplock/ipload/docker.conf
+    /usr/share/iplock/ipload/network/docker.conf
+    /etc/iplock/ipload/docker.conf
     /etc/iplock/ipload/network/docker.conf
-    /etc/iplock/ipload/network/ipload.d/??-docker.conf
     /etc/iplock/ipload/ipload.d/??-docker.conf
+    /usr/share/iplock/ipload/network/ipload.d/??-docker.conf
+    /etc/iplock/ipload/netowrk/ipload.d/??-docker.conf
 
 Where `??` is a number from `00` to `99` defining the order in which the files
 are to be loaded. In most cases, as the administrator you want to use number

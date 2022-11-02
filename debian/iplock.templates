@@ -1,0 +1,28 @@
+
+Template: iplock/title
+Type: title
+Description: IP Lock Basic Settings
+
+Template: iplock/public_interfaces
+Type: string
+Description: Public Interfaces
+ Enter a comma separated list of interface names that are connected to the
+ Internet (public). For example: "eth0, eno1, enp0s3" (without the quotes).
+ This will be saved in the system settings file. If necessary, you will be
+ able to override these values by creating another file with different values
+ or use "sudo dpkg-reconfigure iplock" to change the package settings.
+
+Template: iplock/admin_ips
+Type: string
+Description: Administrator IP Addresses
+ Enter a comma separated list of IP addresses that the administrators use to
+ access the system. Only use static IP addresses. If some of your
+ administrators do not have a static IP address, you may want to look at using
+ the knock-knock mechanism for SSH. This parameter can be left empty, however,
+ if you are currently using SSH, you will get blocked by your new firewall.
+
+Template: iplock/empty
+Type: error
+Description: This parameter cannot be empty.
+ Please make sure to enter at least one valid public interface name.
+
