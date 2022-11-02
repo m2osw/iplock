@@ -1,3 +1,11 @@
+iplock (3.0.29.0~bionic) bionic; urgency=high
+
+  * Added triggers.
+  * Fixed the postinst (ipload was missing the --load option).
+  * Rename drop-list as ip-list when installing.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Tue, 01 Nov 2022 21:48:27 -0700
+
 iplock (3.0.28.0~bionic) bionic; urgency=high
 
   * Reorganize the the project.
