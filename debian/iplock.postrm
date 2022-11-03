@@ -11,7 +11,10 @@ then
     #
     rm -f /var/log/iplock/${PACKAGENAME}.log*
     rm -f /var/log/iplock/ipload.log*
-    rmdir --ignore-fail-on-non-empty /var/log/iplock
+    if test -d /var/log/iplock
+    then
+        rmdir --ignore-fail-on-non-empty /var/log/iplock
+    fi
 
     # delete the admin configuration files and config directories if possible
     #
@@ -19,7 +22,21 @@ then
     rm -f /etc/iplock/logger/iplock.d/50-ipload.conf
     rm -f /etc/iplock/iplock.d/50-${PACKAGENAME}.conf
     rm -f /etc/iplock/iplock.d/50-ipload.conf
-    rmdir --ignore-fail-on-non-empty /etc/iplock/logger/iplock.d /etc/iplock/logger /etc/iplock/iplock.d /etc/iplock
+    for d in /etc/iplock/logger/iplock.d /etc/iplock/logger \
+             /etc/iplock/iplock.d /etc/iplock
+    do
+        if test -d "${d}"
+        then
+            rmdir --ignore-fail-on-non-empty "${d}"
+        fi
+    done
+
+    # also remove the ipload configuration files with 50-<name>.conf
+    # and 00-variables.conf created by the postinst script
+    #
+    rm -f /etc/iplock/ipload/ipload.d/00-variables.conf
+    find /etc/iplock/ipload -type f -name '50-*.conf' -delete
+    find /etc/iplock/ipload -type d -exec rmdir --ignore-fail-on-non-empty "{}" \;
 
     # `01-iptables.conf` is now gone
     #
