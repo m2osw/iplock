@@ -41,9 +41,15 @@
 #include    <iplock/version.h>
 
 
+// communicatord
+//
+#include    <communicatord/flags.h>
+
+
 // libaddr
 //
 #include    <libaddr/addr_parser.h>
+#include    <libaddr/iface.h>
 
 
 // advgetopt
@@ -74,6 +80,7 @@
 
 // C
 //
+#include    <net/if.h>
 #include    <readline/readline.h>
 #include    <stdlib.h>
 #include    <unistd.h>
@@ -156,6 +163,15 @@ advgetopt::option const g_options[] =
 
     // OPTIONS
     //
+    advgetopt::define_option(
+          advgetopt::Name("check-network-status")
+        , advgetopt::Flags(advgetopt::option_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_OPTIONS
+                    , advgetopt::GETOPT_FLAG_COMMAND_LINE
+                    , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE
+                    , advgetopt::GETOPT_FLAG_CONFIGURATION_FILE>())
+        , advgetopt::Help("Check and report network status. This is always done once on boot.")
+    ),
     advgetopt::define_option(
           advgetopt::Name("comment")
         , advgetopt::Flags(advgetopt::option_flags<
@@ -280,10 +296,11 @@ constexpr std::string_view      g_prompt_start = "Are you sure you want to reset
 constexpr std::string_view      g_prompt_end = "\" without the quotes to go ahead:\n";
 constexpr std::string_view      g_prompt = snapdev::join_string_views<g_prompt_start, YES_I_AM_SURE, g_prompt_end>;
 
+constexpr std::string_view      g_network_status = "/run/iplock/network.status";
+
 constexpr std::string_view      g_basic_flag = "/run/iplock/basic.installed";
 constexpr std::string_view      g_firewall_flag = "/run/iplock/firewall.installed";
 constexpr std::string_view      g_default_flag = "/run/iplock/default.installed";
-
 
 
 
@@ -457,6 +474,8 @@ int ipload::run()
 
     case COMMAND_LOAD:
         {
+            check_network_status();
+
             // all iptables commands require the user to be root.
             //
             make_root();
@@ -493,11 +512,13 @@ int ipload::run()
 
     case COMMAND_LOAD_BASIC:
         make_root();
+        check_network_status();
         load_basic(true);
         break;
 
     case COMMAND_LOAD_DEFAULT:
         make_root();
+        check_network_status();
         create_defaults();
         if(!convert())
         {
@@ -559,6 +580,56 @@ int ipload::run()
     }
 
     return 0;
+}
+
+
+void ipload::check_network_status()
+{
+    bool raise_flag(true);
+    if(access(g_network_status.data(), F_OK) == 0)
+    {
+        if(!f_opts.is_defined("check-network-status"))
+        {
+            return;
+        }
+
+        // this may have been a systemctl restart so don't raise a flag
+        //
+        raise_flag = false;
+    }
+
+    bool up(false);
+    addr::iface::vector_t const interfaces(addr::iface::get_local_addresses());
+    for(auto const & i : interfaces)
+    {
+        if((i.get_flags() & IFF_UP) != 0
+        && i.get_name() != "lo")        // "lo" will already be up
+        {
+            up = true;
+
+            SNAP_LOG_WARNING
+                << "Your network was already up."
+                << SNAP_LOG_SEND;
+
+            if(raise_flag)
+            {
+                communicatord::flag f("iplock", "ipload", "network-up");
+                f.set_state(communicatord::flag::state_t::STATE_UP);
+                f.set_message("ipload detected that the network is up while first installing the firewall (i.e. at boot time)");
+                f.set_priority(90); // this is considered a security issue
+                f.add_tag("security");
+                f.add_tag("firewall");
+                f.save();
+            }
+            break;
+        }
+    }
+
+    std::ofstream out(g_network_status.data());
+    if(out.is_open())
+    {
+        out << (up ? "up" : "down");
+    }
 }
 
 

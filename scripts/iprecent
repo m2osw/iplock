@@ -1,0 +1,182 @@
+#!/bin/sh -e
+#
+# A script to add/remove IP addresses from `recent` lists
+#
+# We manage several recent lists in our firewall (synflood and denylist
+# at time of writing). Once in a while, your IP or a cusomter's IP gets
+# added by mistake. This can be problematic. It is, however, very easy
+# to remove this IP. This script allows you add, remove, or flush these
+# lists.
+#
+
+XT_RECENT=/proc/net/xt_recent
+if test ! -d ${XT_RECENT}
+then
+	echo "warning: there is no \"${XT_RECENT}\" directory. \"-m recent\" not used."
+	exit 0
+fi
+
+HELP=false
+COMMAND=
+LIST=
+IPS=
+while test -n "${1}"
+do
+	case "${1}" in
+	"-h"|"--help")
+		HELP=true
+		shift
+		;;
+
+	*)
+		if test -z "${COMMAND}"
+		then
+			COMMAND="${1}"
+			case "${COMMAND}" in
+			"help")
+				HELP=true
+				;;
+
+			"add"|"flush"|"list"|"remove"|"show")
+				;;
+
+			*)
+				echo "error: unknown command \"${COMMAND}\"."
+				HELP=true
+				;;
+
+			esac
+		elif test -z "${LIST}"
+		then
+			LIST="${1}"
+		else
+			IPS="${IPS} ${1}"
+		fi
+		shift
+		;;
+
+	esac
+done
+
+if ! $HELP && test -z "${COMMAND}"
+then
+	echo "error: a <command> is required."
+	HELP=true
+fi
+
+# Verify IPS
+if ! $HELP
+then
+	case "${COMMAND}" in
+	"add"|"remove")
+		if test -z "${IPS}"
+		then
+			echo "error: \"${COMMAND}\" requires at least one <ip> address."
+			HELP=true
+		fi
+		;;
+
+	"flush"|"list"|"show")
+		if test -n "${IPS}"
+		then
+			echo "error: \"${COMMAND}\" cannot be used with <ip> addresses."
+			HELP=true
+		fi
+		;;
+
+	esac
+fi
+
+# Verify LIST
+if ! $HELP
+then
+	case "${COMMAND}" in
+	"add"|"remove")
+		if test -z "${LIST}"
+		then
+			echo "error: \"${COMMAND}\" requires the name of a list."
+			HELP=true
+		fi
+		;;
+
+	"list")
+		if test -n "${LIST}"
+		then
+			echo "error: \"${COMMAND}\" cannot be used with a <list> name."
+			HELP=true
+		fi
+		;;
+
+	esac
+fi
+
+if $HELP
+then
+	echo "Usage: `basename $0` [--opts] <command> [<list> [<ip> ...]]"
+	echo "where --opts is one or more of:"
+	echo "  -h | --help          print out this help screen."
+	echo
+	echo "where <command> is one of:"
+	echo "  add <list> <ip>      add the IPs to the specified list"
+	echo "  flush [<list>]       remove all from the specified <list> or all lists"
+	echo "  help                 print out this help screen"
+	echo "  list                 print the recent lists"
+	echo "  remove <list> <ip>   remove the IPs from the specified list"
+	echo "  show [<list>]        show the content of <list> or all lists"
+	echo
+	echo "where <list> is the name of a recent list (try the \"list\" command to see the list of recent lists."
+	exit 1
+fi
+
+case "${COMMAND}" in
+"add")
+	for ip in ${IPS}
+	do
+		echo "+${ip}" >"${XT_RECENT}/${LIST}"
+	done
+	;;
+
+"flush")
+	if test -z "${LIST}"
+	then
+		shopt -s nullglob
+		for l in "${XT_RECENT}/"*
+		do
+			echo "/" >"$l"
+		done
+	else
+		echo "/" >"${XT_RECENT}/${LIST}"
+	fi
+	;;
+
+"list")
+	ls "${XT_RECENT}"
+	;;
+
+"remove")
+	for ip in ${IPS}
+	do
+		echo "-${ip}" >"${XT_RECENT}/${LIST}"
+	done
+	;;
+
+"show")
+	if test -z "${LIST}"
+	then
+		shopt -s nullglob
+		for l in "${XT_RECENT}/"*
+		do
+			echo "--- LIST ${l} ---"
+			cat "${l}"
+		done
+	else
+		cat "${XT_RECENT}/${LIST}"
+	fi
+	;;
+
+*)
+	echo "internal error: command not implemented."
+	;;
+
+esac
+

@@ -52,4 +52,18 @@ else(SnapCatch2_FOUND)
 
 endif(SnapCatch2_FOUND)
 
+project(forge-tcp)
+
+add_executable(${PROJECT_NAME}
+    forge_tcp.cpp
+)
+
+target_include_directories(${PROJECT_NAME}
+    PUBLIC
+        ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+#target_link_libraries(${PROJECT_NAME}
+#)
+
 # vim: ts=4 sw=4 et

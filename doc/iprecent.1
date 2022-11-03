@@ -1,0 +1,83 @@
+.TH IPRECENT 1 "August 2022" "iprecent 1.x" "User Commands"
+.SH NAME
+iprecent \- Manage IP addresses in xt-recent lists
+.SH SYNOPSIS
+.B iprecent
+[\fIOPTION\fR] <command> [<lit> [<ip> ...]]
+.SH DESCRIPTION
+The \fBiprecent(1)\fR tool is used to manage the list of xt-recent IP
+addresses. This is useful if someone's allowed to access your server gets
+their IP added to one of these lists.
+
+.SH "COMMANDS"
+.TP
+\fBiprecent add ...\fR
+The \fBiprecent(1)\fR tool can be used to add one or more IPs to the list:
+
+    iprecent add <list> <ip1> <ip2> ... <ipN>
+
+.TP
+\fBiprecent flush ...\fR
+The \fBiprecent(1)\fR tool can be used to remove all the IP addresses of a
+specific list:
+
+    iprecent flush <list>
+
+Or from all the lists:
+
+    iprecent flush
+
+.TP
+\fBiprecent help\fR
+Print the help screen in your console.
+
+    iprecent help
+
+.TP
+\fBiprecent list\fR
+\fBiprecent(1)\fR prints the xt-recent lists to your console.
+
+    iprecent list
+
+.TP
+\fBiprecent remove ...\fR
+The \fBiprecent(1)\fR tool can be used to remove one or more IPs from a list:
+
+    iprecent remove <list> <ip1> <ip2> ... <ipN>
+
+.TP
+\fBiprecent show ...\fR
+The \fBiprecent(1)\fR tool can be used to see the content of a specific list:
+
+    iprecent show <list>
+
+or the content of all the lists:
+
+    iprecent show
+
+.SH "COMMAND LINE OPTIONS"
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print a brief document about the tool usage, then exit.
+
+.SH AUTHOR
+Written by Alexis Wilke <alexis@m2osw.com>.
+.SH "REPORTING BUGS"
+Report bugs to <https://github.com/m2osw/iplock/issues>.
+.br
+iplock home page: <https://snapwebsites.org/project/iplock>.
+.SH COPYRIGHT
+Copyright \(co 2022 Made to Order Software Corporation
+.br
+License: GPLv3
+.br
+This is free software: you are free to change and redistribute it.
+.br
+There is NO WARRANTY, to the extent permitted by law.
+.SH "SEE ALSO"
+.BR ipload (5),
+.BR ipload (8),
+.BR iplock (1),
+.BR ipwall (8),
+.BR knock-knock (1),
+.BR showfw (1)

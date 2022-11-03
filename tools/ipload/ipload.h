@@ -55,6 +55,7 @@ public:
     int                     run();
 
 private:
+    void                    check_network_status();
     void                    make_root();
     bool                    load_data();
     void                    load_basic(bool force);

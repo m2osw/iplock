@@ -4,6 +4,7 @@
 #
 usr/sbin/iplock
 usr/sbin/ipload
+usr/bin/iprecent
 usr/bin/knock-knock
 usr/bin/knock-knock-possibilities
 usr/bin/showfw
@@ -33,6 +34,16 @@ conf/50-variables.conf                             usr/share/iplock/
 conf/drop-list/*                                   usr/share/iplock/ip-list/
 conf/ipload/README.md                              etc/iplock/ipload/ipload.d/
 conf/ipload.service                                lib/systemd/system/
+
+# Command line tools documentation
+#
+doc/ipload.5                                       usr/share/man/man5/
+doc/ipload.8                                       usr/share/man/man8/
+doc/iplock.1                                       usr/share/man/man1/
+doc/iprecent.1                                     usr/share/man/man1/
+doc/ipwall.8                                       usr/share/man/man8/
+doc/knock-knock.1                                  usr/share/man/man1/
+doc/showfw.1                                       usr/share/man/man1/
 
 # With some renames
 #

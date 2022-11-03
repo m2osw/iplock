@@ -1,3 +1,17 @@
+iplock (3.0.35.0~bionic) bionic; urgency=high
+
+  * Added the synflood.sh script to flood a server and test the syn_flood rule.
+  * Added a set_syn_flood, without it the syn_flood rule doesn't do anything.
+  * Changed the syn_flood DROP to a CALL add_to_denylist for a real block.
+  * Added a forge-tcp test tool to test sending invalid TCP packets.
+  * Added the iprecent tool to add/remove/flush IPs in xt-recent lists.
+  * Moved man pages to the iplock package (instead of iplock-doc).
+  * Added all man pages available to the iplock package.
+  * Moved the DHCP service before the "small ports" since it uses 67 or 68 on
+    both sides (source and destination).
+
+ -- Alexis Wilke <alexis@m2osw.com>  Thu, 03 Nov 2022 11:00:59 -0700
+
 iplock (3.0.34.0~bionic) bionic; urgency=high
 
   * ipload.service is now used to run "ipload --load".
