@@ -16,15 +16,34 @@
 # Source debconf library.
 . /usr/share/debconf/confmodule
 
+PROJECTNAME=iplock
+PACKAGENAME=iplock
+USERNAME=iplock
+GROUPNAME=iplock
+
 if [ "$1" = "configure" ]
 then
+    # Create the logfile because the iplock user may have
+    # difficulties with it otherwise during logrotate.
+    #
+    LOGDIR=/var/log/${PROJECTNAME}
+    LOGFILE=${LOGDIR}/${PACKAGENAME}.log
+    touch ${LOGFILE}
+    chown ${USERNAME}:${GROUPNAME} ${LOGFILE}
+    chmod 640 ${LOGFILE}
+
+    LOGFILE2=${LOGDIR}/ipload.log
+    touch ${LOGFILE2}
+    chown ${USERNAME}:${GROUPNAME} ${LOGFILE2}
+    chmod 640 ${LOGFILE2}
+
     # We add `01-iptables.conf`, make sure it is taken in account
     #
     invoke-rc.d rsyslog restart
 
-    db_get iplock/public_interfaces
+    db_get ${PROJECTNAME}/public_interfaces
     public_interfaces="${RET}"
-    db_get iplock/admin_ips
+    db_get ${PROJECTNAME}/admin_ips
     admin_ips="${RET}"
 
     SYSTEM_VARIABLES="/etc/iplock/ipload/ipload.d/00-variables.conf"
@@ -47,7 +66,7 @@ fi
 
 if [ "$1" = "triggered" ]
 then
-    if [ "$2" = "/usr/share/iplock/ipload" -o "$2" = "/etc/iplock/ipload" ]
+    if [ "$2" = "/usr/share/${PROJECTNAME}/ipload" -o "$2" = "/etc/${PROJECTNAME}/ipload" ]
     then
         if ! /usr/sbin/ipload --load
         then

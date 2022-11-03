@@ -3,27 +3,30 @@
 # Source debconf library.
 . /usr/share/debconf/confmodule
 
+PROJECTNAME=iplock
 PACKAGENAME=iplock
 
 if [ "$1" = "purge" ]
 then
     # delete the logs
     #
-    rm -f /var/log/iplock/${PACKAGENAME}.log*
-    rm -f /var/log/iplock/ipload.log*
-    if test -d /var/log/iplock
+    rm -f /var/log/${PROJECTNAME}/${PACKAGENAME}.log*
+    rm -f /var/log/${PROJECTNAME}/ipload.log*
+    if test -d /var/log/${PROJECTNAME}
     then
-        rmdir --ignore-fail-on-non-empty /var/log/iplock
+        rmdir --ignore-fail-on-non-empty /var/log/${PROJECTNAME}
     fi
 
     # delete the admin configuration files and config directories if possible
     #
-    rm -f /etc/iplock/logger/iplock.d/50-${PACKAGENAME}.conf
-    rm -f /etc/iplock/logger/iplock.d/50-ipload.conf
-    rm -f /etc/iplock/iplock.d/50-${PACKAGENAME}.conf
-    rm -f /etc/iplock/iplock.d/50-ipload.conf
-    for d in /etc/iplock/logger/iplock.d /etc/iplock/logger \
-             /etc/iplock/iplock.d /etc/iplock
+    rm -f /etc/${PROJECTNAME}/logger/${PROJECTNAME}.d/50-${PACKAGENAME}.conf
+    rm -f /etc/${PROJECTNAME}/logger/${PROJECTNAME}.d/50-ipload.conf
+    rm -f /etc/${PROJECTNAME}/${PROJECTNAME}.d/50-${PACKAGENAME}.conf
+    rm -f /etc/${PROJECTNAME}/${PROJECTNAME}.d/50-ipload.conf
+    for d in /etc/${PROJECTNAME}/logger/${PROJECTNAME}.d \
+             /etc/${PROJECTNAME}/logger \
+             /etc/${PROJECTNAME}/${PROJECTNAME}.d \
+             /etc/${PROJECTNAME}
     do
         if test -d "${d}"
         then
