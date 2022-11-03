@@ -41,7 +41,6 @@ doc/ipload.5                                       usr/share/man/man5/
 doc/ipload.8                                       usr/share/man/man8/
 doc/iplock.1                                       usr/share/man/man1/
 doc/iprecent.1                                     usr/share/man/man1/
-doc/ipwall.8                                       usr/share/man/man8/
 doc/knock-knock.1                                  usr/share/man/man1/
 doc/showfw.1                                       usr/share/man/man1/
 

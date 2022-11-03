@@ -5,7 +5,7 @@ iplock (3.0.35.0~bionic) bionic; urgency=high
   * Changed the syn_flood DROP to a CALL add_to_denylist for a real block.
   * Added a forge-tcp test tool to test sending invalid TCP packets.
   * Added the iprecent tool to add/remove/flush IPs in xt-recent lists.
-  * Moved man pages to the iplock package (instead of iplock-doc).
+  * Moved man pages to the iplock/ipwall packages (instead of iplock-doc).
   * Added all man pages available to the iplock package.
   * Moved the DHCP service before the "small ports" since it uses 67 or 68 on
     both sides (source and destination).
