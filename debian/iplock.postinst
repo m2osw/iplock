@@ -27,6 +27,7 @@ then
     # difficulties with it otherwise during logrotate.
     #
     LOGDIR=/var/log/${PROJECTNAME}
+    mkdir -p ${LOGDIR}
     LOGFILE=${LOGDIR}/${PACKAGENAME}.log
     touch ${LOGFILE}
     chown ${USERNAME}:${GROUPNAME} ${LOGFILE}
