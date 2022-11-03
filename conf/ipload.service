@@ -15,7 +15,7 @@ Type=oneshot
 WorkingDirectory=~
 ProtectHome=true
 RemainAfterExit=yes
-ExecStart=/usr/sbin/ipload
+ExecStart=/usr/sbin/ipload --load
 Restart=no
 
 [Install]

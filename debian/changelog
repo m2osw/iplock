@@ -1,5 +1,11 @@
 iplock (3.0.33.1~bionic) bionic; urgency=high
 
+  * ipload.service is now used to run "ipload --load".
+
+ -- Alexis Wilke <alexis@m2osw.com>  Wed, 02 Nov 2022 21:32:18 -0700
+
+iplock (3.0.33.1~bionic) bionic; urgency=high
+
   * Actually create the iplock folder first.
 
  -- Alexis Wilke <alexis@m2osw.com>  Wed, 02 Nov 2022 21:21:21 -0700
