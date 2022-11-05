@@ -1,3 +1,9 @@
+iplock (3.0.36.0~bionic) bionic; urgency=high
+
+  * Use the COMMUNICATORD_FLAG_UP macro instead of manually creating the flag.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Fri, 04 Nov 2022 18:34:30 -0700
+
 iplock (3.0.35.0~bionic) bionic; urgency=high
 
   * Added the synflood.sh script to flood a server and test the syn_flood rule.

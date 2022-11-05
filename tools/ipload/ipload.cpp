@@ -613,13 +613,16 @@ void ipload::check_network_status()
 
             if(raise_flag)
             {
-                communicatord::flag f("iplock", "ipload", "network-up");
-                f.set_state(communicatord::flag::state_t::STATE_UP);
-                f.set_message("ipload detected that the network is up while first installing the firewall (i.e. at boot time)");
-                f.set_priority(90); // this is considered a security issue
-                f.add_tag("security");
-                f.add_tag("firewall");
-                f.save();
+                communicatord::flag::pointer_t f(COMMUNICATORD_FLAG_UP(
+                      "iplock"
+                    , "ipload"
+                    , "network-up"
+                    , "ipload detected that the network is up while first installing the firewall (i.e. at boot time)"));
+                f->set_state(communicatord::flag::state_t::STATE_UP)
+                    .set_priority(90) // this is considered a security issue
+                    .add_tag("security")
+                    .add_tag("firewall")
+                    .save();
             }
             break;
         }
