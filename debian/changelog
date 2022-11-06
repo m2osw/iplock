@@ -1,3 +1,14 @@
+iplock (3.0.37.0~bionic) bionic; urgency=high
+
+  * Fixed the logger README.md.
+  * Renamed the logger [log-to-file] as [file] so I don't need the type=...
+  * Made the [console] use tty=true to avoid the console output when the
+    files are used as that would duplicate the logs in the journalctl.
+  * Remove the /run/iplock on a purge.
+  * Added a newline at the end of the network status file.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Sat, 05 Nov 2022 20:59:47 -0700
+
 iplock (3.0.36.0~bionic) bionic; urgency=high
 
   * Use the COMMUNICATORD_FLAG_UP macro instead of manually creating the flag.

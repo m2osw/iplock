@@ -41,6 +41,10 @@ then
     find /etc/iplock/ipload -type f -name '50-*.conf' -delete
     find /etc/iplock/ipload -type d -exec rmdir --ignore-fail-on-non-empty "{}" \;
 
+    # Clean up the /run/iplock folder
+    #
+    rm -rf /run/iplock
+
     # `01-iptables.conf` is now gone
     #
     invoke-rc.d rsyslog restart

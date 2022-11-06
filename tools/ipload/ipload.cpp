@@ -631,7 +631,8 @@ void ipload::check_network_status()
     std::ofstream out(g_network_status.data());
     if(out.is_open())
     {
-        out << (up ? "up" : "down");
+        out << (up ? "up" : "down")
+            << '\n';
     }
 }
 

@@ -9,8 +9,12 @@ The files have to be named:
 
     # or
 
+    ??-ipload.conf
+    ??-iplock.conf
     ??-ipwall.conf
+    ??-knock-knock.conf
 
 Where `??` represents a number from 00 to 99. In general, the administrator
-should use `50-ipwall.conf`. Other projects may use other numbers.
+should use 50. 00 is reverved for this project. Other projects may use other
+numbers.
 
