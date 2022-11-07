@@ -1,3 +1,10 @@
+iplock (3.0.37.1~bionic) bionic; urgency=high
+
+  * Adding the communicatord and fluid-settings ipload files. These files
+    generate a trigger cycle if present in packages iplock depends on.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Sun, 06 Nov 2022 20:44:33 -0800
+
 iplock (3.0.37.0~bionic) bionic; urgency=high
 
   * Fixed the logger README.md.
