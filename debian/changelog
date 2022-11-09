@@ -1,3 +1,9 @@
+iplock (3.0.37.2~bionic) bionic; urgency=high
+
+  * Adding the iplock.logrotate to rotate the iptables.log files.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Tue, 08 Nov 2022 20:38:17 -0800
+
 iplock (3.0.37.1~bionic) bionic; urgency=high
 
   * Adding the communicatord and fluid-settings ipload files. These files
