@@ -255,9 +255,20 @@ bool recent_parser::parse(std::string const & expression)
                             std::int64_t hitcount(0);
                             if(advgetopt::validator_integer::convert_string(f_value, hitcount))
                             {
-                                // this is the TTL
+                                // this is the number of hits within the TTL
                                 //
-                                f_hitcount = hitcount;
+                                if(hitcount > 255)
+                                {
+                                    SNAP_LOG_ERROR
+                                        << "The hitcount of the recent extension is limited to 255."
+                                        << SNAP_LOG_SEND;
+                                    f_valid = false;
+                                    f_hitcount = 255;
+                                }
+                                else
+                                {
+                                    f_hitcount = hitcount;
+                                }
                                 next_token();
                             }
                         }
