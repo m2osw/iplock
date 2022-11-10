@@ -40,6 +40,7 @@ then
 
     # We add `01-iptables.conf`, make sure it is taken in account
     #
+	chown syslog:adm /var/log/iptables
     invoke-rc.d rsyslog restart
 
     db_get ${PROJECTNAME}/public_interfaces

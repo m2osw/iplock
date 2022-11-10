@@ -3,6 +3,8 @@ iplock (3.0.38.0~bionic) bionic; urgency=high
   * Changed recent to 250 hits every 20 seconds. But even that seems to be
     blocking our own IP address after a while...
   * Added a test for the maximum hitcount is 255.
+  * Fixed the chown to the /var/log/iptables. It doesn't work at build time
+    because the user/group names do not exist at build time.
 
  -- Alexis Wilke <alexis@m2osw.com>  Wed, 09 Nov 2022 21:36:21 -0800
 
