@@ -1,3 +1,10 @@
+iplock (3.0.37.3~bionic) bionic; urgency=high
+
+  * Missed doing the git add ... although I think the file was in the source.
+  * Create and setup ownership of /var/log/iptables
+
+ -- Alexis Wilke <alexis@m2osw.com>  Tue, 08 Nov 2022 21:16:14 -0800
+
 iplock (3.0.37.2~bionic) bionic; urgency=high
 
   * Adding the iplock.logrotate to rotate the iptables.log files.

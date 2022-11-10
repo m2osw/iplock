@@ -1,0 +1,3 @@
+# The directory were unwanted hits to the iptables are recorded.
+#
+/var/log/iptables
