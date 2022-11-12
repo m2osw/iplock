@@ -42,17 +42,18 @@ class count
     : public command
 {
 public:
-                                    count(
-                                          iplock * parent
-                                        , advgetopt::getopt::pointer_t opts);
+                                    count(controller * parent);
     virtual                         ~count() override;
 
     virtual void                    run() override;
 
 private:
+    addr::addr                      parse_ip(std::string const & ip);
+
     bool const                      f_reset;  // since it is const, you must specify it in the constructor
-    advgetopt::getopt::pointer_t    f_count_opts = advgetopt::getopt::pointer_t();
+    //advgetopt::getopt::pointer_t    f_count_opts = advgetopt::getopt::pointer_t();
     std::vector<std::string>        f_targets = std::vector<std::string>();
+    std::string                     f_chain = std::string();
 };
 
 

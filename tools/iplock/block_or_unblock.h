@@ -29,7 +29,12 @@
 
 // self
 //
-#include    "scheme.h"
+#include    "command.h"
+
+
+// libaddr
+//
+#include    <libaddr/addr_parser.h>
 
 
 
@@ -38,17 +43,34 @@ namespace tool
 
 
 
+enum class mode_t
+{
+    MODE_BLOCK,
+    MODE_UNBLOCK,
+};
+
+
 class block_or_unblock
-    : public scheme
+    : public command
 {
 public:
                         block_or_unblock(
-                              iplock * parent
-                            , char const * command_name
-                            , advgetopt::getopt::pointer_t opts);
+                              controller * parent
+                            , char const * command_name);
     virtual             ~block_or_unblock() override;
 
-    void                handle_ips(std::string const & name, int run_on_result);
+    void                handle_ips(std::string const & cmd, mode_t mode);
+
+private:
+    void                get_allowlist();
+    void                add_ips(std::string const & ips);
+
+    std::string         f_command = std::string();
+    mode_t              f_mode = mode_t::MODE_BLOCK;
+    bool                f_found_ips = false;
+    addr::addr_range::vector_t
+                        f_allowlist_ips = addr::addr_range::vector_t();
+    std::string         f_set_rules = std::string();
 };
 
 

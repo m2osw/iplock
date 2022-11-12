@@ -1,3 +1,18 @@
+iplock (3.0.40.0~bionic) bionic; urgency=high
+
+  * Count the number of hitcount with `iprecent show [<list>]`.
+  * Added the `reap` option for synflood, othewise old entries stay.
+  * Added support for multiple `-m recent` in a single rule.
+  * Made the recent_parser copyable.
+  * Revamped `iplock` to add/remove IPs from an ipset.
+  * Fixed the `iplock` manual page.
+  * Removed all the iplock "scheme files" and the count.conf too.
+  * Made the iplock.conf the sole iplock configuration file.
+  * Move the default_firewall.conf file to /run/users/0 for added security.
+  * Removed the conf/iptables logrotate file. Using iplock.logrotate instead.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Fri, 11 Nov 2022 14:55:04 -0800
+
 iplock (3.0.39.0~bionic) bionic; urgency=high
 
   * Accept DNS connections from anyone on port 53.

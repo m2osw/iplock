@@ -50,11 +50,12 @@ namespace tool
  * \brief Unblock the specified IP addresses.
  *
  * This class goes through the list of IP addresses specified on the
- * command line and remove them from the chain as defined in ipconfig.conf.
+ * command line and remove them from the set as defined by the `--set`
+ * command line option. By default this is the "unwanted" set.
  */
 
-unblock::unblock(iplock * parent, advgetopt::getopt::pointer_t opts)
-    : block_or_unblock(parent, "iplock --unblock", opts)
+unblock::unblock(controller * parent)
+    : block_or_unblock(parent, "unblock")
 {
 }
 
@@ -66,7 +67,7 @@ unblock::~unblock()
 
 void unblock::run()
 {
-    handle_ips("unblock",0);
+    handle_ips("del [set] [ip] -exist", mode_t::MODE_UNBLOCK);
 }
 
 

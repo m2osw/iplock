@@ -38,31 +38,14 @@ namespace tool
 
 
 
-typedef std::vector<uint16_t> port_list_t;
-
-
-
-class scheme
+class list
     : public command
 {
 public:
-                                    scheme(
-                                          iplock * parent
-                                        , char const * command_name
-                                        , advgetopt::getopt::pointer_t opts
-                                        , std::string const & scheme_name = std::string());
+                        list(controller * parent);
+    virtual             ~list() override;
 
-    std::string                     get_command(std::string const & name) const;
-    std::string                     get_scheme_string(std::string const & name) const;
-
-    port_list_t const &             get_ports() const;
-
-    virtual void                    run() override;
-
-protected:
-    std::string                     f_scheme = "http";
-    advgetopt::getopt::pointer_t    f_scheme_opts = advgetopt::getopt::pointer_t();
-    port_list_t                     f_ports = port_list_t();
+    virtual void        run() override;
 };
 
 

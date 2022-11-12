@@ -1,4 +1,3 @@
-#!/usr/bin/dh-exec
 
 # Executables
 #
@@ -15,19 +14,14 @@ usr/lib/lib*.so.*
 
 # Configuration Files
 #
-conf/iplock.conf                                   etc/iplock/
 conf/ipload.conf                                   etc/iplock/
-conf/count.conf                                    etc/iplock/
-conf/all.conf                                      etc/iplock/schemes/
-conf/http.conf                                     etc/iplock/schemes/
-conf/smtp.conf                                     etc/iplock/schemes/
+conf/iplock.conf                                   etc/iplock/
 conf/README.md                                     etc/iplock/iplock.d/
 conf/logger/ipload.conf                            etc/iplock/logger/
 conf/logger/iplock.conf                            etc/iplock/logger/
 conf/logger/ipwall.conf                            etc/iplock/logger/
 conf/logger/knock-knock.conf                       etc/iplock/logger/
 conf/logger/README.md                              etc/iplock/logger/
-conf/iptables                                      etc/logrotate.d/
 conf/01-iptables.conf                              etc/rsyslog.d/
 conf/ipload                                        usr/share/iplock/
 conf/50-variables.conf                             usr/share/iplock/
@@ -43,7 +37,3 @@ doc/iplock.1                                       usr/share/man/man1/
 doc/iprecent.1                                     usr/share/man/man1/
 doc/knock-knock.1                                  usr/share/man/man1/
 doc/showfw.1                                       usr/share/man/man1/
-
-# With some renames
-#
-conf/schemes-README.md                          => etc/iplock/schemes/schemes.d/README.md

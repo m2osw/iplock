@@ -19,15 +19,15 @@
 project(iplock-tool)
 
 add_executable(${PROJECT_NAME}
-    batch.cpp
     block.cpp
     block_or_unblock.cpp
     command.cpp
+    controller.cpp
     count.cpp
     flush.cpp
-    iplock.cpp
+    list.cpp
+    list_allowed_sets.cpp
     main.cpp
-    scheme.cpp
     unblock.cpp
 )
 

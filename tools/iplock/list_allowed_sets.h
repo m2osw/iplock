@@ -38,18 +38,15 @@ namespace tool
 
 
 
-class iplock
+class list_allowed_sets
+    : public command
 {
 public:
-                            iplock(int argc, char * argv[]);
+                        list_allowed_sets(controller * parent);
+    virtual             ~list_allowed_sets() override;
 
-    int                     run_command();
-
-private:
-    void                    set_command(command::pointer_t c);
-    void                    make_root();
-
-    command::pointer_t      f_command = command::pointer_t();
+    virtual void        run() override;
+    virtual bool        needs_root() const override;
 };
 
 

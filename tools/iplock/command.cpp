@@ -33,10 +33,19 @@
 //
 #include    "command.h"
 
+#include    "controller.h"
+
 
 // iplock
 //
+#include    <iplock/exception.h>
 #include    <iplock/version.h>
+
+
+// snaplogger
+//
+#include    <snaplogger/logger.h>
+#include    <snaplogger/message.h>
 
 
 // C++
@@ -62,82 +71,99 @@ namespace tool
 
 /** \brief Scheme file options.
  *
- * This table includes all the variables supported by iplock in a
- * scheme file such as http.conf.
+ * This table includes all the variables supported by iplock in its
+ * configuration file. For security reasons, we read this file separate
+ * from the command line options with a forced path.
  */
 advgetopt::option const g_iplock_configuration_options[] =
 {
+    // options used by all commands
     advgetopt::define_option(
-          advgetopt::Name("batch")
+          advgetopt::Name("allowed_sets")
         , advgetopt::Flags(advgetopt::any_flags<
                       advgetopt::GETOPT_FLAG_CONFIGURATION_FILE
                     , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::DefaultValue("/sbin/iptables-restore --noflush")
-        , advgetopt::Help("Command use to add multiple firewall rules from a file (e.g. iptables-restore).")
+        , advgetopt::DefaultValue("unwanted")
+        , advgetopt::Help("Comma separated list of sets that can be updated with iplock.")
     ),
     advgetopt::define_option(
-          advgetopt::Name("batch-cache")
+          advgetopt::Name("allowlist")
         , advgetopt::Flags(advgetopt::any_flags<
                       advgetopt::GETOPT_FLAG_CONFIGURATION_FILE
                     , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::DefaultValue("/var/cache/iplock")
-        , advgetopt::Help("Directory where batch temporary scripts get saved.")
+        , advgetopt::DefaultValue("")
+        , advgetopt::Help("List of comma separated IPs to never block.")
+    ),
+
+    // options used by the --count command
+    advgetopt::define_option(
+          advgetopt::Name("acceptable_targets")
+        , advgetopt::Flags(advgetopt::any_flags<
+                      advgetopt::GETOPT_FLAG_CONFIGURATION_FILE
+                    , advgetopt::GETOPT_FLAG_REQUIRED>())
+        , advgetopt::DefaultValue("DROP")
+        , advgetopt::Help("List of comma separated target names that will be counted.")
     ),
     advgetopt::define_option(
-          advgetopt::Name("batch-footer")
+          advgetopt::Name("bytes_column")
         , advgetopt::Flags(advgetopt::any_flags<
                       advgetopt::GETOPT_FLAG_CONFIGURATION_FILE
                     , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::DefaultValue("COMMIT")
-        , advgetopt::Help("Footer to mark the end of the batch file which the batch tool processes.")
-    ),
-    advgetopt::define_option(
-          advgetopt::Name("block")
-        , advgetopt::Flags(advgetopt::any_flags<
-                      advgetopt::GETOPT_FLAG_CONFIGURATION_FILE
-                    , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::DefaultValue("/sbin/iptables -w -t filter")
-        , advgetopt::Help("Command used to add a block rule to the firewall (e.g. iptables -w).")
+        , advgetopt::DefaultValue("2")
+        , advgetopt::Validator("integer(1...100)")
+        , advgetopt::Help("Column representing the number of bytes transferred.")
     ),
     advgetopt::define_option(
           advgetopt::Name("chain")
         , advgetopt::Flags(advgetopt::any_flags<
                       advgetopt::GETOPT_FLAG_CONFIGURATION_FILE
                     , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::DefaultValue("unwanted")
-        , advgetopt::Help("The name of the chain that iplock is expected to work with.")
+        , advgetopt::DefaultValue("INPUT")
+        , advgetopt::Help("The name of the chain to take counters from.")
     ),
     advgetopt::define_option(
-          advgetopt::Name("check")
+          advgetopt::Name("ignore_line_starting_with")
         , advgetopt::Flags(advgetopt::any_flags<
                       advgetopt::GETOPT_FLAG_CONFIGURATION_FILE
                     , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::DefaultValue("/sbin/iptables -w -t filter")
-        , advgetopt::Help("The command used to perform a check of the current firewall rules.")
+        , advgetopt::DefaultValue("Zeroing")
+        , advgetopt::Help("Ignore any line with this value in its first column.")
     ),
     advgetopt::define_option(
-          advgetopt::Name("flush")
+          advgetopt::Name("ip_column")
         , advgetopt::Flags(advgetopt::any_flags<
                       advgetopt::GETOPT_FLAG_CONFIGURATION_FILE
                     , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::DefaultValue("/sbin/iptables -w -t filter -F [chain]")
-        , advgetopt::Help("The name of the command which will flush rules from a table.")
+        , advgetopt::DefaultValue("8")
+        , advgetopt::Validator("integer(1...100)")
+        , advgetopt::Help("Column in which our IP is found (changes depending on whether you use an input or output IP--we are limited to the input a.k.a \"source\" IP address for now.).")
     ),
     advgetopt::define_option(
-          advgetopt::Name("interface")
+          advgetopt::Name("lines_to_ignore")
         , advgetopt::Flags(advgetopt::any_flags<
                       advgetopt::GETOPT_FLAG_CONFIGURATION_FILE
                     , advgetopt::GETOPT_FLAG_REQUIRED>())
-        // NO DEFAULT -- user must specify that one in his iplock.conf file
-        , advgetopt::Help("The name of the interface that iplock is expected to work with..")
+        , advgetopt::DefaultValue("2")
+        , advgetopt::Validator("integer(0...100000)")
+        , advgetopt::Help("Number of lines to ignore at the start.")
     ),
     advgetopt::define_option(
-          advgetopt::Name("unblock")
+          advgetopt::Name("packets_column")
         , advgetopt::Flags(advgetopt::any_flags<
                       advgetopt::GETOPT_FLAG_CONFIGURATION_FILE
                     , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::DefaultValue("/sbin/iptables -w -t filter")
-        , advgetopt::Help("Command used to remove a block rule from the firewall (e.g. iptables -w).")
+        , advgetopt::DefaultValue("1")
+        , advgetopt::Validator("integer(1...100)")
+        , advgetopt::Help("Column representing the number of packets received/sent.")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("target_column")
+        , advgetopt::Flags(advgetopt::any_flags<
+                      advgetopt::GETOPT_FLAG_CONFIGURATION_FILE
+                    , advgetopt::GETOPT_FLAG_REQUIRED>())
+        , advgetopt::DefaultValue("3")
+        , advgetopt::Validator("integer(1...100)")
+        , advgetopt::Help("Column specifying the target (action).")
     ),
 
     advgetopt::end_options()
@@ -185,7 +211,7 @@ advgetopt::options_environment const g_iplock_configuration_options_environment 
     //.f_license = nullptr,
     //.f_copyright = nullptr,
     //.f_build_date = UTC_BUILD_DATE,
-    //.f_build_time = UTC_BUILD_TIME
+    //.f_build_time = UTC_BUILD_TIME,
 };
 
 
@@ -196,139 +222,76 @@ advgetopt::options_environment const g_iplock_configuration_options_environment 
 
 
 command::command(
-          iplock * parent
-        , char const * command_name
-        , advgetopt::getopt::pointer_t opts)
-    : f_iplock(parent)
-    , f_opts(opts)
-    , f_quiet(opts->is_defined("quiet"))
-    , f_verbose(opts->is_defined("verbose"))
+          controller * parent
+        , char const * command_name)
+    : f_controller(parent)
+    , f_command_name(command_name)
+    , f_quiet(f_controller->opts().is_defined("quiet"))
+    , f_verbose(f_controller->opts().is_defined("verbose")
+        || snaplogger::logger::get_instance()->get_lowest_severity() <= snaplogger::severity_t::SEVERITY_VERBOSE)
 {
-    // fake a pair of argc/argv which are empty
-    //
-    char const * argv[2]
+    if(f_verbose)
     {
-        command_name,
-        nullptr
-    };
+        // make it verbose if --verbose was used
+        //
+        // Note: if the severity is already lower, this call has no effect
+        //
+        snaplogger::logger::get_instance()->reduce_severity(snaplogger::severity_t::SEVERITY_VERBOSE);
+    }
 
-    f_iplock_opts = std::make_shared<advgetopt::getopt>(
+    char const * argv[2] = { command_name, nullptr };
+
+    f_iplock_config = std::make_shared<advgetopt::getopt>(
                 g_iplock_configuration_options_environment,
                 1,
                 const_cast<char **>(argv));
-
-    if(!f_iplock_opts->is_defined("chain"))
-    {
-        std::cerr << "iplock:error: the \"chain\" parameter is required in \"iplock.conf\"." << std::endl;
-        exit(1);
-    }
-
-    f_chain = f_iplock_opts->get_string("chain");
-    if(f_chain.empty()
-    || f_chain.size() > 30)
-    {
-        std::cerr << "iplock:error: the \"chain\" parameter cannot be more than 30 characters nor empty." << std::endl;
-        exit(1);
-    }
-
-    std::for_each(
-              f_chain.begin()
-            , f_chain.end()
-            , [&](auto const & c)
-            {
-                if((c < 'a' || c > 'z')
-                && (c < 'A' || c > 'Z')
-                && (c < '0' || c > '9')
-                && c != '_')
-                {
-                    std::cerr << "error:iplock: invalid \"chain=...\" option \"" << f_chain << "\", only [a-zA-Z0-9_]+ are supported." << std::endl;
-                    exit(1);
-                }
-            });
-
-    f_interface = f_iplock_opts->get_string("interface");
-    if(f_interface.empty()
-    || f_interface.size() >= IFNAMSIZ)
-    {
-        std::cerr << "iplock:error: the \"interface\" parameter cannot be more than "
-                  << IFNAMSIZ
-                  << " characters nor empty." << std::endl;
-        exit(1);
-    }
-
-    // there is a size limit, but not characters
-    //std::for_each(
-    //          f_interface.begin()
-    //        , f_interface.end()
-    //        , [&](auto const & c)
-    //        {
-    //            if((c < 'a' || c > 'z')
-    //            && (c < 'A' || c > 'Z')
-    //            && (c < '0' || c > '9')
-    //            && c != '_')
-    //            {
-    //                std::cerr << "error:iplock: invalid \"interface=...\" option \"" << f_interface << "\", only [a-zA-Z0-9_]+ are supported." << std::endl;
-    //                exit(1);
-    //            }
-    //        });
 }
-
 
 command::~command()
 {
 }
 
 
-void command::verify_ip(std::string const & ip)
+std::string & command::get_set_name()
 {
-    // TODO: add support for IPv6 -- we now has our libaddr
-    //       library in a contrib...
-    //
-    int c(1);
-    int n(-1);
-    char const * s(ip.c_str());
-    while(*s != '\0')
+    if(f_set_name.empty())
     {
-        if(*s >= '0' && *s <= '9')
-        {
-            if(n == -1)
-            {
-                n = *s - '0';
-            }
-            else
-            {
-                n = n * 10 + *s - '0';
+        // this comes from the command line
+        //
+        f_set_name = f_controller->opts().get_string("set");
 
-                // make sure it does not overflow
-                if(n > 255)
-                {
-                    std::cerr << "iplock:error: IPv4 numbers are limited to a value between 0 and 255, \"" << ip << "\" is invalid." << std::endl;
-                    exit(1);
-                }
-            }
-        }
-        else if(*s == '.')
+        // the list of allowed sets comes from the /etc/iplock/iplock.conf file
+        // (so only admins and other packages can change the list)
+        //
+        advgetopt::split_string(f_iplock_config->get_string("allowed_sets"), f_allowed_set_names, {","});
+        if(std::find(f_allowed_set_names.begin(), f_allowed_set_names.end(), f_set_name) == f_allowed_set_names.end())
         {
-            if(n == -1)
-            {
-                std::cerr << "iplock:error: IPv4 addresses are currently limited to IPv4 syntax only (a.b.c.d) \"" << ip << "\" is invalid." << std::endl;
-            }
-            // reset the number
-            n = -1;
-            ++c;
+            iplock::invalid_parameter e(
+                  "set \""
+                + f_set_name
+                + "\" is not allowed. Please try with an allowed sets instead."
+                  " To see the list of allowed set try the --list-allowed-sets command line option.");
+            e.set_parameter("set_name", f_set_name);
+            SNAP_LOG_ERROR
+                << e
+                << SNAP_LOG_SEND;
+            throw e;
         }
-        else
-        {
-            std::cerr << "iplock:error: IPv4 addresses are currently limited to IPv4 syntax only (a.b.c.d) \"" << ip << "\" is invalid." << std::endl;
-            exit(1);
-        }
-        ++s;
     }
-    if(c != 4 || n == -1)
-    {
-        std::cerr << "iplock:error: IPv4 addresses are currently limited to IPv4 syntax with exactly 4 numbers (a.b.c.d), " << c << " found in \"" << ip << "\" is invalid." << std::endl;
-        exit(1);
-    }
+
+    return f_set_name;
+}
+
+
+bool command::needs_root() const
+{
+    return true;
+}
+
+
+std::string const & command::get_command_name() const
+{
+    return f_command_name;
 }
 
 

@@ -18,7 +18,7 @@
 #pragma once
 
 /** \file
- * \brief Various definition of the iplock tool.
+ * \brief The iplock tool class.
  *
  * The iplock is an object used to execute the command line instructions
  * as passed by the administrator.
@@ -38,23 +38,26 @@ namespace tool
 
 
 
-class iplock;
+extern char const * const   g_suffixes[];
 
 
 
-class batch
-    : public command
+class controller
 {
 public:
-                                    batch(
-                                          iplock * parent
-                                        , advgetopt::getopt::pointer_t opts);
-    virtual                         ~batch() override;
+                            controller(int argc, char * argv[]);
 
-    virtual void                    run() override;
+    advgetopt::getopt &     opts();
+    int                     run_command();
 
 private:
-    std::string                     f_ip_addr_filename = std::string();
+    void                    set_command(command::pointer_t c);
+    bool                    make_root();
+
+    advgetopt::getopt       f_opts;
+    bool                    f_verbose = false;
+    bool                    f_quiet = false;
+    command::pointer_t      f_command = command::pointer_t();
 };
 
 

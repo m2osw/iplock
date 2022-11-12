@@ -32,13 +32,18 @@
 #include    <advgetopt/advgetopt.h>
 
 
+// libaddr
+//
+#include    <libaddr/addr.h>
+
+
 
 namespace tool
 {
 
 
 
-class iplock;
+class controller;
 
 
 
@@ -48,9 +53,8 @@ public:
     typedef std::shared_ptr<command> pointer_t;
 
                         command(
-                              iplock * parent
-                            , char const * command_name
-                            , advgetopt::getopt::pointer_t opts);
+                              controller * parent
+                            , char const * command_name);
                         command(command const & rhs) = delete;
     virtual             ~command();
 
@@ -58,18 +62,20 @@ public:
 
     virtual void        run() = 0;
 
+    virtual bool        needs_root() const;
+    std::string const & get_command_name() const;
     int                 exit_code() const;
 
 protected:
-    void                verify_ip(std::string const & ip);
+    std::string &       get_set_name();
 
-    iplock *                        f_iplock = nullptr; // just in case, unused at this time...
-    advgetopt::getopt::pointer_t    f_opts = advgetopt::getopt::pointer_t();
-    advgetopt::getopt::pointer_t    f_iplock_opts = advgetopt::getopt::pointer_t();
-    std::string                     f_chain = std::string("unwanted");
-    std::string                     f_interface = std::string("eth0");
-    bool const                      f_quiet;  // since it is const, you must specify it in the constructor
-    bool const                      f_verbose;  // since it is const, you must specify it in the constructor
+    controller *                    f_controller = nullptr; // just in case, unused at this time...
+    std::string                     f_command_name = std::string();
+    advgetopt::getopt::pointer_t    f_iplock_config = advgetopt::getopt::pointer_t();
+    advgetopt::string_list_t        f_allowed_set_names = advgetopt::string_list_t();
+    std::string                     f_set_name = std::string();
+    bool const                      f_quiet;
+    bool const                      f_verbose;
     int                             f_exit_code = 0;
 };
 

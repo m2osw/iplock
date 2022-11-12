@@ -40,6 +40,7 @@ DECLARE_LOGIC_ERROR(logic_error);
 DECLARE_MAIN_EXCEPTION(iplock_exception);
 
 DECLARE_EXCEPTION(iplock_exception, count_mismatch);
+DECLARE_EXCEPTION(iplock_exception, invalid_parameter);
 
 
 

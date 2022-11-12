@@ -31,7 +31,7 @@
 
 // self
 //
-#include    "flush.h"
+#include    "list.h"
 
 #include    "controller.h"
 
@@ -62,28 +62,31 @@ namespace tool
 
 
 
-/** \class flush
- * \brief Remove all the IP addresses from an IP set.
+/** \class list
+ * \brief List the IP addresses of a set.
  *
- * This class implements the flush command which can be used to remove
- * all the IP addresses currently present in an IP set. This is equivalent
- * to remove each IP one by one, just a lot faster.
+ * This class prints out the contents of a set using the `ipset list ...`
+ * command.
+ *
+ * \todo
+ * Add options to allow things such as tweaking the formatting.
  */
 
-flush::flush(controller * parent)
-    : command(parent, "flush")
+list::list(controller * parent)
+    : command(parent, "list")
 {
 }
 
 
-flush::~flush()
+list::~list()
 {
 }
 
 
-void flush::run()
+void list::run()
 {
     bool found(false);
+    bool newline(false);
     for(int i(0); tool::g_suffixes[i] != nullptr; ++i)
     {
         std::string set_name(get_set_name() + tool::g_suffixes[i]);
@@ -91,69 +94,32 @@ void flush::run()
         // check whether an ipset with that suffix exists
         // if not, just skip that one
         //
-        std::string const exists("ipset list [set] -name >/dev/null 2>&1");
+        if(newline)
+        {
+            // add a newline between each list
+            //
+            std::cout << '\n';
+        }
+        std::string const exists("ipset list [set] 2>/dev/null");
         std::string test_exists(snapdev::string_replace_many(exists, {
                     { "[set]", set_name }
                 }));
-        int const re(system(test_exists.c_str()));
-        if(re != 0)
+        int const e(system(test_exists.c_str()));
+        if(e != 0)
         {
             if(f_verbose)
             {
                 SNAP_LOG_VERBOSE
                     << "set named \""
                     << set_name
-                    << "\" does not exist. Ignore."
+                    << "\" does not exist. Nothing to list."
                     << SNAP_LOG_SEND;
+                newline = true;
             }
             continue;
         }
         found = true;
-
-        std::string const cmdline("ipset flush [set]");
-        std::string cmd(snapdev::string_replace_many(cmdline, {
-                    { "[set]", set_name }
-                }));
-
-        // if user specified --quiet ignore all output
-        //
-        if(f_quiet)
-        {
-            cmd += " 1>/dev/null 2>&1";
-        }
-
-        // if user specified --verbose show the command being run
-        //
-        if(f_verbose)
-        {
-            SNAP_LOG_VERBOSE
-                << cmd
-                << SNAP_LOG_SEND;
-        }
-
-        // run the command now
-        //
-        int const r(system(cmd.c_str()));
-        if(r != 0)
-        {
-            int const e(errno);
-            if(!f_verbose)
-            {
-                // if not verbose, make sure to show the command so the
-                // user knows what failed
-                //
-                SNAP_LOG_INFO
-                    << cmd
-                    << SNAP_LOG_SEND;
-            }
-            SNAP_LOG_ERROR
-                << "the ipset flush command failed: "
-                << e
-                << ", "
-                << strerror(e)
-                << SNAP_LOG_SEND;
-            f_exit_code = 1;
-        }
+        newline = true;
     }
 
     if(!found)
@@ -161,7 +127,7 @@ void flush::run()
         SNAP_LOG_RECOVERABLE_ERROR
             << "no set named \""
             << get_set_name()
-            << "\" was found. No flush happened."
+            << "\" was found."
             << SNAP_LOG_SEND;
     }
 }

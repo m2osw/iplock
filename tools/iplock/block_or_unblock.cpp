@@ -33,15 +33,24 @@
 //
 #include    "block_or_unblock.h"
 
+#include    "controller.h"
+
+
+// iplock
+//
+#include    <iplock/exception.h>
+
 
 // snapdev
 //
+#include    <snapdev/file_contents.h>
 #include    <snapdev/string_replace_many.h>
 
 
-// libaddr
+// snaplogger
 //
-#include    <libaddr/addr_parser.h>
+#include    <snaplogger/logger.h>
+#include    <snaplogger/message.h>
 
 
 // C++
@@ -60,34 +69,16 @@ namespace tool
 
 
 
-block_or_unblock::block_or_unblock(iplock * parent, char const * command_name, advgetopt::getopt::pointer_t opts)
-    : scheme(parent, command_name, opts)
+block_or_unblock::block_or_unblock(controller * parent, char const * command_name)
+    : command(parent, command_name)
 {
-    if(opts->is_defined("reset"))
+    if(f_controller->opts().is_defined("reset"))
     {
-        std::cerr << "error:iplock: --reset is not supported by --block or --unblock." << std::endl;
-        exit(1);
+        throw iplock::invalid_parameter("--reset is not supported by the --block or --unblock commands.");
     }
-    if(opts->is_defined("total"))
+    if(f_controller->opts().is_defined("total"))
     {
-        std::cerr << "error:iplock: --total is not supported by --block or --unblock." << std::endl;
-        exit(1);
-    }
-
-    // make sure there is at least one IP address
-    //
-    if(opts->size("--") == 0)
-    {
-        std::cerr << "error:iplock: --block and --unblock require at least one IP address." << std::endl;
-        exit(1);
-    }
-
-    // get the list of ports immediately
-    //
-    if(f_ports.empty())
-    {
-        std::cerr << "error:iplock: you must specify at least one port." << std::endl;
-        exit(1);
+        throw iplock::invalid_parameter("--total is not supported by the --block or --unblock commands.");
     }
 }
 
@@ -97,168 +88,190 @@ block_or_unblock::~block_or_unblock()
 }
 
 
-void block_or_unblock::handle_ips(std::string const & name, int run_on_result)
+void block_or_unblock::handle_ips(std::string const & cmd, mode_t mode)
 {
-    // position where each rule gets insert (if the command is --block)
+    f_command = cmd;
+    f_mode = mode;
+
+    get_allowlist();
+
+    // first use the IPs specified on the command line
     //
-    int num(1);
-
-    std::string const check_command( get_command("check") );
-    std::string const check_cmdline( get_scheme_string("check") );
-    //
-    std::string const block_command( get_command(name) );
-    std::string const block_cmdline( get_scheme_string(name) );
-
-#if 0
-std::cout << "name=" << name << std::endl;
-std::cout << "check_command: " << check_command << std::endl << "block_command: " << block_command << std::endl;
-std::cout << "check_cmdline: " << check_cmdline << std::endl << "block_cmdline: " << block_cmdline << std::endl;
-#endif
-
-    addr::addr_range::vector_t allowlist_ips;
-    if(f_scheme_opts->is_defined("allowlist"))
-    {
-        std::string const allowlist(f_scheme_opts->get_string("allowlist"));
-        addr::addr_parser p;
-        p.set_protocol(IPPROTO_TCP);        // define a protocol because otherwise we get same IPs with various protocols...
-        p.set_allow(addr::allow_t::ALLOW_MULTI_ADDRESSES_COMMAS, true);
-        p.set_allow(addr::allow_t::ALLOW_MULTI_ADDRESSES_SPACES, true);
-        p.set_allow(addr::allow_t::ALLOW_MASK, true);
-        p.set_allow(addr::allow_t::ALLOW_PORT, false);
-        allowlist_ips = p.parse(allowlist);
-    }
-
-    int const max(f_opts->size("--"));
+    int const max(f_controller->opts().size("--"));
     for(int idx(0); idx < max; ++idx)
     {
-        std::string const ip(f_opts->get_string("--", idx));
+        add_ips(f_controller->opts().get_string("--", idx));
+    }
 
-        // TBD: should we verify all the IPs before starting to add/remove
-        //      any one of them to the firewall? (i.e. be a little more
-        //      atomic kind of a thing?)
-        //
-        verify_ip(ip);
-
-        // are we here to block (1) or unblock (0)?
-        //
-        if(run_on_result == 1)
+    // second, check if the user specified a file, if so also add the
+    // IPs from that file
+    //
+    if(f_controller->opts().is_defined("ips"))
+    {
+        snapdev::file_contents ips(f_controller->opts().get_string("ips"));
+        if(ips.read_all())
         {
-            // is this IP address allowlisted? if so, skip it
-            // as we do not want to block allowlisted IPs
-            //
-            addr::addr_parser p;
-            p.set_allow(addr::allow_t::ALLOW_PORT, false);
-            addr::addr_range::vector_t ips(p.parse(ip));
-            if(ips.size() > 0
-            && addr::address_match_ranges(allowlist_ips, ips[0].get_from()))
-            {
-                if(f_verbose)
-                {
-                    std::cerr << "iplock:notice: ip address " << ip << " is allowlisted, ignoring." << std::endl;
-                }
-                continue;
-            }
+            add_ips(ips.contents());
         }
-
-        for(auto const port : f_ports)
+        else
         {
-            // replace the variables in the command line
-            //
-            std::string check_cmd(snapdev::string_replace_many(check_cmdline, {
-                            { "[command]", check_command },
-                            { "[chain]", f_chain },
-                            { "[port]", std::to_string(static_cast<unsigned int>(port)) },
-                            { "[ip]", ip },
-                            { "[num]", std::to_string(num) },
-                            { "[interface]", f_interface },
-                        }));
+            SNAP_LOG_MAJOR
+                << "file \""
+                << f_controller->opts().get_string("ips")
+                << "\" does not exist."
+                << SNAP_LOG_SEND;
+            f_exit_code = 1;
+        }
+    }
 
-            // although the -C does nothing, it will print a message
-            // in stderr if the rule does not exist
-            //
-            check_cmd += " 1>/dev/null 2>&1";
-
+    if(f_set_rules.empty())
+    {
+        if(f_found_ips)
+        {
             if(f_verbose)
             {
-                std::cout << check_cmd << std::endl;
-            }
-            int const rc(system(check_cmd.c_str()));
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-            if(!WIFEXITED(rc))
-            {
-                if(!f_verbose)
-                {
-                    // if not verbose, make sure to show the command so the
-                    // user knows what failed
-                    //
-                    int const save_errno(errno);
-                    std::cerr << check_cmd << std::endl;
-                    errno = save_errno;
-                }
-                perror("iplock: netfilter command failed");
-
-                // TBD: we cannot continue without a valid answer on this
-                //      one so we just try further...
-                //
-                continue;
-            }
-            int const exit_code(WEXITSTATUS(rc));
-#pragma GCC diagnostic pop
-
-            if(exit_code == run_on_result)
-            {
-                // replace the variables in the command line
-                //
-                std::string cmd(snapdev::string_replace_many(block_cmdline, {
-                                { "[command]", block_command },
-                                { "[chain]", f_chain },
-                                { "[port]", std::to_string(static_cast<unsigned int>(port)) },
-                                { "[ip]", ip },
-                                { "[num]", std::to_string(num) },
-                                { "[interface]", f_interface },
-                            }));
-
-                // if user specified --quiet ignore all output
-                //
-                if(f_quiet)
-                {
-                    cmd += " 1>/dev/null 2>&1";
-                }
-
-                // if user specified --verbose show the command being run
-                //
-                if(f_verbose)
-                {
-                    std::cout << cmd << std::endl;
-                }
-
-                // run the command now
-                //
-                int const r(system(cmd.c_str()));
-                if(r != 0)
-                {
-                    if(!f_verbose)
-                    {
-                        // if not verbose, make sure to show the command so the
-                        // user knows what failed
-                        //
-                        int const save_errno(errno);
-                        std::cerr << cmd << std::endl;
-                        errno = save_errno;
-                    }
-                    perror("iplock: netfilter command failed");
-                }
-
-                // [num] is used by the -I command line option
-                //
-                // i.e. we insert at the beginning, but in the same order
-                //      that the user defined his ports
-                //
-                ++num;
+                SNAP_LOG_VERBOSE
+                    << "iplock:notice: all IPs are allowlisted."
+                    << SNAP_LOG_SEND;
             }
         }
+        else
+        {
+            SNAP_LOG_ERROR
+                << "no IPs were specified with the --block or --unblock command."
+                << SNAP_LOG_SEND;
+            f_exit_code = 1;
+        }
+        return;
+    }
+
+    if(snaplogger::logger::get_instance()->get_lowest_severity() <= snaplogger::severity_t::SEVERITY_DEBUG)
+    {
+        // in "debug mode", also show the f_set_rules
+        //
+        std::cout
+            << "# Set rules to be passed to the ipset command:\n"
+            << f_set_rules
+            << '\n';  // add an empty line to make it easier to see the ipset command
+    }
+
+    char const * load_cmd("/sbin/ipset restore -!");
+    if(f_verbose)
+    {
+        SNAP_LOG_VERBOSE
+            << load_cmd
+            << SNAP_LOG_SEND;
+    }
+    FILE * pipe(popen(load_cmd, "w"));
+    if(fwrite(f_set_rules.c_str(), sizeof(char), f_set_rules.size(), pipe) != f_set_rules.size())
+    {
+        int const e(errno);
+        SNAP_LOG_ERROR
+            << "applying "
+            << (mode == mode_t::MODE_BLOCK ? "block" : "unblock")
+            << " rules failed with "
+            << e
+            << ", "
+            << strerror(e)
+            << SNAP_LOG_SEND;
+        f_exit_code = 1;
+    }
+    int const r(pclose(pipe));
+    if(r != 0)
+    {
+        SNAP_LOG_ERROR
+            << "running \""
+            << load_cmd
+            << "\" returned exit code "
+            << r
+            << "."
+            << SNAP_LOG_SEND;
+        f_exit_code = 1;
+    }
+}
+
+
+void block_or_unblock::get_allowlist()
+{
+    if(f_mode != mode_t::MODE_BLOCK
+    || !f_iplock_config->is_defined("allowlist"))
+    {
+        return;
+    }
+
+    addr::addr_parser p;
+    p.set_protocol(IPPROTO_TCP);        // define a protocol because otherwise we get duplicates with various protocols...
+    p.set_allow(addr::allow_t::ALLOW_MULTI_ADDRESSES_COMMAS, true);
+    p.set_allow(addr::allow_t::ALLOW_MULTI_ADDRESSES_SPACES, true);
+    p.set_allow(addr::allow_t::ALLOW_MASK, true);
+    p.set_allow(addr::allow_t::ALLOW_PORT, false);
+    f_allowlist_ips = p.parse(f_iplock_config->get_string("allowlist"));
+}
+
+
+void block_or_unblock::add_ips(std::string const & ips)
+{
+    addr::addr_parser p;
+    p.set_protocol(IPPROTO_TCP);        // define a protocol because otherwise we get duplicates with various protocols...
+    p.set_allow(addr::allow_t::ALLOW_MULTI_ADDRESSES_COMMAS, true);
+    p.set_allow(addr::allow_t::ALLOW_MULTI_ADDRESSES_SPACES, true);
+    p.set_allow(addr::allow_t::ALLOW_MULTI_ADDRESSES_NEWLINES, true);
+    p.set_allow(addr::allow_t::ALLOW_MASK, true);
+    p.set_allow(addr::allow_t::ALLOW_PORT, false);
+    p.set_allow(addr::allow_t::ALLOW_COMMENT_HASH, true);
+    p.set_allow(addr::allow_t::ALLOW_COMMENT_SEMICOLON, true);
+    addr::addr_range::vector_t ranges(p.parse(ips));
+
+    if(ranges.empty())
+    {
+        return;
+    }
+    f_found_ips = true;
+
+    for(auto const & r : ranges)
+    {
+        if(!r.has_from()
+        || r.has_to())
+        {
+            // I don't think this can happen with the options used above,
+            // but just in case, since we do not currently support this...
+            //
+            SNAP_LOG_ERROR
+                << "the --block and --unblock commands do not yet support IP ranges."
+                << SNAP_LOG_SEND;
+            f_exit_code = 1;
+            continue;
+        }
+
+        addr::addr a(r.get_from());
+        std::string const ip(a.to_ipv4or6_string(addr::STRING_IP_ADDRESS | addr::STRING_IP_MASK_IF_NEEDED));
+
+        // if we are trying to block but the address is allowlisted,
+        // then skip that IP
+        //
+        if(f_mode == mode_t::MODE_BLOCK
+        && addr::address_match_ranges(f_allowlist_ips, a))
+        {
+            if(f_verbose)
+            {
+                SNAP_LOG_VERBOSE
+                    << "iplock:notice: ip address "
+                    << ip
+                    << " is allowlisted, ignoring."
+                    << SNAP_LOG_SEND;
+            }
+            continue;
+        }
+
+        std::string list_name(get_set_name());
+        list_name += "_ipv";
+        list_name += a.is_ipv4() ? '4' : '6';
+
+        f_set_rules += snapdev::string_replace_many(f_command, {
+                        { "[set]", list_name },
+                        { "[ip]", ip },
+                    });
+        f_set_rules += '\n';
     }
 }
 

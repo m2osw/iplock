@@ -42,10 +42,7 @@ class flush
     : public command
 {
 public:
-                        flush(
-                              iplock * parent
-                            , advgetopt::getopt::pointer_t opts
-                            , char const * command_name = "iplock --flush");
+                        flush(controller * parent);
     virtual             ~flush() override;
 
     virtual void        run() override;

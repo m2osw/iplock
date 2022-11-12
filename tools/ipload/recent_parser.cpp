@@ -114,7 +114,7 @@ recent_parser::recent_parser()
 bool recent_parser::parse(std::string const & expression)
 {
     f_expression = expression;
-    f_in = f_expression.c_str();
+    f_in = 0;
 
     next_token();
     for(;;)
@@ -299,7 +299,7 @@ bool recent_parser::parse(std::string const & expression)
                 << "recent parsing issue; got token "
                 << static_cast<int>(f_last_token)
                 << "; start just before \""
-                << f_in
+                << f_expression.substr(f_in)
                 << "\"."
                 << SNAP_LOG_SEND;
             f_valid = false;
@@ -320,9 +320,9 @@ int recent_parser::getc()
         result = f_unget;
         f_unget = '\0';
     }
-    else if(*f_in != '\0')
+    else if(f_in < f_expression.length())
     {
-        result = *f_in;
+        result = f_expression[f_in];
         ++f_in;
     }
 

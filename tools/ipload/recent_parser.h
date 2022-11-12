@@ -51,9 +51,9 @@ enum class recent_t
 class recent_parser
 {
 public:
+    typedef std::vector<recent_parser>  vector_t;
+
                                     recent_parser();
-                                    recent_parser(recent_parser const & rhs) = delete;
-    recent_parser &                 operator = (recent_parser const & rhs) = delete;
 
     bool                            parse(std::string const & value);
 
@@ -86,7 +86,7 @@ private:
 
     std::string                     f_expression = std::string();
 
-    char const *                    f_in = nullptr;
+    std::size_t                     f_in = 0;
     char                            f_unget = '\0';
     token_t                         f_last_token = token_t::TOKEN_EOF;
     std::string                     f_value = std::string();

@@ -31,8 +31,12 @@
 
 // self
 //
-#include    "block.h"
+#include    "list_allowed_sets.h"
 
+
+// C++
+//
+#include    <iostream>
 
 
 // last include
@@ -46,34 +50,45 @@ namespace tool
 
 
 
-/** \class block
- * \brief Block the specified IP addresses.
+/** \class list_allowed_sets
+ * \brief List the set of allowed sets.
  *
- * This class goes through the list of IP addresses specified on the
- * command line and add them to the set as defined by the `--set`
- * command line option. By default, this is the "unwanted" set.
- *
- * IP addressed defined in the `allowlist` (see iplock.conf), do not
- * get added to the set (i.e. it is expected that the IPs being added
- * are unwanted hackers, spammers, etc. and thus that the IPs will be
- * blocked).
+ * This class prints out the list of set names that are allowed. Only those
+ * sets can be updated by the iplock tool. Trying to modify another set
+ * generates an error.
  */
 
-block::block(controller * parent)
-    : block_or_unblock(parent, "block")
+list_allowed_sets::list_allowed_sets(controller * parent)
+    : command(parent, "list-allowed-sets")
 {
 }
 
 
-
-block::~block()
+list_allowed_sets::~list_allowed_sets()
 {
 }
 
 
-void block::run()
+void list_allowed_sets::run()
 {
-    handle_ips("add [set] [ip] -exist", mode_t::MODE_BLOCK);
+    std::string const & set_name(get_set_name());
+    for(auto const & n : f_allowed_set_names)
+    {
+        std::cout << n;
+        if(f_verbose && set_name == n)
+        {
+            // mark the default set with an asterisk
+            //
+            std::cout << " (*)";
+        }
+        std::cout << '\n';
+    }
+}
+
+
+bool list_allowed_sets::needs_root() const
+{
+    return false;
 }
 
 

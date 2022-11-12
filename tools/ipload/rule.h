@@ -292,7 +292,7 @@ private:
     state_result::vector_t              f_states = state_result::vector_t();
     advgetopt::string_list_t            f_limits = advgetopt::string_list_t();
     conntrack_parser::vector_t          f_conntrack = conntrack_parser::vector_t();
-    recent_parser                       f_recent = recent_parser();
+    recent_parser::vector_t             f_recent = recent_parser::vector_t();
 
     action_t                            f_action = action_t::ACTION_UNDEFINED;
     std::string                         f_action_param = std::string();     // REJECT [<type>] or CALL <chain-name>

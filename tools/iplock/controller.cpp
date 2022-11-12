@@ -20,29 +20,41 @@
 /** \file
  * \brief iplock tool.
  *
- * This implementation offers a way to easily and safely add and remove
- * IP addresses one wants to block/unblock temporarily.
+ * This tool offers a way to easily and safely add and remove
+ * IP addresses one wants to block/unblock \em temporarily.
  *
- * The tool makes use of the iptables tool to add and remove rules
- * to one specific table which is expected to be included in your
- * INPUT rules (with a `-j \<table-name>`).
+ * The tool makes use of the ipset command line to add and remove IPs
+ * to a list or another. The lists are managed by the ipload tool, which
+ * means they are created at boot time.
  */
 
 
 // self
 //
-#include    "iplock.h"
+#include    "controller.h"
 
-#include    "batch.h"
 #include    "block.h"
 #include    "count.h"
+#include    "list.h"
+#include    "list_allowed_sets.h"
 #include    "flush.h"
 #include    "unblock.h"
+
+
+// advgetopt
+//
+#include    <advgetopt/exception.h>
 
 
 // iplock
 //
 #include    <iplock/version.h>
+
+
+// snaplogger
+//
+#include    <snaplogger/message.h>
+#include    <snaplogger/options.h>
 
 
 // boost
@@ -70,23 +82,32 @@ namespace tool
 {
 
 
+
+char const * const g_suffixes[]
+{
+    "",
+    "_ipv4",
+    "_ipv6",
+
+    // end list
+    nullptr
+};
+
+
+
 /** \brief Command line options.
  *
- * This table includes all the options supported by iplock on the
+ * This table includes the options supported by iplock on the
  * command line.
+ *
+ * The configuration file is loaded separately from the normal
+ * advgetopt scheme to increase security (avoid users who would
+ * load their own version of the configuration file).
  */
 advgetopt::option const g_iplock_options[] =
 {
     // COMMANDS
     //
-    advgetopt::define_option(
-          advgetopt::Name("batch")
-        , advgetopt::ShortName('a')
-        , advgetopt::Flags(advgetopt::command_flags<
-                      advgetopt::GETOPT_FLAG_GROUP_COMMANDS
-                    , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::Help("Text file containing rules to add to the firewall.")
-    ),
     advgetopt::define_option(
           advgetopt::Name("block")
         , advgetopt::ShortName('b')
@@ -110,7 +131,23 @@ advgetopt::option const g_iplock_options[] =
         , advgetopt::Flags(advgetopt::standalone_command_flags<
                       advgetopt::GETOPT_FLAG_GROUP_COMMANDS
                     , advgetopt::GETOPT_FLAG_SHOW_USAGE_ON_ERROR>())
-        , advgetopt::Help("Flush all rules specified in chain.")
+        , advgetopt::Help("Remove all the IP addresses from the specified set.")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("list")
+        , advgetopt::ShortName('l')
+        , advgetopt::Flags(advgetopt::standalone_command_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_COMMANDS
+                    , advgetopt::GETOPT_FLAG_SHOW_USAGE_ON_ERROR>())
+        , advgetopt::Help("List the IP addresses currently defined in the named set.")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("list-allowed-sets")
+        , advgetopt::ShortName('L')
+        , advgetopt::Flags(advgetopt::standalone_command_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_COMMANDS
+                    , advgetopt::GETOPT_FLAG_SHOW_USAGE_ON_ERROR>())
+        , advgetopt::Help("Display a list of sets that iplock has access to.")
     ),
     advgetopt::define_option(
           advgetopt::Name("unblock")
@@ -118,11 +155,20 @@ advgetopt::option const g_iplock_options[] =
         , advgetopt::Flags(advgetopt::option_flags<
                       advgetopt::GETOPT_FLAG_GROUP_COMMANDS
                     , advgetopt::GETOPT_FLAG_COMMAND_LINE>())
-        , advgetopt::Help("Unblock the specified IP address. If not already blocked, do nothing.")
+        , advgetopt::Help("Unblock the specified IP address. If not blocked, do nothing.")
     ),
 
     // OPTIONS
     //
+    advgetopt::define_option(
+          advgetopt::Name("ips")
+        , advgetopt::Flags(advgetopt::any_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_OPTIONS
+                    , advgetopt::GETOPT_FLAG_COMMAND_LINE
+                    , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE
+                    , advgetopt::GETOPT_FLAG_REQUIRED>())
+        , advgetopt::Help("Define the name of a file with a list of IPs to --block or --unblock.")
+    ),
     advgetopt::define_option(
           advgetopt::Name("quiet")
         , advgetopt::ShortName('q')
@@ -142,14 +188,15 @@ advgetopt::option const g_iplock_options[] =
         , advgetopt::Help("Use with the --count command to retrieve the counters and reset them atomically.")
     ),
     advgetopt::define_option(
-          advgetopt::Name("scheme")
+          advgetopt::Name("set")
         , advgetopt::ShortName('s')
         , advgetopt::Flags(advgetopt::any_flags<
                       advgetopt::GETOPT_FLAG_GROUP_OPTIONS
                     , advgetopt::GETOPT_FLAG_COMMAND_LINE
                     , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE
                     , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::Help("Configuration file to define iptables commands. This is one name (no '/' or '.'). The default is \"http\".")
+        , advgetopt::DefaultValue("unwanted")
+        , advgetopt::Help("Define the name of the set where the IP is added or removed. Defaults to \"unwanted\".")
     ),
     advgetopt::define_option(
           advgetopt::Name("total")
@@ -158,7 +205,7 @@ advgetopt::option const g_iplock_options[] =
                       advgetopt::GETOPT_FLAG_GROUP_OPTIONS
                     , advgetopt::GETOPT_FLAG_COMMAND_LINE
                     , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE>())
-        , advgetopt::Help("Write the grand total only when --count is specified.")
+        , advgetopt::Help("Write the grand total when --count is specified.")
     ),
     advgetopt::define_option(
           advgetopt::Name("verbose")
@@ -204,7 +251,7 @@ advgetopt::group_description const g_group_descriptions[] =
 advgetopt::options_environment const g_iplock_options_environment =
 {
     .f_project_name = "iplock",
-    .f_group_name = nullptr,
+    .f_group_name = "iplock",
     .f_options = g_iplock_options,
     .f_options_files_directory = nullptr,
     .f_environment_variable_name = "IPLOCK_OPTIONS",
@@ -223,7 +270,7 @@ advgetopt::options_environment const g_iplock_options_environment =
     .f_copyright = "Copyright (c) 2007-" BOOST_PP_STRINGIZE(UTC_BUILD_YEAR) " by Made to Order Software Corporation",
     .f_build_date = UTC_BUILD_DATE,
     .f_build_time = UTC_BUILD_TIME,
-    .f_groups = g_group_descriptions
+    .f_groups = g_group_descriptions,
 };
 
 
@@ -246,43 +293,20 @@ advgetopt::options_environment const g_iplock_options_environment =
  * \param[in] argc  The number of arguments in argv.
  * \param[in] argv  The argument strings.
  */
-iplock::iplock(int argc, char * argv[])
+controller::controller(int argc, char * argv[])
+    : f_opts(g_iplock_options_environment)
 {
-    advgetopt::getopt::pointer_t opts(std::make_shared<advgetopt::getopt>(g_iplock_options_environment, argc, argv));
-
-    // define the command
-    //
-    // since the user may specify any number of commands, we use
-    // the set_command() function to make sure that only one
-    // gets set...
-    //
-    if(opts->is_defined("block"))
+    snaplogger::add_logger_options(f_opts);
+    f_opts.finish_parsing(argc, argv);
+    if(!snaplogger::process_logger_options(
+                  f_opts
+                , "/etc/iplock/logger"
+                , std::cout
+                , !isatty(fileno(stdin))))
     {
-        set_command(std::make_shared<block>(this, opts));
-    }
-    if(opts->is_defined("unblock"))
-    {
-        set_command(std::make_shared<unblock>(this, opts));
-    }
-    if(opts->is_defined("count"))
-    {
-        set_command(std::make_shared<count>(this, opts));
-    }
-    if(opts->is_defined("flush"))
-    {
-        set_command(std::make_shared<flush>(this, opts));
-    }
-    if(opts->is_defined("batch"))
-    {
-        set_command(std::make_shared<batch>(this, opts));
-    }
-
-    // no command specified?
-    //
-    if(f_command == nullptr)
-    {
-        std::cerr << "iplock:error: you must specify one of: --block, --unblock, --count, --flush, or --batch.\n";
-        exit(1);
+        // exit on any error
+        //
+        throw advgetopt::getopt_exit("iplock:error: logger options generated an error.", 1);
     }
 }
 
@@ -295,13 +319,19 @@ iplock::iplock(int argc, char * argv[])
  * It is done that way so we can easily detect whether more than one
  * command was specified on the command line.
  *
- * \param[in] c  The pointer to the command line to save in iplock.
+ * \param[in] c  The pointer to the command to save in iplock.
  */
-void iplock::set_command(command::pointer_t c)
+void controller::set_command(command::pointer_t c)
 {
     if(f_command != nullptr)
     {
-        std::cerr << "iplock:error: you can only specify one command at a time, one of: --block, --unblock, --count, --flush, or --batch." << std::endl;
+        SNAP_LOG_FATAL
+            << "you can only specify one command; found \""
+            << f_command->get_command_name()
+            << "\" and \""
+            << c->get_command_name()
+            << "\"."
+            << SNAP_LOG_SEND;
         exit(1);
     }
     f_command = c;
@@ -313,22 +343,33 @@ void iplock::set_command(command::pointer_t c)
  * This function gets called by the run_command() function.
  *
  * The function exits the process with an error if becoming root is not
- * possible. This can happen if (1) the process is run by systemd and
- * systemd prevents such, (2) the binary is not marked with the 's'
- * bit.
+ * possible. This can happen if:
+ *
+ * \li the process is run by systemd and systemd prevents such; or
+ * \li the binary is not marked with the 's' bit.
+ *
+ * \return true if the function succeeds.
  */
-void iplock::make_root()
+bool controller::make_root()
 {
     if(setuid(0) != 0)
     {
         perror("iplock:error: setuid(0)");
-        exit(1);
+        return false;
     }
     if(setgid(0) != 0)
     {
         perror("iplock:error: setgid(0)");
-        exit(1);
+        return false;
     }
+
+    return true;
+}
+
+
+advgetopt::getopt & controller::opts()
+{
+    return f_opts;
 }
 
 
@@ -342,11 +383,59 @@ void iplock::make_root()
  * This may change in the future if some of the commands may
  * otherwise be run as a regular user.
  */
-int iplock::run_command()
+int controller::run_command()
 {
-    // all iptables commands require the user to be root.
+    // define the command
     //
-    make_root();
+    // since the user may specify any number of commands, we use
+    // the set_command() function to make sure that only one
+    // gets set... if theuser has more on the command line, then
+    // we print an error and exit with 1.
+    //
+    if(f_opts.is_defined("block"))
+    {
+        set_command(std::make_shared<block>(this));
+    }
+    if(f_opts.is_defined("count"))
+    {
+        set_command(std::make_shared<count>(this));
+    }
+    if(f_opts.is_defined("flush"))
+    {
+        set_command(std::make_shared<flush>(this));
+    }
+    if(f_opts.is_defined("list"))
+    {
+        set_command(std::make_shared<list>(this));
+    }
+    if(f_opts.is_defined("list-allowed-sets"))
+    {
+        set_command(std::make_shared<list_allowed_sets>(this));
+    }
+    if(f_opts.is_defined("unblock"))
+    {
+        set_command(std::make_shared<unblock>(this));
+    }
+
+    // no command specified?
+    //
+    if(f_command == nullptr)
+    {
+        SNAP_LOG_ERROR
+            << "you must specify one of: --block, --unblock, --count, or --flush."
+            << SNAP_LOG_SEND;
+        return 1;
+    }
+
+    // all iptables/ipset commands require the user to be root.
+    //
+    if(f_command->needs_root())
+    {
+        if(!make_root())
+        {
+            return 1;
+        }
+    }
 
     f_command->run();
 

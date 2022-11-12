@@ -1,24 +1,118 @@
 .TH IPLOCK 1 "August 2022" "iplock 1.x" "User Commands"
 .SH NAME
-iplock \- Block and Unblock IP addresses in your firewall
+iplock \- Block and Unblock IP addresses in iptables
 .SH SYNOPSIS
 .B iplock
-[\fIOPTION\fR]...
+\fICOMMAND\fR [\fIOPTIONS\fR] <ip1> <ip2> ... <ipN>
 .SH DESCRIPTION
 The \fBiplock(1)\fR tool is used to block and unblock IP addresses directly
-whithin your firewall. The tool is setup so you do not need to be root
-to do so. That allows the \fBipwall(8)\fR service to add and remove IP
-addresses from the firewall on all the computers in your cluster with
-one call.
+whithin \fBiptables(8)\fR. The tool is setup so it is not necessary to be
+root to add and remove IP addresses from the firewall. That allows the
+\fBipwall(8)\fR service to add and remove IP addresses on all the computers
+in a Snap! C++ cluster with one call.
+
+The current implementation uses \fBipset(8)\fR to add and remove IPs from
+a set. By default, the set is named \fBunwanted\fR. The administrator can
+edit the `/etc/iplock/iplock.d/50-iplock.conf' file to change that name
+or add multiple names by changing the value of the \fBallowed_sets\fR
+variable.
 
 .SH "SECURITY"
-The \fBiplock(1)\fR tool only allows the update of one user defined chain
-or am IP set. Which is all defined in the `iplock' configuration files.
-This is why we allow anyone from blocking and unblocking IP addresses.
-The unblocking can only unblock IP addresses that are in that user defined
-chain or IP set.
+The \fBiplock(1)\fR tool only allows the update of very specific sets as
+defined by the administrator. The names of the sets are defined in the
+`/etc/iplock/iplock.conf' file and the `/etc/iplock/iplock.d/??-iplock.conf'
+files as defined by other packages and the administrator. This is how the
+tool can allow anyone to add and remove IP addresses from the set. It
+does not allow the user from modifying the entire firewall.
+
+The --unblock command only removes the IP address from that very set.
+It does not mean the IP will be allowed access since it may be blocked
+by some other means (a different `ipset', a `recent' list, etc.)
+
+.SH "DEBUGGING"
+To help debug the tool, we offer the \fB\-\-verbose\fR command. This
+displays the basic steps taken by \fBiplock(8)\fR before said step is
+taken.
+
+When adding (\fB\-\-block\fR) or removing (\fB\-\-unblock\fR) IPs to
+a set, the tool creates a memory file which includes all the `add' or
+`del' commands. To see that file, use the `\fB\-\-debug\fR' command
+line option.
+
+.SH "COMMANDS"
+A set of options are viewed as commands specific to the \fBiplock(8)\fR
+tool. These are listed here.
+
+.TP
+\fB\-b\fR, \fB\-\-block\fR
+Block the list of specified IP addresses. The IP addresses can be listed
+on the command line and in a file using the \fB\-\-ips\fR command line
+option to define the filename.
+
+The set being changed is the default one defined in the `iplock.conf'
+configuration file. It can be changed on the command line using the
+\fB\-\-set\fR command line option. Note that the name specified with
+\fB\-\-set\fR must appear as one of the allowed sets (see the
+`allowed_sets' parameter).
+
+If an IP is already in the specified ipset, it is silently ignored.
+
+If the IP address is one that appears in the `allowlist', or it matches
+a network address part of the `allowlist', then that IP is not added to
+the set. This is particularly useful to avoid having computers in a
+cluster blocked by the firewall. It can also be used to allow third party
+security checks by not blocking those third party servers.
+
+.TP
+\fB\-n\fR, \fB\-\-count\fR
+Retrieve the current counters from a given \fBiptables(8)\fR chain. This
+flag works with the \fB\-\-reset\fR and \fB\-\-total\fR command line options.
+
+.TP
+\fB\-f\fR, \fB\-\-flush\fR
+Flush the set. This is similar to calling \fBiplock(8)\fR with
+\fB\-\-unblock\fR for each one of the IP addresses currently being blocked,
+just much faster and easier to use.
+
+.TP
+\fB\-l\fR, \fB\-\-list\fR
+List the IP addresses currently blocked. This is the same as the
+`ipset list ...' command for the specified set (see \fB\-\-set\fR).
+
+Only the sets that the adminstrator allows can be listed in this way.
+Other sets still require you to have enough permissions to do so and you
+have to use the `ipset list ...' command directly.
+
+.TP
+\fB\-L\fR, \fB\-\-list-allowed-sets\fR
+List the name of the sets that the administrator authorized \fBiplock(8)\fR
+to access. When the \fB\-\-verbose\fR option is used, add `(*)' on the
+line with the default set. By default, the project would output the following:
+
+    $ iplock --list-allowed-sets
+    unwanted (*)
+
+.TP
+\fB\-u\fR, \fB\-\-unblock\fR
+Unblock a list of IP address as specified on the command line and in a file
+as specified by the \fB\-\-ips\fR command line option.
+
+The set the IPs are removed from can be changed using the \fB\-\-set\fR
+command line option. By default, it is the "unwanted" set.
+
+Nothing happens if the IP addresses are not currently present in the
+specified set.
+
+The `allowlist' is ignored when using this option. This is because you may
+have added new IP addresses in the `allowlist' that were already added to
+the set. It is important that \fBiplock(8)\fR allows the administrator to
+still remove those IP addresses.
+
 
 .SH "COMMAND LINE OPTIONS"
+The following are all the other commands and options supported by
+\fBiplock(8)\fR.
+
 .TP
 \fB\-\-build\-date\fR
 Display the date and time when the tool was last built.
@@ -34,23 +128,15 @@ Output the version information of the C++ compiler used to compile the
 to compile the `iplock' tool.
 
 .TP
-\fB\-\-config\-dir\fR [\fISOURCE\fR]...
-Define a list of configuration directories to search for configuration files.
-
-.TP
 \fB\-\-configuration\-filenames\fR
 List the filename of each configuration file that the `iplock' will read
 to get initialized. \fBWARNING:\fR this does not include the schemes that
 get loaded later in the process.
 
 .TP
-\fB\-\-config\-warnings\fR \fItrue | false\fR
-Whether to show warnings when reading scheme files. Defaults to false.
-
-.TP
 \fB\-\-console\fR
 Print the logs out to the console. This overrides the logger configuration
-files.
+files. By default, the iplock tool writes to the console if it is a tty.
 
 .TP
 \fB\-C\fR, \fB\-\-copyright\fR
@@ -60,6 +146,10 @@ Print out the copyright notice of the `iplock' tool.
 \fB\-\-debug\fR
 Change the logger severity to the `debug' level. This command line option
 changes the level of all the appenders configured for `iplock'.
+
+This is useful to fully debug the \fB\-\-block\fR and \fB\-\-unblock\fR
+command line options. When in this mode, the memory file used to add
+or remove the IPs from the set is printed to the console.
 
 .TP
 \fB\-\-environment\-variable\-name\fR
@@ -90,6 +180,20 @@ Print whether this version was compiled with the C++ compiler sanitizer.
 .TP
 \fB\-h\fR, \fB\-\-help\fR
 Print a brief document about the tool usage, then exit.
+
+.TP
+\fB\-\-ips\fR \fI<filename>\fR
+Define the name of a file with IP addresses. This can be used along the
+\fB\-\-block\fR and \fB\-\-unblock\fR commands.
+
+The file format is simply IP addresses separated by commas, spaces, or
+newlines. The `;' and `#' characters introduce a comment up to the next
+newline character.
+
+In most cases, these files are generated and only include one IP address
+per line. It supports IPv4 and IPv6 addresses. For IPv6, it is safer to
+write them between square brackets to make sure they are recognized as
+IPv6 IPs.
 
 .TP
 \fB\-L\fR, \fB\-\-license\fR
@@ -124,14 +228,6 @@ Save the logs in this specific file instead of what is defined in the
 configuration files.
 
 .TP
-\fB\-\-log\-severity\fR \fIlevel\fR
-Change the severity to this level unless the appender already accepts logs
-for a lower level. So for example, an appender setup to output logs with a
-severity level of `error' or higher is affected by the `warning' level.
-An appender setup to output logs with a severity level of `info' does not
-changed when setting this command line option to `warning'.
-
-.TP
 \fB\-\-logger\-configuration\-filenames\fR
 List the files that the logger reads to be setup. If no files are found,
 then messages appear in the console by default.
@@ -158,13 +254,21 @@ knows which version of the tool is being used.
 Print out the version of the Snap! Logger and exit.
 
 .TP
+\fB\-\-log\-severity\fR \fIlevel\fR
+Change the severity to this level unless the appender already accepts logs
+for a lower level. So for example, an appender setup to output logs with a
+severity level of `error' or higher is affected by the `warning' level.
+An appender setup to output logs with a severity level of `info' does not
+changed when setting this command line option to `warning'.
+
+.TP
 \fB\-\-no\-log\fR
 Turn off the logger so nothing gets printed out. This is somewhat similar
 to a quiet or silent option that many Unix tools offer.
 
 .TP
 \fB\-\-option\-help\fR
-Print the list of options supported by `ipmgr'.
+Print the list of options supported by `iplock'.
 
 .TP
 \fB\-\-path\-to\-option\-definitions\fR
@@ -177,9 +281,23 @@ This option is useful to debug your command line, environment variable, and
 configuration files by printing the value of the named option. This tells
 you what value the tool or service sees in the end.
 
-Note that `ipwall' uses `fluid-settings'. Some of the options are defined
-there instead. Make sure to use the `fluid-settings-cli(1)' command line
-instead to read those options.
+.TP
+\fB\-\-quiet\fR
+Turn off all messages, including errors, from the \fBiptables(8)\fR and
+\fBipset(8)\fR tools. Use this when running such commands from other
+software to avoid generally unnecessary output.
+
+.TP
+\fB\-r\fR, \fB\-\-reset\fR
+Use this flag along the \fB\-\-count\fR command line option. It requests
+the command to also reset the counter. This is useful if you are gathering
+the counters to save them in a database to use as statistics.
+
+.TP
+\fB\-s\fR, \fB\-\-set\fR \fI<name>\fR
+Change the name of the set on which to work. The internal default is
+"unwanted". Only sets that the administrator allowed can be specified
+here. Other names, even if the set exists, generate a fatal error.
 
 .TP
 \fB\-\-show\-option\-sources\fR
@@ -197,6 +315,11 @@ along each message.
 \fB\-\-trace\fR
 Change the logger severity to the TRACE level. All appenders accept all the
 logs that they receive.
+
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+Print information about what the tool is doing. In particular, it shows
+the commands that are run to help debug issue if such arise.
 
 .TP
 \fB\-V\fR, \fB\-\-version\fR

@@ -42,9 +42,7 @@ class unblock
     : public block_or_unblock
 {
 public:
-                        unblock(
-                              iplock * parent
-                            , advgetopt::getopt::pointer_t opts);
+                        unblock(controller * parent);
     virtual             ~unblock() override;
 
     virtual void        run() override;

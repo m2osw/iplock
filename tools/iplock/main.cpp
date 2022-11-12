@@ -21,28 +21,50 @@
  *
  * \image html iplock-logo.jpg
  *
- * The iplock tool can be used to very easily add and remove IP addresses
- * you want blocking unwanted clients.
+ * The `iplock` tool is used to very easily add and remove IP addresses
+ * to an `ipset` list of addresses. In most likelihood, you have a rule
+ * in your firewall which `DROP`s packets originating from these IP
+ * addresses.
  *
- * Once installed properly, it will be capable to become root and
- * thus access the firewall as required. The rules used to add and
- * remove IPs are defined in the configuration file found under
- * /etc/network/iplock.conf (to avoid any security problems, the path
- * to the configuration file cannot be changed.)
+ * Once installed properly, it is capable of becoming root and thus make
+ * use of the `ipset` command line as required. The shell command line
+ * used to add and remove IPs is defined in the configuration file:
  *
- * By default, the iplock tool expects a chain entry named bad_robots.
+ * \cpde
+ * /etc/iplock/iplock.conf
+ * \endcode
+ *
+ * \note
+ * To avoid any security issues, the path to the configuration file
+ * cannot be changed.
+ *
+ * By default, the `iplock` tool expects two sets:
+ *
+ * \li `unwanted_ipv4`, and
+ * \li `unwanted_ipv6`.
+ *
  * This can be changed in the configuration file.
  */
 
 
 // self
 //
-#include    "iplock.h"
+#include    "controller.h"
+
+
+// iplock
+//
+#include    <iplock/exception.h>
 
 
 // advgetopt
 //
 #include    <advgetopt/exception.h>
+
+
+// snaplogger
+//
+#include    <snaplogger/message.h>
 
 
 // eventdispatcher
@@ -53,11 +75,6 @@
 // libexcept
 //
 #include    <libexcept/file_inheritance.h>
-
-
-// snapdev
-//
-#include    <snapdev/not_reached.h>
 
 
 // C++
@@ -79,18 +96,34 @@ int main(int argc, char * argv[])
 
     try
     {
-        tool::iplock l(argc, argv);
+        tool::controller c(argc, argv);
 
-        return l.run_command();
+        return c.run_command();
     }
     catch(advgetopt::getopt_exit const & e)
     {
-        exit(e.code());
-        snapdev::NOT_REACHED();
+        return e.code();
+    }
+    catch(iplock::iplock_exception const & e)
+    {
+        SNAP_LOG_SEVERE
+            << e
+            << SNAP_LOG_SEND;
     }
     catch(std::exception const & e)
     {
-        std::cerr << "error:iplock: an exception occurred: " << e.what() << std::endl;
+        SNAP_LOG_EXCEPTION
+            << "an exception occurred: "
+            << e.what()
+            << SNAP_LOG_SEND;
+        std::cerr << "iplock:error: an exception occurred: " << e.what() << std::endl;
+    }
+    catch(...)
+    {
+        SNAP_LOG_ALERT
+            << "an unknown exception was raised."
+            << SNAP_LOG_SEND;
+        std::cerr << "iplock:error: an unknown exception was raised." << std::endl;
     }
 
     return 1;

@@ -901,7 +901,7 @@ void ipload::create_defaults()
     // fallback to block the firewall (because by default the Linux
     // firewall is wide open)
     //
-    snapdev::file_contents defaults("/tmp/default_firewall.conf", true);
+    snapdev::file_contents defaults("/run/users/0/default_firewall.conf", true);
     defaults.contents(std::string(tools_ipload::default_firewall, tools_ipload::default_firewall_size));
     if(!defaults.write_all())
     {
