@@ -1,9 +1,10 @@
 iplock (3.0.41.0~bionic) bionic; urgency=high
 
-  * Added support for the extended assignment operators within the advgetopt
-    config. Also added support to change the default config setup.
+  * Added support for the extended assignment operators within the iplock.conf.
+  * When there are multiple recent it's for a single rule.
+  * Output the TCP state before the -m recent rules.
 
- -- Alexis Wilke <alexis@m2osw.com>  Sat, 12 Nov 2022 16:09:23 -0800
+ -- Alexis Wilke <alexis@m2osw.com>  Sat, 12 Nov 2022 17:59:48 -0800
 
 iplock (3.0.40.0~bionic) bionic; urgency=high
 

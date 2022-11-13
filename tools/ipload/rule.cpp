@@ -3146,7 +3146,7 @@ void rule::to_iptables_limits(result_builder & result, line_builder const & line
 {
     if(f_limits.empty())
     {
-        to_iptables_recent(result, line);
+        to_iptables_states(result, line);
     }
     else
     {
@@ -3306,7 +3306,61 @@ void rule::to_iptables_limits(result_builder & result, line_builder const & line
         {
             sub_line.append_both(l);
         }
-        to_iptables_recent(result, sub_line);
+        to_iptables_states(result, sub_line);
+    }
+}
+
+
+void rule::to_iptables_states(result_builder & result, line_builder const & line)
+{
+    if(f_states.empty()
+    || line.get_protocol().empty())
+    {
+        to_iptables_recent(result, line);
+    }
+    else
+    {
+        for(auto const & s : f_states)
+        {
+            if(!s.is_valid())
+            {
+                continue;
+            }
+
+            line_builder sub_line(line);
+
+            // tcpmss needs separate handling
+            //
+            // TODO: make sure that the current protocol is TCP
+            // TODO: verify that the chain is PREROUTING or ...
+            // TODO: verify that the table is MANGLE
+            //
+            if(s.get_tcpmss_min() != -1)
+            {
+                sub_line.append_both(" -m tcpmss");
+                if(s.get_tcpmss_negate())
+                {
+                    sub_line.append_both(" !");
+                }
+                sub_line.append_both(" --mss " + std::to_string(s.get_tcpmss_min()));
+                if(s.get_tcpmss_min() != s.get_tcpmss_max()
+                && s.get_tcpmss_max() != -1)
+                {
+                    sub_line.append_both(':' + std::to_string(s.get_tcpmss_max()));
+                }
+            }
+
+            // the state may still be optional
+            //
+            std::string const & protocol(sub_line.get_protocol());
+            std::string const state(s.to_iptables_options(protocol, sub_line.is_ipv6()));
+            if(!state.empty())
+            {
+                sub_line.append_both(state);
+            }
+
+            to_iptables_recent(result, sub_line);
+        }
     }
 }
 
@@ -3315,13 +3369,13 @@ void rule::to_iptables_recent(result_builder & result, line_builder const & line
 {
     if(f_recent.empty())
     {
-        to_iptables_states(result, line);
+        to_iptables_comment(result, line);
     }
     else
     {
+        line_builder sub_line(line);
         for(auto const & r : f_recent)
         {
-            line_builder sub_line(line);
             sub_line.append_both(" -m recent");
             if(r.get_negate())
             {
@@ -3390,7 +3444,6 @@ void rule::to_iptables_recent(result_builder & result, line_builder const & line
                     //
                     sub_line.append_both(" --mask ");
                     sub_line.append_ipv6line(a.to_ipv6_string(addr::STRING_IP_MASK_AS_ADDRESS), true);
-                    to_iptables_states(result, sub_line);
                 }
                 else
                 {
@@ -3415,68 +3468,10 @@ void rule::to_iptables_recent(result_builder & result, line_builder const & line
                     //
                     sub_line.append_both(" --mask ");
                     sub_line.append_ipv6line(a.to_ipv6_string(addr::STRING_IP_MASK_AS_ADDRESS), true);
-                    to_iptables_states(result, sub_line);
                 }
-            }
-            else
-            {
-                to_iptables_states(result, sub_line);
             }
         }
-    }
-}
-
-
-void rule::to_iptables_states(result_builder & result, line_builder const & line)
-{
-    if(f_states.empty()
-    || line.get_protocol().empty())
-    {
-        to_iptables_comment(result, line);
-    }
-    else
-    {
-        for(auto const & s : f_states)
-        {
-            if(!s.is_valid())
-            {
-                continue;
-            }
-
-            line_builder sub_line(line);
-
-            // tcpmss needs separate handling
-            //
-            // TODO: make sure that the current protocol is TCP
-            // TODO: verify that the chain is PREROUTING or ...
-            // TODO: verify that the table is MANGLE
-            //
-            if(s.get_tcpmss_min() != -1)
-            {
-                sub_line.append_both(" -m tcpmss");
-                if(s.get_tcpmss_negate())
-                {
-                    sub_line.append_both(" !");
-                }
-                sub_line.append_both(" --mss " + std::to_string(s.get_tcpmss_min()));
-                if(s.get_tcpmss_min() != s.get_tcpmss_max()
-                && s.get_tcpmss_max() != -1)
-                {
-                    sub_line.append_both(':' + std::to_string(s.get_tcpmss_max()));
-                }
-            }
-
-            // the state may still be optional
-            //
-            std::string const & protocol(line.get_protocol());
-            std::string const state(s.to_iptables_options(protocol, line.is_ipv6()));
-            if(!state.empty())
-            {
-                sub_line.append_both(state);
-            }
-
-            to_iptables_comment(result, sub_line);
-        }
+        to_iptables_comment(result, sub_line);
     }
 }
 

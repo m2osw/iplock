@@ -15,5 +15,11 @@
 * Add support for bad TCP state i.e. --syn means NEW so both states must be the same:
       ... -p tcp ! --syn -m state --state NEW ...
       ... -p tcp --syn -m state ! --state NEW ...
+* The options of a rule are actually ordered. That already works for us in regard to the -m recent extensions, but not other things like where to TCP state should be placed within the list of recent parameters.
+  - problem 1: I do not know of all thepossible options and their possible order
+  - problem 2: our .conf are declaratives which do not imply an order
+    * One possibility here is to have a comma separated set of strings which
+      can be defined as "<type>: <parameters>" where the "<type>" is one of
+      those states (i.e. "state", "recent", etc.)
 * Write tests.
 
