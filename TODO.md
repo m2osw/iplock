@@ -5,6 +5,21 @@
 * Change the ipsets to make use of counters (that uses more RAM but allows
   us to better track what's happening).
 * Create some interfaces to make it easier to edit the rules (CLI, browser, GUI)
+* Enhance the creation of `ipset`s by adding a declarative. Just like we have
+  tables and chains, we can have sets. Parameters of a set:
+  - name
+  - type (hash:ip, etc.)
+  - static/dynamic
+  - maximum number of expected elements (if statically compute at creation time)
+  - if parameters change, create a new set, upload the data, do a swap
+  - timeout (TTL for data added to this set)
+  - counters
+  - comment
+  - skbinfo (?)
+  - hashsize
+  - family (ipv4 or ipv6--does not apply to bitmap:port, hash:mac)
+  - nomatch (?)
+  - forceadd (to accept new and auto-remove old on a full set)
 * Move the sitter firewall plugin to this project.
 * Moved most of the knock-knock code to the library so we can actually perform a knock-knock from anywhere.
 * Move docs from README.md to man pages.
