@@ -1,3 +1,10 @@
+iplock (3.0.41.0~bionic) bionic; urgency=high
+
+  * Added support for the extended assignment operators within the advgetopt
+    config. Also added support to change the default config setup.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Sat, 12 Nov 2022 16:09:23 -0800
+
 iplock (3.0.40.0~bionic) bionic; urgency=high
 
   * Count the number of hitcount with `iprecent show [<list>]`.
