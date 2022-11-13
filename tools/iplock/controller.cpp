@@ -422,7 +422,7 @@ int controller::run_command()
     if(f_command == nullptr)
     {
         SNAP_LOG_ERROR
-            << "you must specify one of: --block, --unblock, --count, or --flush."
+            << "you must specify a command such as: --block, --unblock, --count, or --flush."
             << SNAP_LOG_SEND;
         return 1;
     }

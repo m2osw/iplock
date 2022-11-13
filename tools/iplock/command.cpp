@@ -189,6 +189,15 @@ constexpr char const * const g_iplock_configuration_files[]
 };
 
 
+advgetopt::conf_file_setup const g_config_setup =
+        advgetopt::conf_file_setup(
+                  "iplock.conf" // this is not used but it has to be defined
+                , advgetopt::line_continuation_t::line_continuation_unix
+                , advgetopt::ASSIGNMENT_OPERATOR_EQUAL | advgetopt::ASSIGNMENT_OPERATOR_EXTENDED
+                , advgetopt::COMMENT_INI | advgetopt::COMMENT_SHELL
+                , advgetopt::SECTION_OPERATOR_INI_FILE
+                , advgetopt::NAME_SEPARATOR_UNDERSCORES);
+
 
 // TODO: once we have stdc++20, remove all defaults
 #pragma GCC diagnostic ignored "-Wpedantic"
@@ -208,10 +217,12 @@ advgetopt::options_environment const g_iplock_configuration_options_environment 
     .f_help_header = nullptr,
     .f_help_footer = nullptr,
     .f_version = IPLOCK_VERSION_STRING,
-    //.f_license = nullptr,
-    //.f_copyright = nullptr,
-    //.f_build_date = UTC_BUILD_DATE,
-    //.f_build_time = UTC_BUILD_TIME,
+    .f_license = nullptr,
+    .f_copyright = nullptr,
+    .f_build_date = UTC_BUILD_DATE,
+    .f_build_time = UTC_BUILD_TIME,
+    .f_groups = nullptr,
+    .f_config_setup = &g_config_setup,
 };
 
 
