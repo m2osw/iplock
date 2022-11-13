@@ -646,6 +646,10 @@ rule::rule(
                     f_valid = false;
                 }
             }
+            else if(param_name == "knock-clear")
+            {
+                advgetopt::split_string(value, f_knock_clear, {","});
+            }
             else
             {
                 found = false;
@@ -903,10 +907,19 @@ rule::rule(
     //&& f_chains.find("INPUT") == f_chains.end())
     //{
     //    SNAP_LOG_ERROR
-    //        << "knocks = ... parameter can only be used with the INPUT chain"
+    //        << "knocks = ... parameter can only be used with the INPUT chain."
     //        << SNAP_LOG_SEND;
     //    f_valid = false;
     //}
+
+    if(!f_knock_ports.empty()
+    && !f_recent.empty())
+    {
+        SNAP_LOG_ERROR
+            << "the \"knocks = ...\" and \"recent = ...\" parameters cannot be used together."
+            << SNAP_LOG_SEND;
+        f_valid = false;
+    }
 
     parse_addresses(
           sources
@@ -2324,7 +2337,7 @@ void rule::to_iptables_knocks(result_builder & result, line_builder const & line
     // the main rules have them so it is still very safe and that way we
     // avoid a lot of unnecessary duplication
     //
-    std::size_t count(f_knock_ports.size());
+    std::size_t const count(f_knock_ports.size());
     if(count == 0)
     {
         to_iptables_source_interfaces(result, line);
@@ -2368,37 +2381,91 @@ void rule::to_iptables_knocks(result_builder & result, line_builder const & line
 
         // the following sequence must remain in order
 
-        // first remove knock<N> if not used in a timely manner
+        // if specified, first remove user from blocking lists when they
+        // successeed with the knocking sequence
+        //
+        // this is practical for you to write a test which blocks your
+        // IP address, then knock and try again from "scratch"
         //
         snapdev::safe_variable const safe_action(f_action, action_t::ACTION_NONE);
-        line_builder remove_old(line.get_chain_name());
-        remove_old.append_both(
-                  " -m recent --rcheck --seconds 10 --name knock"
-                + std::to_string(count)
-                + " -m recent --remove --name hacker");
-        to_iptables_limits(result, remove_old);
+        if(!f_knock_clear.empty())
+        {
+            // this rule has no need for a separate f_recent since we bypass
+            // all of that by calling to_iptables_limits() directly
+            //
+            std::string clear(" -m recent --rcheck --seconds ");
+            clear += std::to_string(f_knock_ports[count - 1].f_duration);
+            clear += " --name knock";
+            clear += std::to_string(count);
+            for(auto const & c : f_knock_clear)
+            {
+                clear += " -m recent --remove --name ";
+                clear += c;
+            }
+
+            line_builder clear_lists(line.get_chain_name());
+            clear_lists.append_both(clear);
+            to_iptables_limits(result, clear_lists);
+        }
 
         // second, apply the user rules with a verification against
         // that knock<N> rule
         //
         f_action = safe_action.saved_value();
         line_builder sub_line(line);
+        //{
+        //    recent_parser p;
+        //    p.parse("check knock" + std::to_string(count) + " 10s");
+        //    if(!p.get_valid())
+        //    {
+        //        throw logic_error("the recent parser failed with \"check knock<#> 10s\"");
+        //    }
+        //    f_recent.push_back(p);
+        //}
         sub_line.append_both(
-                  " -m recent --rcheck --seconds 10 --name knock"
+                  " -m recent --rcheck --seconds "
+                + std::to_string(f_knock_ports[count - 1].f_duration)
+                + " --name knock"
                 + std::to_string(count));
         to_iptables_source_interfaces(result, sub_line);
+        //to_iptables_source_interfaces(result, line);
 
         f_action = action_t::ACTION_NONE;
         snapdev::safe_variable safe_destination_ports(f_destination_ports, {});
         snapdev::safe_variable safe_protocols(f_protocols, {});
         for(std::size_t idx(count); idx > 1; --idx)
         {
+            // also, the -m recent entries must appear after the -m tcp entries
+            // to make sure that things work as expected; this means here we save
+            // the data in the f_recent and let the to_iptables_recent() rule
+            // output the actual data
+            //
             line_builder knock(line);
-            knock.append_both(
-                      " -m recent --rcheck --seconds 10 --name knock"
-                    + std::to_string(idx - 1)
-                    + " -m recent --set --name knock"
-                    + std::to_string(idx));
+            {
+                recent_parser p;
+                p.parse("check knock" + std::to_string(idx - 1)
+                      + " "
+                      + std::to_string(f_knock_ports[idx - 2].f_duration) + "s");
+                if(!p.get_valid())
+                {
+                    throw iplock::logic_error("the recent parser failed with \"check knock<#> <duration>s\"");
+                }
+                f_recent.push_back(p);
+            }
+            {
+                recent_parser p;
+                p.parse("set knock" + std::to_string(idx));
+                if(!p.get_valid())
+                {
+                    throw iplock::logic_error("the recent parser failed with \"set knock<#>\"");
+                }
+                f_recent.push_back(p);
+            }
+            //knock.append_both(
+            //          " -m recent --rcheck --seconds 10 --name knock"
+            //        + std::to_string(idx - 1)
+            //        + " -m recent --set --name knock"
+            //        + std::to_string(idx));
             knock.set_next_func(std::bind(
                       &rule::to_iptables_destination_ports
                     , this
@@ -2415,7 +2482,18 @@ void rule::to_iptables_knocks(result_builder & result, line_builder const & line
             }
             to_iptables_protocols(result, knock);
 
+            f_recent.clear();
+
             line_builder remover(line.get_chain_name());
+            //{
+            //    recent_parser p;
+            //    p.parse("remove knock" + std::to_string(idx - 1));
+            //    if(!p.get_valid())
+            //    {
+            //        throw iplock::logic_error("the recent parser failed with \"remove knock<#>\"");
+            //    }
+            //    f_recent.push_back(p);
+            //}
             remover.append_both(
                       " -m recent --remove --name knock"
                     + std::to_string(idx - 1));
@@ -2425,7 +2503,16 @@ void rule::to_iptables_knocks(result_builder & result, line_builder const & line
         // add first knock entry
         //
         line_builder first_knock(line);
-        first_knock.append_both(" -m recent --set --name knock1");
+        {
+            recent_parser p;
+            p.parse("set knock1");
+            if(!p.get_valid())
+            {
+                throw iplock::logic_error("the recent parser failed with \"remove knock<#>\"");
+            }
+            f_recent.push_back(p);
+        }
+        //first_knock.append_both(" -m recent --set --name knock1");
         first_knock.set_next_func(std::bind(
                   &rule::to_iptables_destination_ports
                 , this
@@ -2441,6 +2528,8 @@ void rule::to_iptables_knocks(result_builder & result, line_builder const & line
             f_protocols = safe_protocols.saved_value();
         }
         to_iptables_protocols(result, first_knock);
+
+        f_recent.clear();
 
         //f_protocols = save_protocols;
         //f_destination_ports = save_destination_ports;
@@ -3150,162 +3239,227 @@ void rule::to_iptables_limits(result_builder & result, line_builder const & line
     }
     else
     {
-        // the limits are numbers optionally preceeded by operators
-        //
-        // the first is: [ '<=' | '<' | '>' ] number
-        //
-        // the second is: [ '<-' | '->' ] number
-        //
-        bool less_equal(true);
-        std::int64_t count(0);
-        {
-            char const * s(f_limits[0].c_str());
-            if(*s == '<')
-            {
-                ++s;
-                if(*s == '=')
-                {
-                    ++s;
-                }
-            }
-            else if(*s == '>')
-            {
-                less_equal = false;
-                ++s;
-            }
-            while(isspace(*s))
-            {
-                ++s;
-            }
-            if(!advgetopt::validator_integer::convert_string(s, count))
-            {
-                SNAP_LOG_ERROR
-                    << "the first number in the rule limit must be a valid integer number preceeeded by one of '<', '<=', '>' or no operator. \""
-                    << f_limits[0]
-                    << "\" is not valid."
-                    << SNAP_LOG_SEND;
-                f_valid = false;
-            }
-            else if(count <= 0)
-            {
-                SNAP_LOG_ERROR
-                    << "the first number in the rule limit must be a positive number. \""
-                    << f_limits[0]
-                    << "\" is not valid."
-                    << SNAP_LOG_SEND;
-                f_valid = false;
-            }
-        }
+        line_builder sub_line(line);
 
-        bool source_group(true);
-        std::int64_t mask(-1);
-        if(f_limits.size() == 2)
+        std::string::size_type const slash(f_limits[0].find('/'));
+        if(slash != std::string::npos)
         {
-            char const * s(f_limits[1].c_str());
-            if(*s == '-')
+            // with a slash, we have a -m limit rate
+            // and if there is a second number it's the burst
+            //
+            std::int64_t rate(0);
+            std::string const rate_number(f_limits[0].substr(0, slash));
+            if(!advgetopt::validator_integer::convert_string(rate_number, rate))
             {
-                ++s;
-                if(*s == '>')
-                {
-                    ++s;
-                }
-                else
+                SNAP_LOG_ERROR
+                    << "the first number in the rule limit must be a valid integer number and a unit separated by a slash (/). \""
+                    << f_limits[0]
+                    << "\" is not valid."
+                    << SNAP_LOG_SEND;
+                f_valid = false;
+            }
+            std::string rate_unit(f_limits[0].substr(slash + 1));
+            if(rate_unit != "second"
+            && rate_unit != "minute"
+            && rate_unit != "hour"
+            && rate_unit != "day")
+            {
+                SNAP_LOG_ERROR
+                    << "the rate unit must be one of \"second\", \"minute\", \"hour\", \"day\". \""
+                    << f_limits[0]
+                    << "\" is not valid."
+                    << SNAP_LOG_SEND;
+                f_valid = false;
+                rate_unit = "second";
+            }
+
+            std::int64_t burst(0);
+            if(f_limits.size() >= 2)
+            {
+                if(!advgetopt::validator_integer::convert_string(f_limits[1], burst))
                 {
                     SNAP_LOG_ERROR
-                        << "the second number in the rule limit can be preceeded by '->' or '<-'. \""
+                        << "the second number in the rule limit must be a valid integer number. \""
                         << f_limits[1]
                         << "\" is not valid."
                         << SNAP_LOG_SEND;
                     f_valid = false;
                 }
             }
-            else if(*s == '<')
+
+            if(rate > 0
+            || burst > 0)
             {
-                source_group = false;
-                ++s;
+                sub_line.append_both(" -m limit");
+            }
+            if(rate > 0)
+            {
+                sub_line.append_both(" --limit " + std::to_string(rate) + '/' + rate_unit);
+            }
+            if(burst > 0)
+            {
+                sub_line.append_both(" --limit-burst " + std::to_string(burst));
+            }
+        }
+        else
+        {
+            // the connection limits are numbers optionally preceeded by operators
+            //
+            // the first is: [ '<=' | '<' | '>' ] number
+            //
+            // the second is: [ '<-' | '->' ] number
+            //
+            bool less_equal(true);
+            std::int64_t count(0);
+            {
+                char const * s(f_limits[0].c_str());
+                if(*s == '<')
+                {
+                    ++s;
+                    if(*s == '=')
+                    {
+                        ++s;
+                    }
+                }
+                else if(*s == '>')
+                {
+                    less_equal = false;
+                    ++s;
+                }
+                while(isspace(*s))
+                {
+                    ++s;
+                }
+                if(!advgetopt::validator_integer::convert_string(s, count))
+                {
+                    SNAP_LOG_ERROR
+                        << "the first number in the rule limit must be a valid integer number preceeeded by one of '<', '<=', '>' or no operator. \""
+                        << f_limits[0]
+                        << "\" is not valid."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else if(count <= 0)
+                {
+                    SNAP_LOG_ERROR
+                        << "the first number in the rule limit must be a positive number. \""
+                        << f_limits[0]
+                        << "\" is not valid."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+            }
+
+            bool source_group(true);
+            std::int64_t mask(-1);
+            if(f_limits.size() == 2)
+            {
+                char const * s(f_limits[1].c_str());
                 if(*s == '-')
                 {
                     ++s;
+                    if(*s == '>')
+                    {
+                        ++s;
+                    }
+                    else
+                    {
+                        SNAP_LOG_ERROR
+                            << "the second number in the rule limit can be preceeded by '->' or '<-'. \""
+                            << f_limits[1]
+                            << "\" is not valid."
+                            << SNAP_LOG_SEND;
+                        f_valid = false;
+                    }
                 }
-                else
+                else if(*s == '<')
+                {
+                    source_group = false;
+                    ++s;
+                    if(*s == '-')
+                    {
+                        ++s;
+                    }
+                    else
+                    {
+                        SNAP_LOG_ERROR
+                            << "the second number in the rule limit can be preceeded by '->' or '<-'. \""
+                            << f_limits[1]
+                            << "\" is not valid."
+                            << SNAP_LOG_SEND;
+                        f_valid = false;
+                    }
+                }
+                while(isspace(*s))
+                {
+                    ++s;
+                }
+                if(!advgetopt::validator_integer::convert_string(s, mask))
                 {
                     SNAP_LOG_ERROR
-                        << "the second number in the rule limit can be preceeded by '->' or '<-'. \""
+                        << "the second number in the rule limit must be a valid integer number preceeeded by one of '<-', '->', or no operator. \""
+                        << f_limits[1]
+                        << "\" is not valid."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+                }
+                else if(mask < 0 || mask > 128) // make it IPv4 or IPv6 max.
+                {
+                    SNAP_LOG_ERROR
+                        << "the second number in the rule limit must be between 0 and 128. \""
                         << f_limits[1]
                         << "\" is not valid."
                         << SNAP_LOG_SEND;
                     f_valid = false;
                 }
             }
-            while(isspace(*s))
-            {
-                ++s;
-            }
-            if(!advgetopt::validator_integer::convert_string(s, mask))
-            {
-                SNAP_LOG_ERROR
-                    << "the second number in the rule limit must be a valid integer number preceeeded by one of '<-', '->', or no operator. \""
-                    << f_limits[1]
-                    << "\" is not valid."
-                    << SNAP_LOG_SEND;
-                f_valid = false;
-            }
-            else if(mask < 0 || mask > 128) // make it IPv4 or IPv6 max.
-            {
-                SNAP_LOG_ERROR
-                    << "the second number in the rule limit must be between 0 and 128. \""
-                    << f_limits[1]
-                    << "\" is not valid."
-                    << SNAP_LOG_SEND;
-                f_valid = false;
-            }
-        }
 
-        std::string l;
-        if(less_equal)
-        {
-            l += " --connlimit-upto " + std::to_string(count);
-        }
-        else
-        {
-            l += " --connlimit-above " + std::to_string(count);
-        }
-        if(mask != -1)
-        {
-            l += " --connlimit-mask " + std::to_string(mask);
-        }
-        if(!source_group)
-        {
-            l += " --connlimit-daddr";
-        }
-
-        line_builder sub_line(line);
-        if(mask > 32)
-        {
-            // a mask of more than 32 bits is only supported by IPv6
-            //
-            if(line.is_ipv4())
+            std::string l;
+            if(less_equal)
             {
-                SNAP_LOG_ERROR
-                    << "the second number in the rule limit must be between 0 and 32 for IPv4 addresses. \""
-                    << f_limits[1]
-                    << "\" is not valid."
-                    << SNAP_LOG_SEND;
-                f_valid = false;
-
-                // allow continuation, the user already knows somethings is wrong
-                //
-                sub_line.append_both(l);
+                l += " --connlimit-upto " + std::to_string(count);
             }
             else
             {
-                sub_line.append_ipv6line(l, true);
+                l += " --connlimit-above " + std::to_string(count);
+            }
+            if(mask != -1)
+            {
+                l += " --connlimit-mask " + std::to_string(mask);
+            }
+            if(!source_group)
+            {
+                l += " --connlimit-daddr";
+            }
+
+            if(mask > 32)
+            {
+                // a mask of more than 32 bits is only supported by IPv6
+                //
+                if(line.is_ipv4())
+                {
+                    SNAP_LOG_ERROR
+                        << "the second number in the rule limit must be between 0 and 32 for IPv4 addresses. \""
+                        << f_limits[1]
+                        << "\" is not valid."
+                        << SNAP_LOG_SEND;
+                    f_valid = false;
+
+                    // allow continuation, the user already knows somethings is wrong
+                    //
+                    sub_line.append_both(l);
+                }
+                else
+                {
+                    sub_line.append_ipv6line(l, true);
+                }
+            }
+            else
+            {
+                sub_line.append_both(l);
             }
         }
-        else
-        {
-            sub_line.append_both(l);
-        }
+
         to_iptables_states(result, sub_line);
     }
 }

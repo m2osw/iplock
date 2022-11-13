@@ -3,6 +3,19 @@ iplock (3.0.41.0~bionic) bionic; urgency=high
   * Added support for the extended assignment operators within the iplock.conf.
   * When there are multiple recent it's for a single rule.
   * Output the TCP state before the -m recent rules.
+  * Reverted the synflood hitcount and duration to 100 / 60s.
+  * Moved the synflood to the unwanted chain after SSH.
+  * Fixed the comment (documentation) of the synflood rule.
+  * Fixed the knock-knock TCP checks vs. Recent rules:
+    - Port 22 has to appear after the CHECK.
+    - The knock-knock ports, however, must appear before the CHECK
+    - The REMOVE is still the same (on its own).
+    - Knock-knock ports and 'recent = ...' cannot be used together.
+    - Renamed the 'knock_ports' variable as 'ssh_knock_ports'
+    - Added support for the knock_clear to name the recent lists to clear
+    - Added support for durations to the knock port list.
+  * Added support for the `-m limit` extension.
+  * Updated the TODO.md.
 
  -- Alexis Wilke <alexis@m2osw.com>  Sat, 12 Nov 2022 17:59:48 -0800
 

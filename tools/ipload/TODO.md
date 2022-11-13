@@ -56,6 +56,7 @@ https://kromey.us/2016/08/setting-up-an-iptables-firewall-part-5-810.html
     -A martians --source 224.0.0.0/4 -m comment --comment "Multicast" -j DROP
     -A martians --source 240.0.0.0/4 -m comment --comment "Reserved for future use" -j DROP
     -A martians --source 255.255.255.255/32 -m comment --comment "Limited broadcast" -j DROP
+
     -A portknock -m recent --rcheck --seconds 3600 --name knock3 -m recent --remove --name blacklist
     -A portknock -p tcp -m tcp --dport 22 -m recent --rcheck --seconds 3600 --name knock3 -j ACCEPT
     -A portknock -p tcp -m tcp --dport 3456 -m recent --rcheck --seconds 10 --name knock2 -m recent --set --name knock3
@@ -63,6 +64,7 @@ https://kromey.us/2016/08/setting-up-an-iptables-firewall-part-5-810.html
     -A portknock -p tcp -m tcp --dport 2345 -m recent --rcheck --seconds 10 --name knock1 -m recent --set --name knock2
     -A portknock -m recent --remove --name knock1
     -A portknock -p tcp -m tcp --dport 1234 --set --name knock1
+
     -A services -p tcp -m tcp --dport 80 -m comment --comment "HTTP" -j ACCEPT
     -A services -p tcp -m tcp --dport 443 -m comment --comment "HTTPS" -j ACCEPT
     COMMIT

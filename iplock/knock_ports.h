@@ -40,6 +40,7 @@ struct protocol_port
 
     int             f_protocol = IPPROTO_IP;
     int             f_port = 0;
+    int             f_duration = 10;    // in seconds
 };
 
 std::string         parse_ports(

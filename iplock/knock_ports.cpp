@@ -26,7 +26,13 @@
 
 // advgetopt
 //
+#include    <advgetopt/validator_duration.h>
 #include    <advgetopt/validator_integer.h>
+
+
+// C++
+//
+#include    <cmath>
 
 
 
@@ -55,26 +61,80 @@ std::string protocol_port::protocol_name() const
 }
 
 
+/** \brief Parse a list of port with protocol and duration.
+ *
+ * This function reads a list of:
+ *
+ * \li protocol -- a name such as tcp followed by a colon; it is optional; if
+ * not specified, use TCP; at this time we support "tcp" and "udp"
+ * \li port -- a number from 0 to 65535; this is mandatory; there is no default
+ * \li duration -- after a slash, you can indicate a duration; the default is
+ * 10 seconds if not specified; you can include a duration unit such as 's'
+ * for seconds and 'm' for minutes; you probably don't want to use a larger
+ * duration ('h' for hours, 'd' for days...)
+ *
+ * The syntax looks like this:
+ *
+ * \code
+ *     [<protocol>:]<port>[/<duration>[<unit>]]
+ * \endcode
+ *
+ * The duration is in seconds by default (when no unit is specified).
+ *
+ * Multiple ports can be specified by separating each one by a comma. The
+ * order is kept since it indicates the order in which the knocking has to
+ * be porformed.
+ *
+ * The amount of time specified along the first port determines the amount
+ * of time the client has to knock the next port. The duration on the last
+ * port indicates the time the service port in link with this port knocking
+ * is going to be accessible after a successful knock-knock.
+ *
+ * \param[in] ports  A string with the list of protocols, ports, durations.
+ * \param[out] result  The resulting vector of protocols and ports.
+ *
+ * \return An empty string on success, an error message otherwise.
+ */
 std::string parse_ports(
       std::string const & ports
     , protocol_port::vector_t & result)
 {
+    result.clear();
+
     advgetopt::string_list_t list;
     advgetopt::split_string(ports, list, {","});
-    for(auto const & l : list)
+    for(auto & l : list)
     {
         protocol_port pp;
         std::string port;
         std::string protocol;
-        std::string::size_type const pos(l.find(':'));
-        if(pos != std::string::npos)
+        std::string::size_type const slash(l.find('/'));
+        if(slash != std::string::npos)
         {
-            if(pos == 0)
+            double duration;
+            if(!advgetopt::validator_duration::convert_string(
+                      l.substr(slash + 1)
+                    , advgetopt::validator_duration::VALIDATOR_DURATION_DEFAULT_FLAGS
+                    , duration))
+            {
+                return "duration is invalid";
+            }
+
+            // keep it at a minimum of 1 second
+            //
+            pp.f_duration = std::max(1, static_cast<int>(rint(duration)));
+
+            l = l.substr(0, slash);
+        }
+        std::string::size_type const colon(l.find(':'));
+        if(colon != std::string::npos)
+        {
+            if(colon == 0)
             {
                 return "protocol cannot be empty";
             }
-            protocol = l.substr(0, pos);
-            port = l.substr(pos + 1);
+            protocol = l.substr(0, colon);
+            port = l.substr(colon + 1, slash - colon - 1);
 
             if(protocol == "tcp")
             {

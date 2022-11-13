@@ -386,8 +386,9 @@ The rules definition looks like this:
     destination_ports = <port>[, <port>]*
     protocols = tcp, udp, icmp, ...
     state = <flag> | <flag> | ..., [!] ( <flag> | <flag> | ... ), !<flag>
-    limit = [<|<=|>]<number>[, [<-|->]<number>]
-    knocks = [<protocol>:]<port>, ...
+    knocks = [<protocol>:]<port>[/<duration>], ...
+    knock_clear = <recent list name>, ...
+    limit = <count>/<period>[, <burst>] or [<|<=|>]<number>[, [<-|->]<number>]
     conntrack = ...
     recent = ...
     set = ...
@@ -474,22 +475,40 @@ It can be useful if you want to use the ipload as a helper tool to generate
 your rules and then save them using the "iptables-save" command.
 
 .TP
-\fBknocks = [<protocol>:]<port>, ...\fR
+\fBknocks = [<protocol>:]<port>[/<duration>], ...\fR
 Add one or more knock ports along this rule. This is particularly useful
 to hide your administrative services such as SSH and a website port which
 should only be accessed by administrators.
 
+The syntax of the ports is:
+
+    [<protocol>:]<port>[/<duration>]
+
+Where <protocol> is either `tcp' or `udp'. If not specified, it defaults
+to `tcp'. These do not affect what type of protocol has to be used to
+connect to the service being protected in this way.
+
+Where <port> is a port number from 0 to 65536. We suggest you do not use
+port 0 nor ports over 49152 (i.e. ephemeral ports) nor ports that are open
+for any of your services. These rules are not currently fully enforced.
+
+Where <duration> is a number of seconds that the knock is effective for.
+After that duration, the knock ends and the sequence has to be restarted.
+The duration can be a decimal number followed by a duration unit ('s' for
+seconds, 'm' for minutes, 'h' for hours, etc.). Specifying the duration is
+optional. \fBipload(8)\fR uses 10 seconds by default.
+
 It is most effective for TCP services where you can establish a connection
 and keep it up and running. Services like HTTP/1.0 where a new connection
-is required each time you want to access data, it can becomes tedious (i.e.
+is required each time you want to access data, it becomes tedious (i.e.
 you have to repeat the knocking process each time you want to access that
 HTTP server). Newer HTTP protocols (i.e. v2 and v3) allow for existing
-connections to be used for long period of time and these will be viewed
+connections to be used for long periods of time and these are viewed
 as established for a while.
 
 The `iplock' package installs a command line tool called \fBknock-knock(1)\fR,
-which you want to use to open your ports. Simply repeat the same list of
-protocols and ports on that command line, and it will open access to your
+which you can use to knock on these ports. Simply repeat the same list of
+protocols and ports on that command line, and it opens access to your
 service.
 
 \fBIMPORTANT\fR: the ports listed in the `knocks' parameter cannot appear
@@ -498,7 +517,124 @@ to deal with side effects to your port knocking (i.e. running the
 \fBknock-knock(1)\fR tool more than once with such a setting would not work).
 At the moment, this test is performed ignoring the protocol. Further, their
 cannot be any duplicates. We do not allow you to knock multiple times on the
-same port.
+same port. Finally, we force the list of ports to be \fIrandom\fR (opposed to
+sorted in increasing or decreasing order).
+
+.TP
+\fBknock_clear = <recent list name>, ...\fR
+Define a list of recent names from where you want to clear the source IP
+when the knocking sequence was successful and one additional packet is
+received.
+
+By default this feature removes the client IP address from the `denylist' and
+`synflood' recent lists. In other words, the knock-knock mechanism can be used
+to remove a user's IP address from a list rather than open a port.
+
+.TP
+\fBlimit = <count>/<period>[, <burst>] or [<|<=|>]<number>[, [<-|->]<number>]\fR
+The limit parameter is used with the with `limit' extension or the
+`conntrak' extension.
+
+The `limit' extension uses two numbers. A rate limit and a burst count.
+This is written as:
+
+    <count>/<period>[, <burst>]
+
+The <count> must be a positive integer. The <period> must be a keyword. We
+support: `second', `minute', `hour', and `day'. So for example:
+
+    30/second
+
+The <burst> value represents the number of items to let through without
+rate limiting. After that number, it will be limited up to the maximum
+limit as defined by <count>/<period>. It is a simple integer. The limit
+extension uses 5 as the default.
+
+The conntrack limit feature uses the following syntax:
+
+    [<|<=|>]<number>[, [<-|->]<number>]
+
+The operators define how the number gets used. The numbers must be integers.
+
+The `<' and `<=' represents "less or equal". In other words, we use the
+`--connlimit-upto' option.
+
+The '>' represents "greater than". In other words, we use the
+`--connlimit-above' option.
+
+The second number can be preceeded by `<-' meaning that the destination
+will be used: `--connlimit-daddr'. The converse, `->' means the source
+is used, which is the default.
+
+The number following the `<-' or `->' operator is a CIDR. If more than 32,
+then it can only be applied to an IPv6 address. It gets added using
+`--conlimit-mask'.
+
+.TP
+\fBrecent = <rule>, ...\fR
+One ore more recent rule to add to this iptables rule. Recent rules are
+checked in order so make sure that define them in the correct order.
+
+\fBIMPORANT:\fR At the moment, all the recent rules appear \fBafter\fR the
+TCP rules. In most cases, this works fine. However, there are cases where
+checking the TCP rule only after the recent rule may be required. This is
+not yet doable with \fBipload(8)\fR.
+
+The syntax of a recent rule is zero or one of each of the following lines
+(except for the flags which can all be mentioned within one rule):
+
+    [!] <function> <name> [<hitcount>]
+    <duration>
+    <ip-selection>
+    <mask>
+    <flags>
+
+The items written between [...] are optional.
+
+The `!' character is used to inverse the <function> results. So if <function>
+was to return true, with the `!' it will return false and  vice versa.
+
+The line with a <function> is required.
+
+The <function> is one of: `set', `[r]check', 'update', or 'remove'.
+
+The <name> is the name of the recent list. I can include letters, digits,
+and underscores.
+
+The <hitcount> parameter is optional and defines the number of hits necessary
+before the rule becomes true.
+
+The `check' and `update' functions support a <duration>. This is a number
+followed by a duration unit ('s' for seconds, 'm' for minutes, 'd' for
+days). The unit is mandatory.
+
+The <ip-selection> tells the recent module to either check the `[r]source'
+(default) or `[r]dest[ination]' IP address of the packet.
+
+The <mask> is used to mask the IP address used with the rule. This means
+you can ignore the lowest bits of an IP address when adding it to the
+recent list. The <mask> must start with a slash and be either a decimal
+number (CIDR) or an IP address. For example: `source/24' would make use
+of the top 24 bits of the source address.
+
+The <flags> are one or more of:
+
+    `reap' -- meaning the old hits get removed from the hitcount
+    `rttl' -- meaning that the TTL of the remote packets are equal; if not
+              the rule does not match
+
+The `rttl' is most often used to detect mismatched users. A hacker can fake
+its source address and as a result the recent module could block a genuine
+user.
+
+Our `synflood.conf' file makes use of the following recent rules:
+
+    recent = set synflood, check synflood 100 60s reap
+
+This says to create the `synflood' list if it does not exist yet. Otherwise,
+update it with a new hit. Next, check whether the `synflood' hit counter is
+at 100 after deleting old hits. A hit is considered old if more than 60
+seconds old.
 
 .TP
 \fBTODO = <value>\fR

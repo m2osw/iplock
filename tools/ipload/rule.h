@@ -280,6 +280,7 @@ private:
     addr::addr_range::vector_t          f_except_source_ranges = addr::addr_range::vector_t();
     advgetopt::string_list_t            f_source_ports = advgetopt::string_list_t();
     iplock::protocol_port::vector_t     f_knock_ports = iplock::protocol_port::vector_t();
+    advgetopt::string_list_t            f_knock_clear = advgetopt::string_list_t();
 
     advgetopt::string_list_t            f_destination_interfaces = advgetopt::string_list_t();
     addr::addr::vector_t                f_destinations = addr::addr::vector_t();
