@@ -41,4 +41,5 @@
       those states (i.e. "state", "recent", etc.)
     * Another possibility is to use an "order: ..." field.
 * Write tests.
+* Implement an nftables version.
 

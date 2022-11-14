@@ -1,3 +1,9 @@
+iplock (3.0.43.0~bionic) bionic; urgency=high
+
+  * Started looking in nftables. I think we'll need that within 2 or 3 years.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Sun, 13 Nov 2022 21:07:58 -0800
+
 iplock (3.0.42.0~bionic) bionic; urgency=high
 
   * Fixed the synflood by doing the reap on its own without the --hitcount.
