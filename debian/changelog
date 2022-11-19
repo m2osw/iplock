@@ -1,5 +1,6 @@
 iplock (3.0.43.0~bionic) bionic; urgency=high
 
+  * Removing the "broken_tcp" rules. They catch nothing at all.
   * Started looking in nftables. I think we'll need that within 2 or 3 years.
 
  -- Alexis Wilke <alexis@m2osw.com>  Sun, 13 Nov 2022 21:07:58 -0800
