@@ -1,3 +1,10 @@
+iplock (3.0.45.0~bionic) bionic; urgency=high
+
+  * Added info about the possibility to use -m limit for synflood.
+  * Fixed a link in README.md.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Sun, 20 Nov 2022 21:23:07 -0800
+
 iplock (3.0.44.0~bionic) bionic; urgency=high
 
   * Put 127.0.0.0/8 as the default allowed list.
