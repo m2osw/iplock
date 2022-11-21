@@ -655,7 +655,7 @@ Bugs
 ====
 
 Submit bug reports and patches on
-[github](https://github.com/m2osw/snapwebsites/issues).
+[github](https://github.com/m2osw/iplock/issues).
 
 
 _This file is part of the [snapcpp project](https://snapwebsites.org/)._
