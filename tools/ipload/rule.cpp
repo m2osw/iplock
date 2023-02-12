@@ -452,7 +452,7 @@ rule::rule(
             {
                 advgetopt::split_string(value, f_after, {","});
                 list_to_lower(f_after);
-                snapdev::remove_duplicates(f_after);
+                snapdev::sort_and_remove_duplicates(f_after);
                 if(std::binary_search(f_after.begin(), f_after.end(), f_name))
                 {
                     SNAP_LOG_ERROR
@@ -474,7 +474,7 @@ rule::rule(
             {
                 advgetopt::split_string(value, f_before, {","});
                 list_to_lower(f_before);
-                snapdev::remove_duplicates(f_before);
+                snapdev::sort_and_remove_duplicates(f_before);
                 if(std::binary_search(f_before.begin(), f_before.end(), f_name))
                 {
                     SNAP_LOG_ERROR
