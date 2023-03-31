@@ -25,7 +25,7 @@ files as defined by other packages and the administrator. This is how the
 tool can allow anyone to add and remove IP addresses from the set. It
 does not allow the user from modifying the entire firewall.
 
-The --unblock command only removes the IP address from that very set.
+The \-\-unblock command only removes the IP address from that very set.
 It does not mean the IP will be allowed access since it may be blocked
 by some other means (a different `ipset', a `recent' list, etc.)
 
@@ -84,7 +84,7 @@ Other sets still require you to have enough permissions to do so and you
 have to use the `ipset list ...' command directly.
 
 .TP
-\fB\-L\fR, \fB\-\-list-allowed-sets\fR
+\fB\-L\fR, \fB\-\-list\-allowed\-sets\fR
 List the name of the sets that the administrator authorized \fBiplock(8)\fR
 to access. When the \fB\-\-verbose\fR option is used, add `(*)' on the
 line with the default set. By default, the project would output the following:
@@ -130,8 +130,10 @@ to compile the `iplock' tool.
 .TP
 \fB\-\-configuration\-filenames\fR
 List the filename of each configuration file that the `iplock' will read
-to get initialized. \fBWARNING:\fR this does not include the schemes that
-get loaded later in the process.
+to get initialized.
+
+\fBWARNING:\fR This does not include the setup files which get loaded
+later in the process.
 
 .TP
 \fB\-\-console\fR
