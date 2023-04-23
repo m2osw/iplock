@@ -41,6 +41,11 @@
 #include    <iplock/exception.h>
 
 
+// advgetopt
+//
+#include    <advgetopt/validator_integer.h>
+
+
 // snaplogger
 //
 #include    <snaplogger/message.h>
@@ -54,11 +59,6 @@
 // libaddr
 //
 #include    <libaddr/addr_parser.h>
-
-
-// boost
-//
-#include    <boost/lexical_cast.hpp>
 
 
 // C++
@@ -449,8 +449,21 @@ void count::run()
 
         // we got a valid set of columns, get the counters
         //
-        int64_t const packets(boost::lexical_cast<int64_t>(columns[packets_column]));
-        int64_t const bytes(boost::lexical_cast<int64_t>(columns[bytes_column]));
+        std::int64_t packets;
+        std::int64_t bytes;
+        if(!advgetopt::validator_integer::convert_string(columns[packets_column], packets)
+        || !advgetopt::validator_integer::convert_string(columns[bytes_column], bytes))
+        {
+            SNAP_LOG_ERROR
+                << "packets ("
+                << columns[packets_column]
+                << ") and/or bytes ("
+                << columns[bytes_column]
+                << ") column(s) are not valid integers."
+                << SNAP_LOG_SEND;
+            f_exit_code = 1;
+            return;
+        }
 
         // add this line's counters to the existing totals
         //

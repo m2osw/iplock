@@ -37,31 +37,9 @@
 #include    <iplock/exception.h>
 
 
-//// advgetopt
-////
-//#include    <advgetopt/exception.h>
-
-
 // snaplogger
 //
 #include    <snaplogger/message.h>
-
-
-// snapdev
-//
-//#include    <snapdev/join_strings.h>
-
-
-//// boost
-////
-//#include    <boost/preprocessor/stringize.hpp>
-//
-//
-//// C++
-////
-////#include    <iostream>
-////#include    <fstream>
-////#include    <sstream>
 
 
 // C

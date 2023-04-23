@@ -32,15 +32,16 @@ target_include_directories(${PROJECT_NAME}
     PUBLIC
         ${CMAKE_CURRENT_BINARY_DIR}
         ${ADVGETOPT_INCLUDE_DIRS}
-        ${BOOST_INCLUDE_DIRS}
         ${CPPPROCESS_INCLUDE_DIRS}
         ${EVENTDISPATCHER_INCLUDE_DIRS}
         ${LIBADDR_INCLUDE_DIRS}
         ${LIBEXCEPT_INCLUDE_DIRS}
+        ${PRINBEE_INCLUDE_DIRS}
 )
 
 target_link_libraries(${PROJECT_NAME}
     iplock
+    ${PRINBEE_LIBRARIES}
 )
 
 install(

@@ -24,9 +24,19 @@
 #include    "server.h"
 
 
+// iplock
+//
+#include    <iplock/names.h>
+
+
+// prinbee
+//
+#include    <prinbee/names.h>
+
+
 // last include
 //
-#include <snapdev/poison.h>
+#include    <snapdev/poison.h>
 
 
 
@@ -36,7 +46,7 @@ namespace ipwall
 
 
 /** \class messenger
- * \brief Handle messages from the Snap Communicator server.
+ * \brief Handle messages from the Communicator Daemon server.
  *
  * This class is an implementation of the TCP client message connection
  * so we can handle incoming messages.
@@ -47,19 +57,13 @@ namespace ipwall
 
 /** \brief The messenger initialization.
  *
- * The messenger is a connection to the snapcommunicator server.
+ * The messenger is a connection to the communicatord server.
  *
- * In most cases we receive BLOCK, STOP, and LOG messages from it. We
- * implement a few other messages too (HELP, READY...)
+ * In most cases we receive BLOCK, STOP, and LOG_ROTATE messages from it.
+ * We implement a few other messages too (HELP, READY...)
  *
- * We use a permanent connection so if the snapcommunicator restarts
+ * We use a permanent connection so if the communicatord restarts
  * for whatever reason, we reconnect automatically.
- *
- * \note
- * The messenger connection used by the snapfirewall tool makes use
- * of a thread. You will want to change this initialization function
- * if you intend to fork() direct children of ours (i.e. not fork()
- * + execv() as we do to run iptables.)
  *
  * \param[in] s  The firewall server we are listening for.
  * \param[in] opts  The command line options.
@@ -74,11 +78,12 @@ messenger::messenger(server * s, advgetopt::getopt & opts)
     set_dispatcher(f_dispatcher);
 
     f_dispatcher->add_matches({
-        DISPATCHER_MATCH("BLOCK",          &messenger::msg_block_ip),
-        DISPATCHER_MATCH("DATABASEREADY",  &messenger::msg_database_ready),
-        DISPATCHER_MATCH("FIREWALLSTATUS", &messenger::msg_firewall_ready),
-        DISPATCHER_MATCH("NODATABASE",     &messenger::msg_no_database),
-        DISPATCHER_MATCH("UNBLOCK",        &messenger::msg_unblock_ip),
+        DISPATCHER_MATCH(iplock::g_name_iplock_cmd_block,            &messenger::msg_block_ip),
+        DISPATCHER_MATCH(iplock::g_name_iplock_cmd_firewall_status,  &messenger::msg_firewall_ready),
+        DISPATCHER_MATCH(iplock::g_name_iplock_cmd_unblock,          &messenger::msg_unblock_ip),
+
+        DISPATCHER_MATCH(prinbee::g_name_prinbee_cmd_database_ready, &messenger::msg_database_ready),
+        DISPATCHER_MATCH(prinbee::g_name_prinbee_cmd_no_database,    &messenger::msg_no_database),
     });
 
     // further dispatcher initialization
@@ -140,7 +145,9 @@ void messenger::msg_firewall_ready(ed::message & msg)
     //
     ed::message reply;
     reply.reply_to(msg);
-    reply.set_command(f_server->is_firewall_up() ? "FIREWALLUP" : "FIREWALLDOWN");
+    reply.set_command(f_server->is_firewall_up()
+                            ? iplock::g_name_iplock_cmd_firewall_up
+                            : iplock::g_name_iplock_cmd_firewall_down);
     reply.add_parameter("cache", "no");
     send_message(reply);
 }

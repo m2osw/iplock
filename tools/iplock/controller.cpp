@@ -57,9 +57,9 @@
 #include    <snaplogger/options.h>
 
 
-// boost
+// snapdev
 //
-#include    <boost/preprocessor/stringize.hpp>
+#include    <snapdev/stringize.h>
 
 
 // C++
@@ -267,7 +267,9 @@ advgetopt::options_environment const g_iplock_options_environment =
     .f_help_footer = nullptr,
     .f_version = IPLOCK_VERSION_STRING,
     .f_license = "GNU GPL 3",
-    .f_copyright = "Copyright (c) 2007-" BOOST_PP_STRINGIZE(UTC_BUILD_YEAR) " by Made to Order Software Corporation",
+    .f_copyright = "Copyright (c) 2007-"
+                        SNAPDEV_STRINGIZE(UTC_BUILD_YEAR)
+                        " by Made to Order Software Corporation",
     .f_build_date = UTC_BUILD_DATE,
     .f_build_time = UTC_BUILD_TIME,
     .f_groups = g_group_descriptions,

@@ -22,6 +22,16 @@
 #include    "iplock/block_ip.h"
 
 
+// iplock
+//
+#include    <iplock/names.h>
+
+
+// communicatord
+//
+#include    <communicatord/names.h>
+
+
 // snaplogger
 //
 #include    <snaplogger/message.h>
@@ -108,7 +118,7 @@ void block_ip(
     , std::string const & period
     , std::string const & reason)
 {
-    // retrieve the IP and port to the snapcommunicator
+    // retrieve the IP and port to the communicatord
     //
     // TODO? Let's see whether this would be useful, although I would think
     //       it would be cleaner to make that work in a separate function
@@ -125,31 +135,24 @@ void block_ip(
     //advgetopt::conf_file::pointer_t config(advgetopt::conf_file::get_conf_file(setup));
     //std::string const communicatord_listen(config->get_parameter("communicatord_signal"));
 
-    // create a BLOCK message
+    // send a BLOCK message
     //
     ed::message message;
-    message.set_command("BLOCK");
-    message.set_service("*");           // broadcast to all ipwall anywhere in our cluster
+    message.set_command(iplock::g_name_iplock_cmd_block);
+    message.set_service(communicatord::g_name_communicatord_service_public_broadcast);
 
-    message.add_parameter("uri", uri);
+    message.add_parameter(iplock::g_name_iplock_param_uri, uri);
 
     if(!period.empty())
     {
-        message.add_parameter("period", period);
+        message.add_parameter(iplock::g_name_iplock_param_period, period);
     }
     //else -- ipwall uses "day" by default
 
     if(!reason.empty())
     {
-        message.add_parameter("reason", reason);
+        message.add_parameter(iplock::g_name_iplock_param_reason, reason);
     }
-
-    // send the message using a UDP signal
-    //
-    //ed::snap_udp_server_message_connection::send_message(
-    //                  addr
-    //                , message
-    //                , config["signal_secret"]);
 
     messenger->send_message(message, true);
 }

@@ -35,22 +35,18 @@
 
 // snapdev
 //
-#include <snapdev/gethostname.h>
+#include    <snapdev/gethostname.h>
+#include    <snapdev/stringize.h>
 
 
 // advgetopt
 //
-#include <advgetopt/exception.h>
-
-
-// boost
-//
-#include    <boost/preprocessor/stringize.hpp>
+#include    <advgetopt/exception.h>
 
 
 // last include
 //
-#include <snapdev/poison.h>
+#include    <snapdev/poison.h>
 
 
 
@@ -77,19 +73,19 @@ namespace ipwall
  *
  * \msc
  * hscale = 2;
- * a [label="snapfirewall"],
- * b [label="snapcommunicator"],
+ * a [label="ipwall"],
+ * b [label="communicatord"],
  * c [label="other-process"],
  * d [label="iplock"];
  *
  * #
- * # Register snapfirewall
+ * # Register ipwall
  * #
  * a=>a [label="connect socket to snapcommunicator"];
- * a->b [label="REGISTER service=snapfirewall;version=<VERSION>"];
+ * a->b [label="REGISTER service=ipwall;version=<VERSION>"];
  * b->a [label="READY"];
  * b->a [label="HELP"];
- * a->b [label="COMMANDS list=HELP,LOG,..."];
+ * a->b [label="COMMANDS list=HELP,LOG_ROTATE,..."];
  *
  * #
  * # Reconfigure logger
@@ -98,7 +94,7 @@ namespace ipwall
  * a=>a [label="logging::recongigure()"];
  *
  * #
- * # Stop snapfirewall
+ * # Stop ipwall
  * #
  * b->a [label="STOP"];
  * a=>a [label="exit(0);"];
@@ -110,16 +106,16 @@ namespace ipwall
  * #
  * # Block an IP address
  * #
- * c->b [label="snapfirewall/BLOCK uri=...;period=...;reason=..."];
+ * c->b [label="ip/BLOCK uri=...;period=...;reason=..."];
  * b->a [label="BLOCK uri=...;period=...;reason=..."];
- * a->d [label="block IP address with iptables"];
+ * a->d [label="block IP address with iplock"];
  *
  * #
  * # Unblock an IP address
  * #
- * c->b [label="snapfirewall/UNBLOCK uri=..."];
+ * c->b [label="ip/UNBLOCK uri=..."];
  * b->a [label="UNBLOCK uri=..."];
- * a->d [label="unblock IP address with iptables"];
+ * a->d [label="unblock IP address with iplock"];
  *
  * #
  * # Wakeup timer
@@ -180,7 +176,7 @@ advgetopt::options_environment const g_options_environment =
     .f_version = IPLOCK_VERSION_STRING,
     .f_license = "GNU GPL 3",
     .f_copyright = "Copyright (c) 2014-"
-                   BOOST_PP_STRINGIZE(UTC_BUILD_YEAR)
+                   SNAPDEV_STRINGIZE(UTC_BUILD_YEAR)
                    " by Made to Order Software Corporation -- All Rights Reserved",
     .f_build_date = UTC_BUILD_DATE,
     .f_build_time = UTC_BUILD_TIME,
@@ -218,10 +214,9 @@ server::server(int argc, char * argv[])
 }
 
 
-/** \brief Clean up the snap firewall.
+/** \brief Clean up the firewall.
  *
- * This function is used to do some clean up of the snap firewall
- * environment.
+ * This function is used to do some clean up of the firewall environment.
  */
 server::~server()
 {
@@ -233,13 +228,13 @@ server::~server()
 
 
 
-/** \brief Execute the firewall run() loop.
+/** \brief Execute the ipwall run() loop.
  *
  * This function initializes the various connections used by the
- * snapfirewall process and then runs the event loop.
+ * ipwall process and then runs the event loop.
  *
  * In effect, this function finishes the initialization of the
- * snap_firewall object.
+ * server then listen for events.
  */
 void server::run()
 {
@@ -507,15 +502,15 @@ void server::setup_firewall()
     //
     // TODO
     // some daemons, like snapserver does, should wait on that
-    // signal before starting... (but snapfirewall is optional,
+    // signal before starting... (but ipwall is optional,
     // so be careful on how you handle that one! in snapserver
-    // we first check whether snapfirewall is active on the
+    // we first check whether ipwall is active on the
     // computer and if so request the message.)
     //
-    snap::snap_communicator_message firewallup_message;
-    firewallup_message.set_command("FIREWALLUP");
-    firewallup_message.set_service(".");
-    f_messenger->send_message(firewallup_message);
+    snap::snap_communicator_message firewall_up_message;
+    firewall_up_message.set_command("FIREWALL_UP");
+    firewall_up_message.set_service(".");
+    f_messenger->send_message(firewall_up_message);
 #endif
 }
 
@@ -656,8 +651,7 @@ void server::process_timeout()
  * The setup_firewall() function failed and set the reconnect_timer to
  * get this function called a little later.
  *
- * Here we simply send a CASSANDRASTATUS message to snapdbproxy to
- * get things restarted.
+ * Here we simply send a DATABASE_STATUS message to get things restarted.
  */
 void server::process_reconnect()
 {
@@ -665,7 +659,7 @@ void server::process_reconnect()
 }
 
 
-/** \brief Send the DATABASESTATUS to snapdbproxy.
+/** \brief Send the DATABASE_STATUS to snapdbproxy.
  *
  * This function builds a message and sends it to snapdbproxy. It is
  * used whenever we need to know whether the database is accessible.
@@ -678,8 +672,8 @@ void server::process_reconnect()
 void server::is_db_ready()
 {
     ed::message isdbready_message;
-    isdbready_message.set_command("DATABASESTATUS");
-    isdbready_message.set_service("snapdbproxy");
+    isdbready_message.set_command("DATABASE_STATUS");
+    isdbready_message.set_service("prinbee");
     f_messenger->send_message(isdbready_message);
 }
 

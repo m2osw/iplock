@@ -28,7 +28,7 @@
  * aware of the firewall status.
  *
  * Note that the status goes from "down" to "up" and it is never expected
- * to go back down. So once you receive the FIREWALLUP message, you can
+ * to go back down. So once you receive the FIREWALL_UP message, you can
  * be sure that it is up and it will stay up (even if the ipwall service
  * crashes, it won't remove the firewall currently in effect).
  */
@@ -38,12 +38,18 @@
 #include    <iplock/wait_on_firewall.h>
 
 #include    <iplock/exception.h>
+#include    <iplock/names.h>
 
 
 // eventdispatcher
 //
 #include    <eventdispatcher/connection_with_send_message.h>
 #include    <eventdispatcher/dispatcher_support.h>
+
+
+// communicatord
+//
+#include    <communicatord/names.h>
 
 
 // snaplogger
@@ -88,7 +94,7 @@ wait_on_firewall::~wait_on_firewall()
 
 /** \brief Initialize wait_on_firewall.
  *
- * This function makes the wait_on_firewall listen for a FIREWALLUP message
+ * This function makes the wait_on_firewall listen for a FIREWALL_UP message
  * from the ipwall service.
  *
  * The function first makes sure that the ipwall service is:
@@ -139,8 +145,8 @@ void wait_on_firewall::add_wait_on_firewall_commands(std::string const & ipwall_
         throw logic_error("the wait_on_firewall::add_wait_on_firewall_commands() must be called after you setup your dispatcher (set_dispatcher() was not yet called).");
     }
     dispatcher->add_matches({
-            DISPATCHER_MATCH("FIREWALLUP",   &wait_on_firewall::msg_firewall_up),
-            DISPATCHER_MATCH("FIREWALLDOWN", &wait_on_firewall::msg_firewall_down),
+            DISPATCHER_MATCH(g_name_iplock_cmd_firewall_up,   &wait_on_firewall::msg_firewall_up),
+            DISPATCHER_MATCH(g_name_iplock_cmd_firewall_down, &wait_on_firewall::msg_firewall_down),
         });
 
     ed::connection_with_send_message * cwm(dynamic_cast<ed::connection_with_send_message *>(this));
@@ -149,18 +155,20 @@ void wait_on_firewall::add_wait_on_firewall_commands(std::string const & ipwall_
         throw logic_error("the wait_on_firewall class must also represent a connection_with_message.");
     }
 
-    // send a FIREWALLREADY message to get the current firewall status
+    // send a FIREWALL_READY message to get the current firewall status
     //
     // Note: no need to cache the message; if the firewall starts after
-    //       we sent this message, we will receive a FIREWALLUP once it
+    //       we sent this message, we will receive a FIREWALL_UP once it
     //       is up, so no worries; if the firewall is not install on
     //       this machine, then we just get a "not available" error
     //       message which we ignore here
     //
     ed::message msg;
     msg.reply_to(msg);
-    msg.set_command("FIREWALLREADY");
-    msg.add_parameter("cache", "no");
+    msg.set_command(g_name_iplock_cmd_firewall_ready);
+    msg.add_parameter(
+              communicatord::g_name_communicatord_param_cache
+            , communicatord::g_name_communicatord_value_no);
     cwm->send_message(msg);
 }
 

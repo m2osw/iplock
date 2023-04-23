@@ -70,12 +70,8 @@
 #include    <snapdev/glob_to_list.h>
 #include    <snapdev/join_strings.h>
 #include    <snapdev/pathinfo.h>
+#include    <snapdev/stringize.h>
 #include    <snapdev/string_replace_many.h>
-
-
-// boost
-//
-#include    <boost/preprocessor/stringize.hpp>
 
 
 // C
@@ -281,7 +277,7 @@ advgetopt::options_environment const g_options_environment =
     .f_version = IPLOCK_VERSION_STRING,
     .f_license = "GNU GPL 3",
     .f_copyright = "Copyright (c) 2007-"
-                    BOOST_PP_STRINGIZE(UTC_BUILD_YEAR)
+                    SNAPDEV_STRINGIZE(UTC_BUILD_YEAR)
                     " by Made to Order Software Corporation",
     .f_build_date = UTC_BUILD_DATE,
     .f_build_time = UTC_BUILD_TIME,

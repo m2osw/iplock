@@ -16,6 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+AtomicNames(names.an)
+
 ##
 ## iplock library
 ##
@@ -30,6 +32,7 @@ configure_file(
 add_library(${PROJECT_NAME} SHARED
     block_ip.cpp
     knock_ports.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/names.cpp
     wait_on_firewall.cpp
     version.cpp
 )
@@ -93,6 +96,7 @@ install(
 
 install(
     FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/names.h
         ${CMAKE_CURRENT_BINARY_DIR}/version.h
 
     DESTINATION
