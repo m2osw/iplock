@@ -3,6 +3,7 @@
 
 [Unit]
 Description=IP Wall Daemon
+Documentation=man:ipwall(8)
 After=ipload.service
 
 [Service]
