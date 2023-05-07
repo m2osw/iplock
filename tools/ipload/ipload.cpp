@@ -595,11 +595,11 @@ void ipload::check_network_status()
     }
 
     bool up(false);
-    addr::iface::vector_t const interfaces(addr::iface::get_local_addresses());
-    for(auto const & i : interfaces)
+    addr::iface::pointer_vector_t const interfaces(addr::iface::get_local_addresses());
+    for(auto const & i : *interfaces)
     {
-        if((i.get_flags() & IFF_UP) != 0
-        && i.get_name() != "lo")        // "lo" will already be up
+        if((i->get_flags() & IFF_UP) != 0
+        && i->get_name() != "lo")        // "lo" will already be up
         {
             up = true;
 
