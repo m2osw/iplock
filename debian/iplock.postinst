@@ -39,9 +39,13 @@ then
     chmod 640 ${LOGFILE2}
 
     # We add `01-iptables.conf`, make sure it is taken in account
+    # unless the syslog:adm user:group does not exist (on build server)
     #
-	chown syslog:adm /var/log/iptables
-    invoke-rc.d rsyslog restart
+    if getent passwd syslog > /dev/null && getent group adm > /dev/null
+    then
+        chown syslog:adm /var/log/iptables
+        invoke-rc.d rsyslog restart
+    fi
 
     db_get ${PROJECTNAME}/public_interfaces
     public_interfaces="${RET}"
