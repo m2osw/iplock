@@ -41,6 +41,11 @@ then
     # We add `01-iptables.conf`, make sure it is taken in account
     # unless the syslog:adm user:group does not exist (on build server)
     #
+echo "----------------------- USERS"
+cat /etc/passwd
+echo "----------------------- GROUPS"
+cat /etc/group
+echo "----------------------- end lists"
     if getent passwd syslog > /dev/null && getent group adm > /dev/null
     then
         chown syslog:adm /var/log/iptables
