@@ -9,7 +9,7 @@
     missingok
     rotate 10
     postrotate
-        /usr/lib/rsyslog/rsyslog-rotate
+        [ -x /usr/lib/rsyslog/rsyslog-rotate ] && /usr/lib/rsyslog/rsyslog-rotate || true
     endscript
     compress
     delaycompress
