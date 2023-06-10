@@ -3,7 +3,7 @@
 
 [Unit]
 Description=IP Wall Daemon
-Documentation=man:ipwall(8)
+Documentation=https://snapwebsites.org/project/iplock file:/usr/share/doc/iplock-doc/html/ man:ipwall(8)
 After=ipload.service
 
 [Service]
