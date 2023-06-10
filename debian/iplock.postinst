@@ -72,10 +72,13 @@ echo "----------------------- end lists"
     # make sure ipload is enabled so on next reboot the firewall comes up
     # before the network is turned on
     #
-    systemctl enable ipload
-    if ! systemctl start ipload
+    if which systemctl >/dev/null
     then
-        echo "ERROR: the ipload command failed to load the firewall on installation."
+        systemctl enable ipload
+        if ! systemctl start ipload
+        then
+            echo "ERROR: the ipload command failed to load the firewall on installation."
+        fi
     fi
 fi
 
