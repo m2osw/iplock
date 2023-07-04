@@ -3,27 +3,27 @@ Section: net
 Priority: optional
 Maintainer: Alexis Wilke <alexis@m2osw.com>
 Build-Depends: cmake,
-    communicatord-dev (>= 2.0.0.0~bionic),
-    cppprocess-dev (>= 1.1.52.0~bionic),
-    cppthread-dev (>= 1.1.13.0~bionic),
+    communicatord-dev (>= 2.0.0.0~jammy),
+    cppprocess-dev (>= 1.1.52.0~jammy),
+    cppthread-dev (>= 1.1.13.0~jammy),
     debhelper,
     dh-sysuser,
     doxygen,
-    eventdispatcher-dev (>= 1.1.51.0~bionic),
-    fluid-settings-dev (>= 1.0.0.0~bionic),
+    eventdispatcher-dev (>= 1.1.51.0~jammy),
+    fluid-settings-dev (>= 1.0.0.0~jammy),
     graphviz,
-    libaddr-dev (>= 1.0.8.215~bionic),
-    libadvgetopt-dev (>= 2.0.4.0~bionic),
-    libas2js-dev (>= 0.1.37.0~bionic),
-    libexcept-dev (>= 1.0.2.250~bionic),
+    libaddr-dev (>= 1.0.8.215~jammy),
+    libadvgetopt-dev (>= 2.0.4.0~jammy),
+    libas2js-dev (>= 0.1.37.0~jammy),
+    libexcept-dev (>= 1.0.2.250~jammy),
     libreadline-dev,
-    libutf8-dev (>= 1.0.13.0~bionic),
-    prinbee-dev (>= 1.0.0.0~bionic),
-    serverplugins-dev (>= 2.0.0.0~bionic),
-    snapcatch2 (>= 2.9.1.0~bionic),
-    snapcmakemodules (>= 1.0.35.3~bionic),
-    snapdev (>= 1.0.0.0~bionic),
-    snaplogger-dev (>= 1.0.0.0~bionic)
+    libutf8-dev (>= 1.0.13.0~jammy),
+    prinbee-dev (>= 1.0.0.0~jammy),
+    serverplugins-dev (>= 2.0.0.0~jammy),
+    snapcatch2 (>= 2.9.1.0~jammy),
+    snapcmakemodules (>= 1.0.35.3~jammy),
+    snapdev (>= 1.0.0.0~jammy),
+    snaplogger-dev (>= 1.0.0.0~jammy)
 Standards-Version: 3.9.4
 Homepage: https://snapwebsites.org/
 Vcs-Git: https://github.com/m2osw/snapcpp.git

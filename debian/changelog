@@ -1,4 +1,4 @@
-iplock (3.0.46.0~bionic) bionic; urgency=high
+iplock (3.0.46.0~jammy) jammy; urgency=high
 
   * Added flag to turn syn-flood ON or OFF. It is OFF by default for now.
 
