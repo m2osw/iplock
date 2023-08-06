@@ -27,7 +27,6 @@ conf/ipload                                        usr/share/iplock/
 conf/50-variables.conf                             usr/share/iplock/
 conf/drop-list/*                                   usr/share/iplock/ip-list/
 conf/ipload/README.md                              etc/iplock/ipload/ipload.d/
-conf/ipload.service                                lib/systemd/system/
 
 # Command line tools documentation
 #

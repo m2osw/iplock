@@ -1,6 +1,7 @@
 iplock (3.0.46.0~jammy) jammy; urgency=high
 
   * Added flag to turn syn-flood ON or OFF. It is OFF by default for now.
+  * Use dh_installsystemd instead of directly using systemctl for ipload.
 
  -- Alexis Wilke <alexis@m2osw.com>  Sun, 11 Dec 2022 17:08:43 -0800
 
