@@ -1,4 +1,7 @@
 
+* Conside moving the libiplock to its own package; that way we can build
+  against the libiplock-dev package and not have an issue with the ipload
+  service (although that issue should already be fixed)
 * Finish up ipwall service (database & testing).
 * Change the opening of ports for services to make use of one ipset of ports
   (for all TCP and for all UDP which do not need anything special).
@@ -21,7 +24,8 @@
   - nomatch (?)
   - forceadd (to accept new and auto-remove old on a full set)
 * Move the sitter firewall plugin to this project.
-* Moved most of the knock-knock code to the library so we can actually perform a knock-knock from anywhere.
+* Moved most of the knock-knock code to the library so we can actually
+  perform a knock-knock from anywhere.
 * Move docs from README.md to man pages.
 * Check whether the knock ports are used in the INPUT or a sub-chain of the
   INPUT chain (We should be able to build a tree).
