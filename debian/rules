@@ -10,9 +10,9 @@
 override_dh_auto_configure:
 	dh_auto_configure -- -DCMAKE_BUILD_TYPE=Release
 
+#dh_installsystemd --name=ipwall ipwall.service
 override_dh_installsystemd:
-	dh_installsystemd --name=ipwall ipwall.service
-	dh_installsystemd --name=ipload iplock.ipload.service
+	dh_installsystemd --name=ipload
 
 override_dh_fixperms:
 	dh_fixperms
