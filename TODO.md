@@ -1,4 +1,6 @@
 
+* Implement a BPF (and nftables?) version. If BPF can be used to fully replace
+  iptables, then we should use that library.
 * Conside moving the libiplock to its own package; that way we can build
   against the libiplock-dev package and not have an issue with the ipload
   service (although that issue should already be fixed)
@@ -45,5 +47,4 @@
       those states (i.e. "state", "recent", etc.)
     * Another possibility is to use an "order: ..." field.
 * Write tests.
-* Implement an nftables version.
 
