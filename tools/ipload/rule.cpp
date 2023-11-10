@@ -1739,7 +1739,7 @@ void rule::parse_addresses(
     // support protocols such as HTTP because that is not compatible with
     // iptables (although we could make them work too)
     //
-    advgetopt::string_list_t const input(std::move(in));
+    advgetopt::string_list_t const input(in);
     for(auto const & in_addr : input)
     {
         std::string ip(in_addr);
