@@ -1,13 +1,16 @@
-iplock (3.0.46.0~jammy) jammy; urgency=high
-
-  * Added flag to turn syn-flood ON or OFF. It is OFF by default for now.
-  * Use dh_installsystemd instead of directly using systemctl for ipload.
-
- -- Alexis Wilke <alexis@m2osw.com>  Sun, 11 Dec 2022 17:08:43 -0800
-
 iplock (3.0.45.0~bionic) bionic; urgency=high
 
-  * Added info about the possibility to use -m limit for synflood.
+  * Added flag to turn syn-flood ON or OFF. It is OFF by default for now.
+  * Added info about the possibility to use `-m limit` for synflood.
+  * Use dh_installsystemd instead of directly using systemctl for ipload.
+  * Fixed an #include <cstdint>.
+  * Removed an std::move() which did not work anymore in newer g++ versions.
+  * Install the log images.
+  * Updated compat to version 15.
+  * Fixed packages
+  * Fixed ipwall so ipload gets installed & started as expected.
+  * Tweaked the logrotate post script.
+  * Make use of names.an instead of hard coded strings.
   * Fixed a link in README.md.
 
  -- Alexis Wilke <alexis@m2osw.com>  Sun, 20 Nov 2022 21:23:07 -0800
