@@ -1,3 +1,10 @@
+iplock (3.0.46.0~bionic) bionic; urgency=high
+
+  * Fixed postinst script so it installs the ${admin_ips}.
+  * Fixed path to the README.md file.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Tue, 14 Nov 2023 21:41:23 -0800
+
 iplock (3.0.45.0~bionic) bionic; urgency=high
 
   * Added flag to turn syn-flood ON or OFF. It is OFF by default for now.
