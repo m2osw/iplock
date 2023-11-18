@@ -1,3 +1,9 @@
+iplock (3.0.46.3~bionic) bionic; urgency=high
+
+  * Bumped build version to rebuild on Launchpad.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Fri, 17 Nov 2023 18:28:37 -0800
+
 iplock (3.0.46.2~bionic) bionic; urgency=high
 
   * Bumped build version to rebuild on Launchpad.
