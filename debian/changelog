@@ -1,3 +1,12 @@
+iplock (3.0.47.0~bionic) bionic; urgency=high
+
+  * Avoid smashing the "public_interfaces" value if already defined.
+  * Extended the `remove_user_chain` script to also reset the IPv6 tables.
+  * Use the `POJECTNAME` variable in one more location in postinst.
+  * Small clean ups.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Sat, 18 Nov 2023 10:43:50 -0800
+
 iplock (3.0.46.3~bionic) bionic; urgency=high
 
   * Bumped build version to rebuild on Launchpad.

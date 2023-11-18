@@ -649,7 +649,7 @@ bool ipload::load_data()
     advgetopt::string_list_t path_list;
     advgetopt::split_string(paths, path_list, {":"});
 
-    // for each file we find anywhere we want to remember about it othewise
+    // for each file we find anywhere we want to remember about it otherwise
     // we will miss the "??-<name>.conf" in directories where upper folders
     // do not include a file.
     //
@@ -661,7 +661,7 @@ bool ipload::load_data()
     //
     //     /etc/iplock/ipload/general/ipload.d/50-variables.conf
     //
-    // the conf_files registers the filenames withouth the "path" part
+    // the conf_files registers the filenames without the "path" part
     // and that gets re-added to the glob variable on the following iteration
     //
     std::set<std::string> conf_files;
