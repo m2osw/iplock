@@ -1,3 +1,9 @@
+iplock (3.0.48.0~bionic) bionic; urgency=high
+
+  * Allow for the admin_ips to be "0.0.0.0/0".
+
+ -- Alexis Wilke <alexis@m2osw.com>  Sat, 18 Nov 2023 17:48:06 -0800
+
 iplock (3.0.47.0~bionic) bionic; urgency=high
 
   * Avoid smashing the "public_interfaces" value if already defined.
