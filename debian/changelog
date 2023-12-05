@@ -1,3 +1,9 @@
+iplock (3.0.51.0~bionic) bionic; urgency=high
+
+  * Added admin_interfaces to the iplock.config file.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Mon, 04 Dec 2023 17:59:43 -0800
+
 iplock (3.0.50.0~bionic) bionic; urgency=high
 
   * Moved the admin_interfaces & admin_ips variables to the variables.conf file.
