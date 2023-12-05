@@ -1,3 +1,10 @@
+iplock (3.0.50.0~bionic) bionic; urgency=high
+
+  * Moved the admin_interfaces & admin_ips variables to the variables.conf file.
+  * Make use of the admin_interfaces in two more locations.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Mon, 04 Dec 2023 17:41:59 -0800
+
 iplock (3.0.49.0~bionic) bionic; urgency=high
 
   * Fixed a missing quote (") in an expression in the ipload conf.
