@@ -21,6 +21,16 @@ Description: Administrator IP Addresses
  the knock-knock mechanism for SSH. This parameter can be left empty, however,
  if you are currently using SSH, you will get blocked by your new firewall.
 
+Template: iplock/admin_interfaces
+Type: string
+Description: Administrator Interfaces
+ Enter a comma separated list of interface names that the administrator(s) may
+ use trying to connect to the server. This is used to only open the SSH serivce
+ on those interfaces.
+ .
+ Note: this is likely the same as the public_interfaces parameter, although
+ in a LAN computer, it may be one of the private interfaces.
+
 Template: iplock/empty
 Type: error
 Description: This parameter cannot be empty.
