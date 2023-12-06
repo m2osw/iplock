@@ -1,3 +1,9 @@
+iplock (3.0.53.0~bionic) bionic; urgency=high
+
+  * Adding example to admin_interfaces parameter.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Tue, 05 Dec 2023 20:46:46 -0800
+
 iplock (3.0.52.0~bionic) bionic; urgency=high
 
   * Actually output admin_interfaces to 00-variables.conf.

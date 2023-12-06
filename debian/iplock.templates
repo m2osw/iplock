@@ -30,6 +30,7 @@ Description: Administrator Interfaces
  .
  Note: this is likely the same as the public_interfaces parameter, although
  in a LAN computer, it may be one of the private interfaces.
+ For example: "eth0, eno1, enp0s3" (without the quotes).
 
 Template: iplock/empty
 Type: error
