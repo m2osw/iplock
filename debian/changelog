@@ -1,3 +1,9 @@
+iplock (3.0.54.0~bionic) bionic; urgency=high
+
+  * Fix config to use `db_settitle`.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Wed, 06 Dec 2023 21:47:31 -0800
+
 iplock (3.0.53.0~bionic) bionic; urgency=high
 
   * Adding example to admin_interfaces parameter.
