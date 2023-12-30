@@ -16,16 +16,23 @@ Template: iplock/admin_ips
 Type: string
 Description: Administrator IP Addresses
  Enter a comma separated list of IP addresses that the administrators use to
- access the system. Only use static IP addresses. If some of your
- administrators do not have a static IP address, you may want to look at using
- the knock-knock mechanism for SSH. This parameter can be left empty, however,
- if you are currently using SSH, you will get blocked by your new firewall.
+ access the system. Only use static IP addresses.
+ .
+ If some of your administrators do not have a static IP address, enter the
+ default IP address instead: 0.0.0.0/0. In this case, you may want to look
+ at using the knock-knock mechanism to connect to SSH. This makes it a
+ lot harder for a hacker to gain access even if they were able to determine
+ your private key.
+ .
+ On a console accessible computer, this parameter can be left empty, however,
+ if you are currently using SSH, you will get blocked by your new firewall
+ and the installation will freeze midway.
 
 Template: iplock/admin_interfaces
 Type: string
 Description: Administrator Interfaces
  Enter a comma separated list of interface names that the administrator(s) may
- use trying to connect to the server. This is used to only open the SSH serivce
+ use trying to connect to the server. This is used to only open the SSH service
  on those interfaces.
  .
  Note: this is likely the same as the public_interfaces parameter, although
