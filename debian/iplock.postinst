@@ -33,7 +33,11 @@ then
     if getent passwd syslog > /dev/null && getent group adm > /dev/null
     then
         chown syslog:adm /var/log/iptables
-        invoke-rc.d rsyslog restart
+
+        # TODO: test without this restart;
+        #       it looks like rsyslog now has a working trigger
+        #
+        systemctl restart rsyslog
     fi
 
     db_get ${PROJECTNAME}/public_interfaces

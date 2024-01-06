@@ -47,7 +47,7 @@ then
 
     # `01-iptables.conf` is now gone
     #
-    invoke-rc.d rsyslog restart
+    systemctl restart rsyslog
     rm -rf /var/log/iptables
 fi
 
