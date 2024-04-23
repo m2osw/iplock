@@ -871,7 +871,7 @@ bool ipload::load_data()
                 SNAP_LOG_ERROR
                     << "required variable \""
                     << v.first
-                    << "\" is defined, but it is still empty."
+                    << "\" is defined, but is still empty."
                     << SNAP_LOG_SEND;
                 return false;
             }
