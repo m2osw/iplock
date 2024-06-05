@@ -7,7 +7,7 @@
 #
 # License:
 #
-# Copyright (c) 2011-2022  Made to Order Software Corp.  All Rights Reserved
+# Copyright (c) 2011-2024  Made to Order Software Corp.  All Rights Reserved
 #
 # https://snapwebsites.org/project/iplock
 # contact@m2osw.com
