@@ -15,4 +15,6 @@ param_period=period
 param_reason=reason
 param_uri=uri
 
+service_ipwall=ipwall
+
 # vim: syntax=dosini

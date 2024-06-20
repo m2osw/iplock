@@ -84,11 +84,6 @@ namespace iplock
 
 wait_on_firewall::~wait_on_firewall()
 {
-    fluid_settings::fluid_settings_connection * fs(dynamic_cast<fluid_settings::fluid_settings_connection *>(this));
-    if(fs != nullptr)
-    {
-        fs->remove_status_callback(f_status_callback_id);
-    }
 }
 
 
@@ -120,20 +115,6 @@ void wait_on_firewall::add_wait_on_firewall_commands(std::string const & ipwall_
 {
     check_if_active(ipwall_service_name);
 
-    fluid_settings::fluid_settings_connection * fs(dynamic_cast<fluid_settings::fluid_settings_connection *>(this));
-    if(fs != nullptr)
-    {
-        // TODO: we should look into using a shared pointer instead of `this`
-        //       (although we have a shared_from_this() function in `fs`
-        //       I don't think it would be compatible with wait_on_firewall?)
-        //
-        f_status_callback_id = fs->add_status_callback(std::bind(
-                                      &wait_on_firewall::service_status
-                                    , this
-                                    , std::placeholders::_1
-                                    , std::placeholders::_2));
-    }
-
     ed::dispatcher_support * ds(dynamic_cast<ed::dispatcher_support *>(this));
     if(ds == nullptr)
     {
@@ -147,6 +128,12 @@ void wait_on_firewall::add_wait_on_firewall_commands(std::string const & ipwall_
     dispatcher->add_matches({
             DISPATCHER_MATCH(g_name_iplock_cmd_firewall_up,   &wait_on_firewall::msg_firewall_up),
             DISPATCHER_MATCH(g_name_iplock_cmd_firewall_down, &wait_on_firewall::msg_firewall_down),
+            ed::define_match(
+                  ed::Expression(communicatord::g_name_communicatord_cmd_status)
+                , ed::Callback(std::bind(&wait_on_firewall::msg_status, this, std::placeholders::_1))
+                , ed::MatchFunc(&ed::one_to_one_callback_match)
+                , ed::Priority(ed::dispatcher_match::DISPATCHER_MATCH_CALLBACK_PRIORITY)
+            ),
         });
 
     ed::connection_with_send_message * cwm(dynamic_cast<ed::connection_with_send_message *>(this));
@@ -303,16 +290,20 @@ void wait_on_firewall::msg_firewall_down(ed::message & msg)
 }
 
 
-bool wait_on_firewall::service_status(std::string const & service, std::string const & status)
+void wait_on_firewall::msg_status(ed::message & msg)
 {
-    if(service == "ipwall")
+    if(!msg.has_parameter(communicatord::g_name_communicatord_param_status)
+    || !msg.has_parameter(communicatord::g_name_communicatord_param_service))
     {
-        f_firewall_is_available = status == "up";
+        return;
     }
 
-    // always continue; someone else may be interested by the same message
-    //
-    return true;
+    std::string const service(msg.get_parameter(communicatord::g_name_communicatord_param_service));
+    if(service == g_name_iplock_service_ipwall)
+    {
+        std::string const status(msg.get_parameter(communicatord::g_name_communicatord_param_status));
+        f_firewall_is_available = status == communicatord::g_name_communicatord_value_up;
+    }
 }
 
 

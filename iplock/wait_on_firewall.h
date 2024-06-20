@@ -68,12 +68,10 @@ private:
     void            firewall_is_active(
                               ed::child_status status
                             , cppprocess::process::pointer_t iplock_process);
-    bool            service_status(
-                              std::string const & service
-                            , std::string const & status);
 
     void            msg_firewall_up(ed::message & msg);
     void            msg_firewall_down(ed::message & msg);
+    void            msg_status(ed::message & msg);
 
     bool            f_firewall_is_active = false;       // whether the systemd service is present and available
     bool            f_firewall_is_available = false;    // whether the ipwall service is currently running or not
