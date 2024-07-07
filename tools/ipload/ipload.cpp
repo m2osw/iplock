@@ -594,40 +594,55 @@ void ipload::check_network_status()
         raise_flag = false;
     }
 
-    bool up(false);
+    std::string interfaces_up;
     addr::iface::pointer_vector_t const interfaces(addr::iface::get_local_addresses());
     for(auto const & i : *interfaces)
     {
         if((i->get_flags() & IFF_UP) != 0
         && i->get_name() != "lo")        // "lo" will already be up
         {
-            up = true;
-
-            SNAP_LOG_WARNING
-                << "Your network was already up."
-                << SNAP_LOG_SEND;
-
-            if(raise_flag)
+            if(!interfaces_up.empty())
             {
-                communicatord::flag::pointer_t f(COMMUNICATORD_FLAG_UP(
-                      "iplock"
-                    , "ipload"
-                    , "network-up"
-                    , "ipload detected that the network is up while first installing the firewall (i.e. at boot time)"));
-                f->set_state(communicatord::flag::state_t::STATE_UP)
-                    .set_priority(90) // this is considered a security issue
-                    .add_tag("security")
-                    .add_tag("firewall")
-                    .save();
+                interfaces_up += ", ";
             }
-            break;
+            interfaces_up += i->get_name();
+
+        }
+    }
+
+    if(!interfaces_up.empty())
+    {
+        SNAP_LOG_WARNING
+            << "network interface(s) \""
+            << interfaces_up
+            << "\" were already up."
+            << SNAP_LOG_SEND;
+
+        if(raise_flag)
+        {
+            std::string message;
+            message += "ipload detected that network interfaces \"";
+            message += interfaces_up;
+            message += "\" were already up while first installing the "
+                       "firewall (i.e. at boot time)";
+            communicatord::flag::pointer_t f(COMMUNICATORD_FLAG_UP(
+                  "iplock"
+                , "ipload"
+                , "network-up"
+                , message));
+            f->set_state(communicatord::flag::state_t::STATE_UP)
+                .set_priority(90) // this is considered a security issue
+                .add_tag("security")
+                .add_tag("firewall")
+                .set_manual_down(true) // this test is not 100% reliable, so make it manual
+                .save();
         }
     }
 
     std::ofstream out(g_network_status.data());
     if(out.is_open())
     {
-        out << (up ? "up" : "down")
+        out << (!interfaces_up.empty() ? "up" : "down")
             << '\n';
     }
 }
