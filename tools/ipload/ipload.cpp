@@ -466,6 +466,10 @@ int ipload::run()
         {
             return 1;
         }
+
+        SNAP_LOG_INFO
+            << "flushed successfully."
+            << SNAP_LOG_SEND;
         break;
 
     case COMMAND_LOAD:
@@ -503,6 +507,10 @@ int ipload::run()
             {
                 return 1;
             }
+
+            SNAP_LOG_INFO
+                << "loaded rules successfully."
+                << SNAP_LOG_SEND;
         }
         break;
 
@@ -510,6 +518,10 @@ int ipload::run()
         make_root();
         check_network_status();
         load_basic(true);
+
+        SNAP_LOG_INFO
+            << "load basic done."
+            << SNAP_LOG_SEND;
         break;
 
     case COMMAND_LOAD_DEFAULT:
@@ -528,6 +540,10 @@ int ipload::run()
         {
             return 1;
         }
+
+        SNAP_LOG_INFO
+            << "loaded default successfully."
+            << SNAP_LOG_SEND;
         break;
 
     case COMMAND_SHOW:
