@@ -35,6 +35,11 @@
 #include    <cmath>
 
 
+// last include
+//
+#include    <snapdev/poison.h>
+
+
 
 namespace iplock
 {

@@ -26,17 +26,17 @@
 
 // snaplogger
 //
-#include <snaplogger/message.h>
+#include    <snaplogger/message.h>
 
 
 // C
 //
-#include <signal.h>
+#include    <signal.h>
 
 
 // last include
 //
-#include <snapdev/poison.h>
+#include    <snapdev/poison.h>
 
 
 

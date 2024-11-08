@@ -45,6 +45,11 @@
 #include    <iostream>
 
 
+// last include
+//
+#include    <snapdev/poison.h>
+
+
 
 std::string to_lower(std::string const & s)
 {
