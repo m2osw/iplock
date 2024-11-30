@@ -44,14 +44,25 @@ if(SnapCatch2_FOUND)
         ${SNAPCATCH2_LIBRARIES}
     )
 
-    add_test(unittests ${PROJECT_NAME})
-
 else(SnapCatch2_FOUND)
 
     message("snapcatch2 not found... no tests will be built.")
 
 endif(SnapCatch2_FOUND)
 
+if(SnapCatch2_FOUND)
+
+    find_package(SnapTestRunner)
+    AddUnitTestsTarget(
+        PROJECT_NAME
+            rununittests
+    )
+
+endif(SnapCatch2_FOUND)
+
+##
+## Help with creating TCP packets
+##
 project(forge-tcp)
 
 add_executable(${PROJECT_NAME}
@@ -62,8 +73,5 @@ target_include_directories(${PROJECT_NAME}
     PUBLIC
         ${CMAKE_CURRENT_BINARY_DIR}
 )
-
-#target_link_libraries(${PROJECT_NAME}
-#)
 
 # vim: ts=4 sw=4 et
