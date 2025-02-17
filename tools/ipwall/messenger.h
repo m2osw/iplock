@@ -47,13 +47,12 @@ public:
     void                finish_initialization();
 
 private:
-    void                msg_block_ip(ed::message & msg);
-    void                msg_database_ready(ed::message & msg);
-    void                msg_firewall_ready(ed::message & msg);
-    void                msg_no_database(ed::message & msg);
-    void                msg_unblock_ip(ed::message & msg);
+    void                msg_ipwall_block_ip(ed::message & msg);
+    void                msg_ipwall_get_status(ed::message & msg);
+    void                msg_ipwall_unblock_ip(ed::message & msg);
 
     // this is owned by the main server function so no need for a smart pointer
+    //
     server *            f_server = nullptr;
     ed::dispatcher::pointer_t
                         f_dispatcher = ed::dispatcher::pointer_t();

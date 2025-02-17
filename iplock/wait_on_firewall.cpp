@@ -45,6 +45,7 @@
 //
 #include    <eventdispatcher/connection_with_send_message.h>
 #include    <eventdispatcher/dispatcher_support.h>
+#include    <eventdispatcher/names.h>
 
 
 // communicatord
@@ -55,6 +56,12 @@
 // snaplogger
 //
 #include    <snaplogger/message.h>
+
+
+// snapdev
+//
+#include    <snapdev/safe_assert.h>
+#include    <snapdev/safe_object.h>
 
 
 // cppprocess
@@ -72,13 +79,72 @@ namespace iplock
 {
 
 
+
+namespace
+{
+
+
+
+constexpr std::int64_t const        IPWALL_STATUS_CHECK_DELAY = 1'000'000LL * 60LL;
+
+
+void reset_state(check_state_t * state)
+{
+    *state = check_state_t::CHECK_STATE_IDLE;
+}
+
+
+
+} // no name namespace
+
+
+
 /** \class wait_on_firewall
- * \brief Allow your process to wait for the firewall to be up.
+ * \brief Allow your process to track the firewall status.
  *
- * Many services open TCP and UDP connections which need to be protected
- * by the firewall. Those services should have their messenger derive
- * from this class and wait until the is_firewall_up() function gets
- * called before they open any public connection.
+ * \note
+ * If there is nothing your service can do until the `ipwall` service is up
+ * and running, then you can instead use the `After=ipwall`. Similarly, if
+ * it just needs the firewall, you can use the `After=ipload` option. The
+ * `ipwall` service actually only starts after `ipload` was successfully
+ * started. So receiving any message from `ipwall` mean that the firewall
+ * is up and active.
+ *
+ * The firewall is an important part of the system since it prevents
+ * hackers from accessing services you start locally. Although in most
+ * cases our processes only connect to the communicator daemon, a few
+ * open their own public connection. These need to be protected and
+ * to do so we want to track the current firewall status.
+ *
+ * This class tracks the status of two services in link with the
+ * firewall:
+ *
+ * 1. It makes sure that the ipload service started successfully
+ * 2. It checks whether the ipwall service is currently running
+ *
+ * Once ipload ran successfully, the firewall is up and it is safe
+ * for your application to open its own potentially public port(s).
+ *
+ * For applications that want to be able to actively BLOCK (and UNBLOCK)
+ * IP addresses, they also need to wait on the ipwall service. This
+ * allows the application to proactively prevent hackers from accessing
+ * any of the Snap! C++ systems by quickly blocking their IP addresses.
+ * (i.e. The block automatically propagates to all the computers in your
+ * cluster.)
+ *
+ * As a result, you have three possible states:
+ *
+ * 1. firewall is not ready (ipload has not yet run) [FIREWALL_STATUS_NOT_READY]
+ * 2. firewall is ready, but ipwall is not available [FIREWALL_STATUS_UP]
+ * 3. firewall is up and ipwall is available [FIREWALL_STATUS_ACTIVE]
+ *
+ * Once the status is UP it can bounce between UP and ACTIVE. It cannot go
+ * back to NOT_READY (i.e. in the Snap! C++ execution environment, we do not
+ * offer a way to flush the firewall; it is, of course, always doable...
+ * either by hand or even with one of our tools, but the functionality should
+ * never happen on its own; the sitter can be used to verify that the firewall
+ * does not get flushed--see the sitter/plugins/sitter_firewall plugin, which
+ * needs to be moved to this project).
  */
 
 
@@ -89,31 +155,63 @@ wait_on_firewall::~wait_on_firewall()
 
 /** \brief Initialize wait_on_firewall.
  *
- * This function makes the wait_on_firewall listen for a FIREWALL_UP message
- * from the ipwall service.
+ * This function initializes the wait_on_firewall object.
  *
- * The function first makes sure that the ipwall service is:
+ * First the initialization function checks whether the ipload service ran
+ * successfully. If not, then a timer is used to check again once in a
+ * while. Until it was activated, the firewall status is set to
+ * FIREWALL_STATUS_NOT_READY.
  *
- * \li installed
- * \li active
- * \li running
+ * Once we detect that the ipload service is marked as active, we take
+ * the ipwall service status in account. This function sets up the
+ * dispatcher to listen for messages from the ipwall service for that
+ * purpose. If the ipwall is up and running, then the status becomes
+ * FIREWALL_STATUS_ACTIVE. Otherwise, it gets set to FIREWALL_STATUS_UP.
+ * (i.e. when the firewall is just up, it is static in the sense that
+ * BLOCK messages are ignored.)
  *
- * If any of these is false, then we either get an error (i.e. the service
- * is marked as active but it is not running) or we skip of the test and
- * assume that the firewall is not required on that computer and thus
- * \em pretend that it is up for the service to continue as normal.
+ * The message we listen to is IPWALL_CURRENT_STATUS. We also listen to
+ * the STATUS message, which tells us when ipwall goes down (i.e. the
+ * ipwall service would not know to send a "down" status if it crashes).
+ *
+ * In case the ipwall service is already running, we need to pro-actively
+ * send the IPWALL_GET_STATUS message. To do so at the right time, we
+ * also listen for the READY message. When we get that message, we send
+ * the status request. This means this function needs to be called before
+ * that message gets sent.
+ *
+ * If the ipload service is disabled, then the state is set to
+ * FIREWALL_STATUS_DOWN. This means your application can continue without
+ * the firewall (i.e. the service is not disabled by default, this means
+ * the administrator decided to turn it off).
  *
  * \note
- * Most of our services are local and thus do not require the wait_on_firewall
- * signals. This is really only required for services that listen on public
- * TCP ports such as an HTTP or an SMTP service. It is also useful for
- * services that listen on 0.0.0.0 (ANY) even if those are considered private
- * (such as a database). Because those services would be accessible through
- * the public Internet as well if their port is not properly blocked.
+ * The status of the ipload is not known at the time this function returns.
+ * It starts a process to determine whether the service is disabled and
+ * if not try another to determine whether the service is considered
+ * active.
+ *
+ * \note
+ * Most of our services are local and thus do not require the
+ * wait_on_firewall signals. This is really only required for the very few
+ * services that listen on public TCP or UDP ports such as an HTTP or an
+ * SMTP service. It is also useful for services that listen on
+ * 0.0.0.0 (ANY) even if those are considered private (such as a database).
+ * Because those services would be accessible through the public Internet
+ * as well if their port is not properly blocked.
+ *
+ * \exception logic_error
+ * The logic_error exception is raised if the wait_on_firewall was not
+ * properly derived from a ed::dispatcher_support or if the dispatcher
+ * pointer was not yet set. It also has to be an ed::connection object.
  */
-void wait_on_firewall::add_wait_on_firewall_commands(std::string const & ipwall_service_name)
+void wait_on_firewall::add_wait_on_firewall_commands()
 {
-    check_if_active(ipwall_service_name);
+    ed::connection * c(dynamic_cast<ed::connection *>(this));
+    if(c == nullptr)
+    {
+        throw logic_error("the wait_on_firewall class must be used with a connection class.");
+    }
 
     ed::dispatcher_support * ds(dynamic_cast<ed::dispatcher_support *>(this));
     if(ds == nullptr)
@@ -126,167 +224,324 @@ void wait_on_firewall::add_wait_on_firewall_commands(std::string const & ipwall_
         throw logic_error("the wait_on_firewall::add_wait_on_firewall_commands() must be called after you setup your dispatcher (set_dispatcher() was not yet called).");
     }
     dispatcher->add_matches({
-            DISPATCHER_MATCH(g_name_iplock_cmd_firewall_up,   &wait_on_firewall::msg_firewall_up),
-            DISPATCHER_MATCH(g_name_iplock_cmd_firewall_down, &wait_on_firewall::msg_firewall_down),
+            DISPATCHER_MATCH(communicatord::g_name_communicatord_cmd_ipwall_current_status, &wait_on_firewall::msg_ipwall_current_status),
             ed::define_match(
                   ed::Expression(communicatord::g_name_communicatord_cmd_status)
                 , ed::Callback(std::bind(&wait_on_firewall::msg_status, this, std::placeholders::_1))
                 , ed::MatchFunc(&ed::one_to_one_callback_match)
                 , ed::Priority(ed::dispatcher_match::DISPATCHER_MATCH_CALLBACK_PRIORITY)
             ),
+            ::ed::define_match(
+                  ::ed::Expression(ed::g_name_ed_cmd_ready)
+                , ::ed::Callback(std::bind(&wait_on_firewall::msg_ready, this, std::placeholders::_1))
+                , ed::MatchFunc(&ed::one_to_one_callback_match)
+                , ed::Priority(ed::dispatcher_match::DISPATCHER_MATCH_CALLBACK_PRIORITY)
+            ),
         });
 
-    ed::connection_with_send_message * cwm(dynamic_cast<ed::connection_with_send_message *>(this));
-    if(cwm == nullptr)
-    {
-        throw logic_error("the wait_on_firewall class must also represent a connection_with_message.");
-    }
+    // the status may change over time, have a timer to run the check
+    // over time but also call the function once now
+    //
+    f_status_timer = std::make_shared<ed::timer>(IPWALL_STATUS_CHECK_DELAY);
+    f_status_timer->get_callback_manager().add_callback(std::bind(
+                  &wait_on_firewall::check_status
+                , std::dynamic_pointer_cast<wait_on_firewall>(c->shared_from_this())
+                , std::placeholders::_1));
 
-    // send a FIREWALL_READY message to get the current firewall status
+    // immediately start the process of checking for the status for the first time
     //
-    // Note: no need to cache the message; if the firewall starts after
-    //       we sent this message, we will receive a FIREWALL_UP once it
-    //       is up, so no worries; if the firewall is not install on
-    //       this machine, then we just get a "not available" error
-    //       message which we ignore here
+    // (this makes use of a background process and we get the response
+    // through the communicator through a child signal, so it is not
+    // immediate)
     //
-    ed::message msg;
-    msg.reply_to(msg);
-    msg.set_command(g_name_iplock_cmd_firewall_ready);
-    msg.add_parameter(
-              communicatord::g_name_communicatord_param_cache
-            , communicatord::g_name_communicatord_value_no);
-    cwm->send_message(msg);
+    check_status(f_status_timer);
 }
 
 
-void wait_on_firewall::check_if_active(std::string const & ipwall_service_name)
+/** \brief Check the status of the ipload service.
+ *
+ * To check the status of the ipload service, we run the systemctl command
+ * and expect to receive a child signal. The signal gives us the result
+ * of the call (a.k.a. the exit code or the number of a signal that killed
+ * the child process).
+ *
+ * That means it looks like spaghetti code. Here is the list of function
+ * called in the process and how it repeats if a call fails in some way.
+ *
+ * \msc
+ * a [label="add_wait_on_firewall_commands"],
+ * b [label="check_status"],
+ * c [label="start_check"],
+ * d [label="systemctl_exited"],
+ * e [label="communicator"];
+ *
+ * #
+ * # Phase 1: check is-enabled
+ * #
+ * a=>b [label="start check process"];
+ * --- [label="if already running, return"];
+ * b=>c [label="run systemctl is-enabled"];
+ * ... [label="wait for process to complete"];
+ * e=>d [label="check result of systemctl"];
+ * --- [label="if check failed (signaled), return without changing the state"];
+ * --- [label="if check failed (exit 1), change state to OFF"];
+ * --- [label="if check succeeded (exit 0), change state to DOWN and continue status check process"];
+ *
+ * #
+ * # Phase 2: check is-active
+ * #
+ * d=>b [label="continue check process"];
+ * b=>c [label="run systemctl is-active"];
+ * ... [label="wait for process to complete"];
+ * e=>d [label="check result of systemctl"];
+ * --- [label="if check failed (signaled), return without changing the state"];
+ * --- [label="if check failed (exit 1), return without changing the state"];
+ * --- [label="if check succeeded (exit 0), change state to UP or ACTIVE"];
+ * \endmsc
+ *
+ * If starting the systemctl command fails, the state does not change and
+ * the process stops.
+ */
+bool wait_on_firewall::check_status(ed::timer::pointer_t t)
 {
-    // TODO: note that this test is flaky in the sense that it happens only
-    //       once on startup; we would also need a way to detect whether
-    //       the firewall gets activated later; the status callback may
-    //       partially be used for that purpose
-    //
-    //f_firewall_is_active = system("systemctl is-active -q ipwall") == 0;
+    snapdev::NOT_USED(t); // t == f_status_timer
 
-    cppprocess::process::pointer_t firewall_is_active_process(
-            std::make_shared<cppprocess::process>("check firewall service status"));
-    firewall_is_active_process->set_command("systemctl");
-    firewall_is_active_process->add_argument("is-active");
-    firewall_is_active_process->add_argument("-q");
-    firewall_is_active_process->add_argument(ipwall_service_name);
+    if(f_check_state != check_state_t::CHECK_STATE_IDLE)
+    {
+        return true;
+    }
+    f_check_state = check_state_t::CHECK_STATE_IS_ENABLED;
+    start_check();
+    return true;
+}
+
+
+void wait_on_firewall::start_check()
+{
+    // make sure that on any error the state gets reset to IDLE
+    //
+    snapdev::safe_object<check_state_t *, reset_state> safe_state;
+    safe_state.make_safe(&f_check_state);
+
+    cppprocess::process::pointer_t systemctl_process(
+            std::make_shared<cppprocess::process>("check ipload service status"));
+    systemctl_process->set_command("systemctl");
+    systemctl_process->add_argument(
+                f_check_state == check_state_t::CHECK_STATE_IS_ENABLED
+                    ? "is-enabled"
+                    : "is-active");
+    systemctl_process->add_argument("-q");
+    systemctl_process->add_argument(iplock::g_name_iplock_service_ipload);
 
     cppprocess::io_capture_pipe::pointer_t output_pipe(std::make_shared<cppprocess::io_capture_pipe>());
-    firewall_is_active_process->set_output_io(output_pipe);
+    systemctl_process->set_output_io(output_pipe);
 
     cppprocess::io_capture_pipe::pointer_t error_pipe(std::make_shared<cppprocess::io_capture_pipe>());
-    firewall_is_active_process->set_error_io(error_pipe);
+    systemctl_process->set_error_io(error_pipe);
 
-    int const r(firewall_is_active_process->start());
+    int const r(systemctl_process->start());
     if(r != 0)
     {
         SNAP_LOG_ERROR
-            << "could not start process to check whether the \""
-            << ipwall_service_name
-            << "\" service is active."
+            << "process \""
+            << systemctl_process->get_command_line()
+            << "\" failed starting."
             << SNAP_LOG_SEND;
-
-        // assume it is active... otherwise other parts of the system may not
-        // ever start (this is actually a security issue)
-        //
-        f_firewall_is_active = true;
         return;
     }
 
-    // TODO: `this` should be a smart pointer instead...
-    //       as it stands, the wait_on_firewall object could be deleted
-    //       before the process is finished
-    //
+    ed::connection * c(dynamic_cast<ed::connection *>(this));
+    if(c == nullptr)
+    {
+        throw logic_error("the wait_on_firewall class must be used with a connection class.");
+    }
+
     ed::signal_child::pointer_t child_signal(ed::signal_child::get_instance());
     child_signal->add_listener(
-              firewall_is_active_process->process_pid()
+              systemctl_process->process_pid()
             , std::bind(
-                    &wait_on_firewall::firewall_is_active
-                  , this
-                  , std::placeholders::_1
-                  , firewall_is_active_process));
+                      &wait_on_firewall::systemctl_exited
+                    , std::dynamic_pointer_cast<wait_on_firewall>(c->shared_from_this())
+                    , std::placeholders::_1
+                    , systemctl_process));
+
+    // it worked, keep the state as it was on entry
+    //
+    safe_state.release();
 }
 
 
-void wait_on_firewall::firewall_is_active(
+bool wait_on_firewall::systemctl_exited(
       ed::child_status status
     , cppprocess::process::pointer_t p)
 {
-    f_firewall_is_active = status.is_exited()
-                        && status.exit_code() == 0;
+    // make sure that on any error the state gets reset to IDLE
+    //
+    snapdev::safe_object<check_state_t *, reset_state> safe_state;
+    safe_state.make_safe(&f_check_state);
 
+    int const result(get_systemctl_result(status, p));
+    if(f_check_state == check_state_t::CHECK_STATE_IS_ENABLED)
+    {
+        switch(result)
+        {
+        case 0:
+            set_status(firewall_status_t::FIREWALL_STATUS_DOWN);
+
+            // start the next stage
+            //
+            safe_state.release();
+            f_check_state = check_state_t::CHECK_STATE_IS_ACTIVE;
+            start_check();
+            break;
+
+        case 1:
+            set_status(firewall_status_t::FIREWALL_STATUS_OFF);
+            break;
+
+        //case -1 and -2 are ignored
+        }
+    }
+    else
+    {
+        snapdev::SAFE_ASSERT(f_check_state == check_state_t::CHECK_STATE_IS_ACTIVE, "f_check_state was expected to be set to check_state_t::CHECK_STATE_IS_ACTIVE");
+
+        switch(result)
+        {
+        case 0:
+            set_status(f_ipwall_is_up
+                                ? firewall_status_t::FIREWALL_STATUS_UP
+                                : firewall_status_t::FIREWALL_STATUS_ACTIVE);
+            break;
+
+        case 1:
+            set_status(firewall_status_t::FIREWALL_STATUS_DOWN);
+            break;
+
+        }
+    }
+
+    return true;
+}
+
+
+int wait_on_firewall::get_systemctl_result(
+      ed::child_status status
+    , cppprocess::process::pointer_t p)
+{
     cppprocess::io_capture_pipe::pointer_t output_pipe(std::dynamic_pointer_cast<cppprocess::io_capture_pipe>(p->get_output_io()));
     cppprocess::io_capture_pipe::pointer_t error_pipe(std::dynamic_pointer_cast<cppprocess::io_capture_pipe>(p->get_error_io()));
     if(status.is_signaled())
     {
         SNAP_LOG_ERROR
-            << "systemctl received a signal and died: "
+            << "\""
+            << p->get_command_line()
+            << "\" received a signal and died: "
             << status.terminate_signal()
-            << " -- Console Output:\n"
+            << "\n -- Console Output:\n"
             << output_pipe->get_output()
             << " -- Console Errors:\n"
             << error_pipe->get_output()
             << SNAP_LOG_SEND;
+
+        return -1;
     }
     else if(status.is_exited())
     {
-        if(status.exit_code() != 0)
+        if(status.exit_code() == 0)
         {
-            SNAP_LOG_RECOVERABLE_ERROR
-                << "an error occurred running systemctl: "
-                << status.exit_code()
-                << " -- Console Output:\n"
-                << output_pipe->get_output()
-                << " -- Console Errors:\n"
-                << error_pipe->get_output()
-                << SNAP_LOG_SEND;
+            return 0;
         }
+
+        SNAP_LOG_RECOVERABLE_ERROR
+            << "an error occurred running \""
+            << p->get_command_line()
+            << "\": "
+            << status.exit_code()
+            << "\n -- Console Output:\n"
+            << output_pipe->get_output()
+            << " -- Console Errors:\n"
+            << error_pipe->get_output()
+            << SNAP_LOG_SEND;
+
+        return 1;
+    }
+
+    SNAP_LOG_SEVERE
+        << "unknown status returned running \""
+        << p->get_command_line()
+        << "\":\n"
+        << " -- Console Output:\n"
+        << output_pipe->get_output()
+        << " -- Console Errors:\n"
+        << error_pipe->get_output()
+        << SNAP_LOG_SEND;
+
+    return -2;
+}
+
+
+void wait_on_firewall::set_status(firewall_status_t status)
+{
+    if(f_firewall_status != status)
+    {
+        f_firewall_status = status;
+        status_changed(f_firewall_status);
     }
 }
 
 
-bool wait_on_firewall::is_firewall_available() const
+wait_on_firewall::callback_id_t wait_on_firewall::add_status_callback(status_callback_t func)
 {
-    return f_firewall_is_available;
+    return f_status_callbacks.add_callback(func);
 }
 
 
-bool wait_on_firewall::is_firewall_up() const
+bool wait_on_firewall::remove_status_callback(callback_id_t callback_id)
 {
-    return f_firewall_is_up;
+    return f_status_callbacks.remove_callback(callback_id);
 }
 
 
-void wait_on_firewall::msg_firewall_up(ed::message & msg)
+void wait_on_firewall::status_changed(firewall_status_t firewall_status)
 {
-    snapdev::NOT_USED(msg);
+    snapdev::NOT_USED(firewall_status);
 
-    f_firewall_is_up = true;
-
-    firewall_is_up();
+    f_status_callbacks.call(f_firewall_status);
 }
 
 
-void wait_on_firewall::msg_firewall_down(ed::message & msg)
+firewall_status_t wait_on_firewall::get_firewall_status() const
 {
-    snapdev::NOT_USED(msg);
+    return f_firewall_status;
+}
 
-    // once UP the firewall should never go back down
+
+void wait_on_firewall::msg_ipwall_current_status(ed::message & msg)
+{
+    // once up, the firewall should never go back down (i.e. the ipwall will
+    // not flush an existing firewall)
     //
-    // however, if the ipwall service is restarted, we may get a FIREWALLDOWN
-    // message even though the "old" firewall is still up and running so
-    // in effect we just completely ignore this message; it's not quite
-    // accurate
+    // however, if the ipwall service is restarted, we may get an "ipwall
+    // is down" message (state=down) and that changes the state of the
+    // firewall from "ACTIVE" to "UP"
     //
-    //if(f_firewall_is_up)
-    //{
-    //    throw ();
-    //}
+    f_ipwall_is_up = msg.get_parameter(communicatord::g_name_communicatord_param_status) == communicatord::g_name_communicatord_value_up;
+
+    switch(f_firewall_status)
+    {
+    case firewall_status_t::FIREWALL_STATUS_UP:
+    case firewall_status_t::FIREWALL_STATUS_ACTIVE:
+        set_status(f_ipwall_is_up
+                        ? firewall_status_t::FIREWALL_STATUS_UP
+                        : firewall_status_t::FIREWALL_STATUS_ACTIVE);
+        break;
+
+    default:
+        // the ipload state is not yet determine or it is not active
+        break;
+
+    }
 }
 
 
@@ -301,9 +556,44 @@ void wait_on_firewall::msg_status(ed::message & msg)
     std::string const service(msg.get_parameter(communicatord::g_name_communicatord_param_service));
     if(service == g_name_iplock_service_ipwall)
     {
+        // in this case, if the service goes UP, we ignore the message because
+        // we will soon receive the IPWALL_CURRENT_STATUS message; in all other
+        // cases we make sure that the status gets checked
+        //
         std::string const status(msg.get_parameter(communicatord::g_name_communicatord_param_status));
-        f_firewall_is_available = status == communicatord::g_name_communicatord_value_up;
+        if(status != communicatord::g_name_communicatord_value_up)
+        {
+            msg_ipwall_current_status(msg);
+        }
     }
+}
+
+
+void wait_on_firewall::msg_ready(ed::message & msg)
+{
+    ed::connection_with_send_message * c(dynamic_cast<ed::connection_with_send_message *>(this));
+    if(c == nullptr)
+    {
+        throw logic_error("the wait_on_firewall class must also represent a connection_with_send_message.");
+    }
+
+    // send a IPWALL_GET_STATUS query message to get the current ipwall
+    // status
+    //
+    // Note: no need to cache the message; if the ipwall starts after
+    //       we sent this message, we automatically receive an
+    //       IPWALL_CURRENT_STATUS once it is up (it gets broadcast), so no
+    //       worries; if the ipwall is not installed on this machine, then
+    //       we just get a "not available" error message which we ignore here
+    //       (i.e. meaning we never consider the firewall as being active)
+    //
+    ed::message ipwall_get_status;
+    ipwall_get_status.reply_to(msg);
+    ipwall_get_status.set_command(communicatord::g_name_communicatord_cmd_ipwall_get_status);
+    ipwall_get_status.add_parameter(
+              communicatord::g_name_communicatord_param_cache
+            , communicatord::g_name_communicatord_value_no);
+    c->send_message(ipwall_get_status);
 }
 
 

@@ -29,7 +29,7 @@
   - family (ipv4 or ipv6--does not apply to bitmap:port, hash:mac)
   - nomatch (?)
   - forceadd (to accept new and auto-remove old on a full set)
-* Move the sitter firewall plugin to this project.
+* Move the sitter firewall plugin to this project. (see sitter TODO for more details)
 * Moved most of the knock-knock code to the library so we can actually
   perform a knock-knock from anywhere.
 * Move docs from README.md to man pages.

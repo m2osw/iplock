@@ -66,7 +66,7 @@ namespace ipwall
  *    up the necessary files under /etc so the server boots with a strong
  *    firewall as one would expect on any sane server;
  *
- * 2) request to, generally temporarilly, block IP addresses on the
+ * 2) request to, generally temporarily, block IP addresses on the
  *    firewall; when a spam or hacker hit is detected, then a message
  *    is expected to be sent to this firewall process to block the
  *    IP address of that spammer or hacker.
@@ -81,7 +81,7 @@ namespace ipwall
  * #
  * # Register ipwall
  * #
- * a=>a [label="connect socket to snapcommunicator"];
+ * a=>a [label="connect socket to communicatord"];
  * a->b [label="REGISTER service=ipwall;version=<VERSION>"];
  * b->a [label="READY"];
  * b->a [label="HELP"];
@@ -91,7 +91,7 @@ namespace ipwall
  * # Reconfigure logger
  * #
  * b->a [label="LOG"];
- * a=>a [label="logging::recongigure()"];
+ * a=>a [label="logging::reconfigure()"];
  *
  * #
  * # Stop ipwall
@@ -775,8 +775,8 @@ void server::process_database_ready()
         f_firewall_table.reset();
 
         // in this particular case, we do not automatically get
-        // another DATABASEREADY message so we have to send another
-        // DATABASESTATUS at some point, but we want to give Cassandra
+        // another PRINBEE_CURRENT_STATUS message so we have to send another
+        // PRINBEE_GET_STATUS at some point, but we want to give Prinbee
         // a break for a little while and thus ask to be awaken in
         // 30 seconds before we try again
         //
@@ -799,18 +799,18 @@ void server::process_no_database()
 
 /** \brief Called whenever we receive the STOP command or equivalent.
  *
- * This function makes sure the snapfirewall exits as quickly as
+ * This function makes sure the ipwall service exits as quickly as
  * possible.
  *
  * \li Marks the messenger as done.
  * \li Disabled wakeup timer.
- * \li UNREGISTER from snapcommunicator.
- * \li Remove wakeup timer from snapcommunicator.
+ * \li UNREGISTER from communicatord.
+ * \li Remove wakeup timer from communicatord.
  *
  * \note
  * If the f_messenger is still in place, then just sending the
  * UNREGISTER is enough to quit normally. The socket of the
- * f_messenger will be closed by the snapcommunicator server
+ * f_messenger will be closed by the communicatord server
  * and we will get a HUP signal. However, we get the HUP only
  * because we first mark the messenger as done.
  *

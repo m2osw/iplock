@@ -18,8 +18,6 @@
 
 cmake_minimum_required(VERSION 3.10.2)
 
-enable_language(CXX)
-
 project(iplock_project)
 
 find_package(AdvGetOpt        REQUIRED)
@@ -37,6 +35,8 @@ find_package(SnapDev          REQUIRED)
 find_package(SnapLogger       REQUIRED)
 
 SnapGetVersion(IPLOCK ${CMAKE_CURRENT_SOURCE_DIR})
+
+enable_language(CXX)
 
 include_directories(
     ${PROJECT_SOURCE_DIR}

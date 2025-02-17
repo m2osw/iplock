@@ -4,17 +4,14 @@ introducer=name
 project=iplock
 
 [public]
-cmd_block=BLOCK
-cmd_firewall_down=FIREWALL_DOWN
-cmd_firewall_ready=FIREWALL_READY
-cmd_firewall_status=FIREWALL_STATUS
-cmd_firewall_up=FIREWALL_UP
-cmd_unblock=UNBLOCK
+cmd_ipwall_block=IPWALL_BLOCK
+cmd_ipwall_unblock=IPWALL_UNBLOCK
 
 param_period=period
 param_reason=reason
 param_uri=uri
 
+service_ipload=ipload
 service_ipwall=ipwall
 
 # vim: syntax=dosini

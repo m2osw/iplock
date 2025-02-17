@@ -29,6 +29,11 @@
 #include    <iplock/names.h>
 
 
+// communicatord
+//
+#include    <communicatord/names.h>
+
+
 // prinbee
 //
 #include    <prinbee/names.h>
@@ -78,12 +83,14 @@ messenger::messenger(server * s, advgetopt::getopt & opts)
     set_dispatcher(f_dispatcher);
 
     f_dispatcher->add_matches({
-        DISPATCHER_MATCH(iplock::g_name_iplock_cmd_block,            &messenger::msg_block_ip),
-        DISPATCHER_MATCH(iplock::g_name_iplock_cmd_firewall_status,  &messenger::msg_firewall_ready),
-        DISPATCHER_MATCH(iplock::g_name_iplock_cmd_unblock,          &messenger::msg_unblock_ip),
+        // the name of the ipwall status message is defined in the
+        // communicator daemon so that way we can send that message
+        // from there and prinbee
+        //
+        DISPATCHER_MATCH(communicatord::g_name_communicatord_cmd_ipwall_get_status, &messenger::msg_ipwall_get_status),
 
-        DISPATCHER_MATCH(prinbee::g_name_prinbee_cmd_database_ready, &messenger::msg_database_ready),
-        DISPATCHER_MATCH(prinbee::g_name_prinbee_cmd_no_database,    &messenger::msg_no_database),
+        DISPATCHER_MATCH(iplock::g_name_iplock_cmd_ipwall_block,                    &messenger::msg_ipwall_block_ip),
+        DISPATCHER_MATCH(iplock::g_name_iplock_cmd_ipwall_unblock,                  &messenger::msg_ipwall_unblock_ip),
     });
 
     // further dispatcher initialization
@@ -108,94 +115,54 @@ void messenger::finish_initialization()
 }
 
 
-void messenger::msg_block_ip(ed::message & msg)
+void messenger::msg_ipwall_block_ip(ed::message & msg)
 {
     f_server->block_ip(msg);
 }
 
 
-void messenger::msg_unblock_ip(ed::message & msg)
+void messenger::msg_ipwall_unblock_ip(ed::message & msg)
 {
     f_server->unblock_ip(msg);
 }
 
 
-void messenger::msg_database_ready(ed::message & msg)
-{
-    snapdev::NOT_USED(msg);
+//void messenger::msg_database_ready(ed::message & msg)
+//{
+//    snapdev::NOT_USED(msg);
+//
+//    f_server->process_database_ready();
+//}
+//
+//
+//void messenger::msg_no_database(ed::message & msg)
+//{
+//    snapdev::NOT_USED(msg);
+//
+//    f_server->process_no_database();
+//}
 
-    f_server->process_database_ready();
-}
 
-
-void messenger::msg_no_database(ed::message & msg)
-{
-    snapdev::NOT_USED(msg);
-
-    f_server->process_no_database();
-}
-
-
-void messenger::msg_firewall_ready(ed::message & msg)
+void messenger::msg_ipwall_get_status(ed::message & msg)
 {
     // someone is asking us whether we are ready, reply with
     // the corresponding answer and make sure not to cache
-    // the answer because it could change later (i.e. snapfirewall
-    // restarts, for example.)
+    // the answer because it could change later (i.e. ipwall
+    // restarts, for example).
     //
     ed::message reply;
     reply.reply_to(msg);
-    reply.set_command(f_server->is_firewall_up()
-                            ? iplock::g_name_iplock_cmd_firewall_up
-                            : iplock::g_name_iplock_cmd_firewall_down);
-    reply.add_parameter("cache", "no");
+    reply.set_command(communicatord::g_name_communicatord_cmd_ipwall_current_status);
+    reply.add_parameter(
+              communicatord::g_name_communicatord_param_cache
+            , communicatord::g_name_communicatord_value_no);
+    reply.add_parameter(
+              communicatord::g_name_communicatord_param_status
+            , f_server->is_firewall_up()
+                    ? communicatord::g_name_communicatord_value_up
+                    : communicatord::g_name_communicatord_value_down);
     send_message(reply);
 }
-
-
-
-
-///** \brief The messenger could not connect to snapcommunicator.
-// *
-// * This function is called whenever the messengers fails to
-// * connect to the snapcommunicator server. This could be
-// * because snapcommunicator is not running or because the
-// * configuration information for the snapfirewall is wrong...
-// *
-// * With systemd the snapcommunicator should already be running
-// * although this is not 100% guaranteed. So getting this
-// * error from time to time is considered normal.
-// *
-// * \param[in] error_message  An error message.
-// */
-//void messenger::process_connection_failed(std::string const & error_message)
-//{
-//    SNAP_LOG_ERROR("connection to snapcommunicator failed (")(error_message)(")");
-//
-//    // also call the default function, just in case
-//    snap_tcp_client_permanent_message_connection::process_connection_failed(error_message);
-//}
-//
-//
-///** \brief The connection was established with Snap! Communicator.
-// *
-// * Whenever the connection is established with the Snap! Communicator,
-// * this callback function is called.
-// *
-// * The messenger reacts by REGISTERing the snap_firewall with the Snap!
-// * Communicator. The name of the backend is taken from the action
-// * it was called with.
-// */
-//void messenger::process_connected()
-//{
-//    snap_tcp_client_permanent_message_connection::process_connected();
-//
-//    snap::snap_communicator_message register_firewall;
-//    register_firewall.set_command("REGISTER");
-//    register_firewall.add_parameter("service", "snapfirewall");
-//    register_firewall.add_parameter("version", snap::snap_communicator::VERSION);
-//    send_message(register_firewall);
-//}
 
 
 

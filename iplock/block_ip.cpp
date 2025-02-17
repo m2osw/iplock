@@ -73,7 +73,7 @@ namespace iplock
 
 /** \brief Block an IP address at the firewall level.
  *
- * This function sends a BLOCK message to the snapfirewall service in
+ * This function sends a BLOCK message to the ipwall service in
  * order to have the IP from the specified \p uri blocked for the
  * specified \p period.
  *
@@ -118,27 +118,10 @@ void block_ip(
     , std::string const & period
     , std::string const & reason)
 {
-    // retrieve the IP and port to the communicatord
-    //
-    // TODO? Let's see whether this would be useful, although I would think
-    //       it would be cleaner to make that work in a separate function
-    //       and forcibly change the scheme to UDP so that way we do not need
-    //       to wait for a message to be sent
-    //
-    //       or even one function which generates the message, and two that
-    //       call it and then send the message as required
-    //
-    //       One things: we should have a different variable (may be something
-    //       such as "communicatord_signal") for the UDP URL.
-    //
-    //advgetopt::conf_file_setup setup("iplock");
-    //advgetopt::conf_file::pointer_t config(advgetopt::conf_file::get_conf_file(setup));
-    //std::string const communicatord_listen(config->get_parameter("communicatord_signal"));
-
     // send a BLOCK message
     //
     ed::message message;
-    message.set_command(iplock::g_name_iplock_cmd_block);
+    message.set_command(iplock::g_name_iplock_cmd_ipwall_block);
     message.set_service(communicatord::g_name_communicatord_service_public_broadcast);
 
     message.add_parameter(iplock::g_name_iplock_param_uri, uri);

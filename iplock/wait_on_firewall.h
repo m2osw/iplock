@@ -20,23 +20,30 @@
 /** \file
  * \brief Declare the wait_on_firewall class.
  *
- * When you start a service which accepts TCP or UDP connections, you
- * should first make sure that the firewall is up. One way is to setup
- * the service so it starts only after the ipload service ran. This is
- * certainly the easiest. However, a service which may run on a system
- * without ipload cannot have such in its systemd `.service` file. For
- * this reason, we instead have a function which makes your service
- * aware of the firewall status.
+ * When you start a service which accepts public TCP or UDP connections,
+ * you should first make sure the firewall is up. One way is to setup
+ * the service so it starts only after the `ipload` and/or `ipwall` services
+ * started successfully. This is certainly the easiest. However, a service
+ * which may run on a system without `ipload` cannot have such in its
+ * systemd `.service` file. For this reason, we instead have this
+ * wait_on_firewall class which makes your service aware of the current
+ * firewall status.
  *
- * Note that the status goes from "down" to "up" and it is never expected
- * to go back down. So once you receive the FIREWALLUP message, you can
- * be sure that it is up and it will stay up (even if the ipwall service
- * crashes, it won't remove the firewall currently in effect).
+ * Note that once the `ipload` service is active, the status goes to "up"
+ * and never goes back "down". So once you receive the IPWALL_CURRENT_STATUS
+ * message with the status parameter set to "up", you can be sure that it is
+ * up and it will stay up (even if the `ipwall` service crashes, it won't
+ * remove the firewall currently in effect).
  */
 
 // fluid-settings
 //
 #include    <fluid-settings/fluid_settings_connection.h>
+
+
+// snapdev
+//
+#include    <snapdev/callback_manager.h>
 
 
 // cppprocess
@@ -50,34 +57,66 @@ namespace iplock
 
 
 
+enum firewall_status_t
+{
+    FIREWALL_STATUS_NOT_READY,      // ipload has not yet run or failed
+    FIREWALL_STATUS_OFF,            // ipload is disabled so the firewall is not going to be UP or ACTIVE
+    FIREWALL_STATUS_DOWN,           // ipload is enabled, but we do not yet know whether it is UP or ACTIVE
+    FIREWALL_STATUS_UP,             // ipload has run, firewall is up
+    FIREWALL_STATUS_ACTIVE,         // ipwall is running so you can dynamically BLOCK IP addresses
+};
+
+
+enum class check_state_t
+{
+    CHECK_STATE_IDLE,
+    CHECK_STATE_IS_ENABLED,
+    CHECK_STATE_IS_ACTIVE,
+};
+
+
 class wait_on_firewall
 {
 public:
-    virtual         ~wait_on_firewall();
+    typedef std::function<bool(firewall_status_t)>
+                            status_callback_t;
+    typedef snapdev::callback_manager<status_callback_t>::callback_id_t
+                            callback_id_t;
 
-    void            add_wait_on_firewall_commands(std::string const & ipwall_service_name = "ipwall");
-    bool            is_firewall_up() const;
-    bool            is_firewall_available() const;
+    virtual                 ~wait_on_firewall();
+
+    void                    add_wait_on_firewall_commands();
+    firewall_status_t       get_firewall_status() const;
+    callback_id_t           add_status_callback(status_callback_t func);
+    bool                    remove_status_callback(callback_id_t callback_id);
 
     // new callbacks
     //
-    virtual void    firewall_is_up() = 0;
+    virtual void            status_changed(firewall_status_t status);
 
 private:
-    void            check_if_active(std::string const & ipwall_service_name);
-    void            firewall_is_active(
-                              ed::child_status status
-                            , cppprocess::process::pointer_t iplock_process);
+    typedef snapdev::callback_manager<status_callback_t>
+                            callback_manager_t;
 
-    void            msg_firewall_up(ed::message & msg);
-    void            msg_firewall_down(ed::message & msg);
-    void            msg_status(ed::message & msg);
+    bool                    check_status(ed::timer::pointer_t t);
+    void                    start_check();
+    bool                    systemctl_exited(
+                                      ed::child_status status
+                                    , cppprocess::process::pointer_t p);
+    int                     get_systemctl_result(
+                                      ed::child_status status
+                                    , cppprocess::process::pointer_t p);
+    void                    set_status(firewall_status_t status);
 
-    bool            f_firewall_is_active = false;       // whether the systemd service is present and available
-    bool            f_firewall_is_available = false;    // whether the ipwall service is currently running or not
-    bool            f_firewall_is_up = false;           // whether the firewall is considered up and running
-    snapdev::callback_manager<fluid_settings::status_callback_t>::callback_id_t
-                    f_status_callback_id = snapdev::callback_manager<fluid_settings::status_callback_t>::NULL_CALLBACK_ID;
+    void                    msg_ipwall_current_status(ed::message & msg);
+    void                    msg_status(ed::message & msg);
+    void                    msg_ready(ed::message & msg);
+
+    ed::timer::pointer_t    f_status_timer = ed::timer::pointer_t();
+    callback_manager_t      f_status_callbacks = callback_manager_t();
+    check_state_t           f_check_state = check_state_t::CHECK_STATE_IDLE;
+    firewall_status_t       f_firewall_status = firewall_status_t::FIREWALL_STATUS_NOT_READY;
+    bool                    f_ipwall_is_up = false;
 };
 
 
