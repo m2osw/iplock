@@ -125,12 +125,12 @@ void reset_state(check_state_t * state)
  * Once ipload ran successfully, the firewall is up and it is safe
  * for your application to open its own potentially public port(s).
  *
- * For applications that want to be able to actively BLOCK (and UNBLOCK)
- * IP addresses, they also need to wait on the ipwall service. This
- * allows the application to proactively prevent hackers from accessing
- * any of the Snap! C++ systems by quickly blocking their IP addresses.
- * (i.e. The block automatically propagates to all the computers in your
- * cluster.)
+ * For applications that want to be able to actively IPWALL_BLOCK (and
+ * IPWALL_UNBLOCK) IP addresses, they also need to wait on the ipwall
+ * service. This allows the application to proactively prevent hackers
+ * from accessing any of the Snap! C++ systems by quickly blocking their
+ * IP addresses. (i.e. The block automatically propagates to all the
+ * computers in your cluster.)
  *
  * As a result, you have three possible states:
  *
@@ -168,7 +168,7 @@ wait_on_firewall::~wait_on_firewall()
  * purpose. If the ipwall is up and running, then the status becomes
  * FIREWALL_STATUS_ACTIVE. Otherwise, it gets set to FIREWALL_STATUS_UP.
  * (i.e. when the firewall is just up, it is static in the sense that
- * BLOCK messages are ignored.)
+ * IPWALL_BLOCK messages are ignored.)
  *
  * The message we listen to is IPWALL_CURRENT_STATUS. We also listen to
  * the STATUS message, which tells us when ipwall goes down (i.e. the

@@ -596,20 +596,21 @@ When the iplock firewall starts:
 Later, the iplock system is sent new IPs to block or unblock via the
 firewall service:
 
-1. `BLOCK` -- add the IP to the database and the firewall; this is done
-   by adding the IP to one of the sets; if the set is full, then a new set
-   is created and added to the firewall
+1. `IPWALL_BLOCK` -- add the IP to the database and the firewall; this is
+   done by adding the IP to one of the sets; if the set is full, then a
+   new set is created and added to the firewall
 
-2. `UNBLOCK` -- remove the IP from the database and the firewall; this is
-   done by removing the IP from one of the sets; if the set is empty and
-   there are more than one for the same set, it gets removed (i.e. if we
+2. `IPWALL_UNBLOCK` -- remove the IP from the database and the firewall;
+   this is done by removing the IP from one of the sets; if the set is empty
+   and there are more than one for the same set, it gets removed (i.e. if we
    had to create a second set of an overflow, we want to remove such
    additional sets)
 
 The `iplock` tool is used to make edits to the `iptables` rules.
 
-The `ipcontroller` service is used to accept / receive `BLOCK` and `UNBLOCK`
-messages, manage the database, and run the iplock tool to update the rules.
+The `ipcontroller` service is used to accept / receive `IPWALL_BLOCK` and
+`IPWALL_UNBLOCK` messages, manage the database, and run the iplock tool
+to update the rules.
 
 The `ipload` tool reads configuration files and build the `iptables` rules.
 

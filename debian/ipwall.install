@@ -20,5 +20,5 @@ conf/logger/ipwall.conf                        etc/iplock/logger/
 doc/ipwall.8                                   usr/share/man/man8/
 
 # snapmanager files (TBD)
-#debian/tmp/usr/lib/snapwebsites/tables/snapfirewall-tables.xml                    usr/lib/snapwebsites/tables/
-#debian/tmp/usr/lib/snapwebsites/manager_plugins/libfirewall.so                    usr/lib/snapwebsites/manager_plugins/
+#debian/tmp/usr/lib/iplock/tables/ipwall-tables.xml                  usr/lib/iplock/tables/
+#debian/tmp/usr/lib/iplock/manager_plugins/libipwall.so              usr/lib/iplock/manager_plugins/

@@ -1,10 +1,10 @@
 
 * Implement a BPF (and nftables?) version. If BPF can be used to fully replace
   iptables, then we should use that library.
-* Add support for the profile parameter to the BLOCK message (i.e. a way to
-  group IP addresses) -- look at whether we want to keep the scheme; in
-  most likelihood if a hacker is attacking us on any port, then we can just
-  block the IP entirely and not for a specific scheme
+* Add support for the profile parameter to the `IPWALL_BLOCK` message (i.e.
+  a way to group IP addresses) -- look at whether we want to keep the scheme;
+  in most likelihood if a hacker is attacking us on any port, then we can
+  just block the IP entirely and not for a specific scheme
 * Consider moving the libiplock to its own package; that way we can build
   against the libiplock-dev package and not have an issue with the ipload
   service (although I think that issue is already fixed)

@@ -57,7 +57,7 @@ block_info::block_info(ed::message const & message, status_t status)
     {
         // TODO: create a snap_exception instead
         //
-        throw std::runtime_error("a BLOCK message \"uri\" parameter is mandatory.");
+        throw std::runtime_error("a IPWALL_BLOCK message \"uri\" parameter is mandatory.");
     }
 
     set_uri(message.get_parameter("uri"));
@@ -88,7 +88,7 @@ block_info::block_info(std::string const & uri)
     set_block_limit(std::string());
 
     // TBD: call load() but then we need a pointer to server_name
-    //      and the snapfirewall_table
+    //      and the ipwall_table
 }
 
 
@@ -97,7 +97,7 @@ block_info::block_info(std::string const & uri)
  * A block info may be setup to an invalid IP address or some other
  * invalid parameter. In that case we may end up with an invalid
  * \p block_info object. For example, a local IP address is never
- * blocked by snapfirewall since the default set of rules already
+ * blocked by ipwall since the default set of rules already
  * blocks all local network IP addresses.
  *
  * This function returns true if the object is considered valid and
@@ -244,7 +244,7 @@ bool block_info::is_valid() const
 //        //       history of this IP address with our services.
 //        //
 //        // No lock is required to increase that counter because the counter
-//        // is specific to this computer and only one instance of snapfirewall
+//        // is specific to this computer and only one instance of ipwall
 //        // runs on one computer
 //        //
 //        if(f_ban_count > 0)
@@ -308,7 +308,7 @@ void block_info::set_ip(std::string const & ip)
     if(ip.empty())
     {
         SNAP_LOG_ERROR
-            << "BLOCK without a URI (or at least an IP in the \"uri\" parameter.) BLOCK will be ignored."
+            << "IPWALL_BLOCK without a URI (or at least an IP in the \"uri\" parameter.) IPWALL_BLOCK will be ignored."
             << SNAP_LOG_SEND;
         return;
     }
@@ -331,9 +331,9 @@ void block_info::set_ip(std::string const & ip)
         case addr::network_type_t::NETWORK_TYPE_LOOPBACK:
         case addr::network_type_t::NETWORK_TYPE_ANY:
             SNAP_LOG_ERROR
-                << "BLOCK with an unexpected IP address type in \""
+                << "IPWALL_BLOCK with an unexpected IP address type in \""
                 << ip
-                << "\". BLOCK will be ignored."
+                << "\". IPWALL_BLOCK will be ignored."
                 << SNAP_LOG_SEND;
             return;
 
@@ -346,9 +346,9 @@ void block_info::set_ip(std::string const & ip)
     catch(addr::addr_invalid_argument const & e)
     {
         SNAP_LOG_ERROR
-            << "BLOCK with an invalid IP address in \""
+            << "IPWALL_BLOCK with an invalid IP address in \""
             << ip
-            << "\". BLOCK will be ignored. Error: "
+            << "\". IPWALL_BLOCK will be ignored. Error: "
             << e.what()
             << SNAP_LOG_SEND;
         return;
@@ -590,8 +590,8 @@ int64_t block_info::get_ban_count() const
  * \note
  * This is mainly for documentation at this point as we are more likely
  * to get the counter directly from the database without the pending
- * value that may be in the running snapfirewalls. also the grand
- * total would include all the computers and not just the one running.
+ * value that may be in the running ipwalls. Also that grand total
+ * would include all the computer's IPs and not just the one running.
  */
 //int64_t block_info::get_total_ban_count(libdbproxy::table::pointer_t firewall_table, std::string const & server_name) const
 //{

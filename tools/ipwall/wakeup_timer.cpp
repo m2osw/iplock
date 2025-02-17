@@ -60,19 +60,19 @@ wakeup_timer::wakeup_timer(server * s)
  * whenever another service tells us to add an IP. Removal,
  * however, we are on our own.
  *
- * Whenever an IP is added by a service, it is accompagned by a
+ * Whenever an IP is added by a service, it is accompanied by a
  * time period it should be blocked for. This may be forever, however,
- * when the amount of time is not forever, the snapfirewall tool
+ * when the amount of time is not forever, the ipwall tool
  * needs to wake up at some point. Note that those times are saved in
- * the database so one can know when to remove IPs even across restart
+ * the database so one can know when to remove IPs even across restarts
  * (actually, on a restart we usually do the opposite, we refill the
  * firewall with existing IP addresses that have not yet timed out;
  * however, if this was not a full server restart, then we do removals
- * only.)
+ * only).
  *
- * Note that the messenger may receive an UNBLOCK command in which
- * case an IP gets removed immediately and the timer reset to the
- * next IP that needs to be removed as required.
+ * Note that the messenger may receive an IPWALL_UNBLOCK command in
+ * which case an IP gets removed immediately and the timer reset to
+ * the next IP that needs to be removed as required.
  */
 void wakeup_timer::process_timeout()
 {

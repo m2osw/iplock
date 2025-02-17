@@ -5,10 +5,11 @@ ipwall \- Service to block and unblock IP addresses in your firewall
 .B ipwall
 [\fIOPTION\fR]...
 .SH DESCRIPTION
-The \fBipwall(8)\fR service understands the `BLOCK' and `UNBLOCK' messages that are
-used to immediately block and unblock an IP address. The command can be
-broadcasted using the communicator daemon so all your computers in your
-entire cluster can instantly block a hacker's IP address.
+The \fBipwall(8)\fR service understands the `IPWALL_BLOCK' and
+`IPWALL_UNBLOCK' messages that are used to immediately block and unblock
+IP addresses. The command can be broadcasted using the communicator daemon
+so all your computers in your entire cluster can instantly block a hacker's
+IP address.
 .PP
 Say your website system is accessed at a URL which starts with `/wp-admin'
 but you are not running Wordpress. Immediately, you recognize that the

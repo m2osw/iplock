@@ -106,15 +106,15 @@ namespace ipwall
  * #
  * # Block an IP address
  * #
- * c->b [label="ip/BLOCK uri=...;period=...;reason=..."];
- * b->a [label="BLOCK uri=...;period=...;reason=..."];
+ * c->b [label="ip/IPWALL_BLOCK uri=...;period=...;reason=..."];
+ * b->a [label="IPWALL_BLOCK uri=...;period=...;reason=..."];
  * a->d [label="block IP address with iplock"];
  *
  * #
  * # Unblock an IP address
  * #
- * c->b [label="ip/UNBLOCK uri=..."];
- * b->a [label="UNBLOCK uri=..."];
+ * c->b [label="ip/IPWALL_UNBLOCK uri=..."];
+ * b->a [label="IPWALL_UNBLOCK uri=..."];
  * a->d [label="unblock IP address with iplock"];
  *
  * #
@@ -894,8 +894,8 @@ void server::block_ip(ed::message const & msg)
             //       attack that memory would be a problem because some of
             //       the largest DDoS only make use of 10 to 20,000 IPs
             //       Even a 50,000 IPs attack is just not quite likely
-            //       before you connect to the databse unless somehow
-            //       snapfirewall never gets a connection...
+            //       before you connect to the database unless somehow
+            //       ipwall never gets a connection...
             //
             auto const & it(std::find(
                       f_blocks.begin()
@@ -937,7 +937,7 @@ void server::block_ip(ed::message const & msg)
     catch(std::exception const & e)
     {
         SNAP_LOG_ERROR
-            << "an exception occurred while checking the BLOCK message in the block_ip() function: "
+            << "an exception occurred while checking the IPWALL_BLOCK message in the block_ip() function: "
             << e.what()
             << SNAP_LOG_SEND;
 
@@ -1011,7 +1011,7 @@ void server::unblock_ip(ed::message const & msg)
     catch(std::exception const & e)
     {
         SNAP_LOG_ERROR
-            << "an exception occurred while checking the UNBLOCK message in the unblock_ip() function: "
+            << "an exception occurred while checking the IPWALL_UNBLOCK message in the unblock_ip() function: "
             << e.what()
             << SNAP_LOG_SEND;
 

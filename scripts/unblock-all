@@ -1,18 +1,18 @@
 #!/bin/sh
 #
-# See SNAP-516 implement UNBLOCKALL
+# See SNAP-516 implement IPWALL_UNBLOCKALL
 # For now, we have a quick and dirty (very slow) script that one can use to
 # unblock all the IPs currently blocked on a machine.
 #
 
 if test -z "$1"
 then
-	echo "$0:error: first parameter must be the server name of the computer as known by snapcommunicator (the server_name=... parameter in snapcommunicator.conf, which defaults to hostname if not specifically set.)"
+	echo "$0:error: first parameter must be the server name of the computer as known by communicatord (the server_name=... parameter in communicatord.conf, which defaults to hostname if not specifically set)."
 	exit 1
 fi
 if test -z "$2"
 then
-	echo "$0:error: second parameter must be the host IP of one of your Cassandra nodes."
+	echo "$0:error: second parameter must be the host IP of one of your prinbee nodes."
 	exit 1
 fi
 
@@ -31,11 +31,11 @@ do
         else
                 count=`expr $count + 1`
         fi
-        snapsignal "snapfirewall/UNBLOCK uri=$ip"
+        ed-signal "ipwall/IPWALL_UNBLOCK uri=$ip"
 done
 
 echo
-echo "$0:warning: all the snapsignal were sent, however, the snapfirewall will take a little time to really remove all the IPs."
+echo "$0:warning: all the ed-signal were sent, however, ipwall will take a little time to really remove all the IPs."
 echo "$0:warning: you may check the number of IP blocked with 'count-unwanted'."
 echo
 

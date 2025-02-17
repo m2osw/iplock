@@ -64,8 +64,8 @@ namespace ipwall
  *
  * The messenger is a connection to the communicatord server.
  *
- * In most cases we receive BLOCK, STOP, and LOG_ROTATE messages from it.
- * We implement a few other messages too (HELP, READY...)
+ * In most cases we receive IPWALL_BLOCK, STOP, and LOG_ROTATE messages
+ * from it. We implement a few other messages too (HELP, READY...)
  *
  * We use a permanent connection so if the communicatord restarts
  * for whatever reason, we reconnect automatically.

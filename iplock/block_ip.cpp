@@ -73,7 +73,7 @@ namespace iplock
 
 /** \brief Block an IP address at the firewall level.
  *
- * This function sends a BLOCK message to the ipwall service in
+ * This function sends a IPWALL_BLOCK message to the ipwall service in
  * order to have the IP from the specified \p uri blocked for the
  * specified \p period.
  *
@@ -118,7 +118,7 @@ void block_ip(
     , std::string const & period
     , std::string const & reason)
 {
-    // send a BLOCK message
+    // send a IPWALL_BLOCK message
     //
     ed::message message;
     message.set_command(iplock::g_name_iplock_cmd_ipwall_block);

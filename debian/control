@@ -71,10 +71,10 @@ Architecture: all
 Depends: iplock (= ${binary:Version}), ${misc:Depends}
 Suggests: iplock-doc
 Description: Add or remove IP addresses from your iptables firewall.
- The library used to send BLOCK and UNBLOCK commands to the ipwall service.
- The library also has a class one can use to know whether the firewall is
- up and running, which is important if you open a public port private to
- your systems (i.e. open a database access on 0.0.0.0:123).
+ The library used to send IPWALL_BLOCK and IPWALL_UNBLOCK commands to the
+ ipwall service. The library also has a class one can use to know whether
+ the firewall is up and running, which is important if you open a public
+ port private to your systems (i.e. open a database access on 0.0.0.0:123).
 
 Package: ipwall
 Section: utils
