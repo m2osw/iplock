@@ -330,6 +330,7 @@ void block_info::set_ip(std::string const & ip)
         case addr::network_type_t::NETWORK_TYPE_LINK_LOCAL:
         case addr::network_type_t::NETWORK_TYPE_LOOPBACK:
         case addr::network_type_t::NETWORK_TYPE_ANY:
+        case addr::network_type_t::NETWORK_TYPE_DOCUMENTATION:
             SNAP_LOG_ERROR
                 << "IPWALL_BLOCK with an unexpected IP address type in \""
                 << ip
