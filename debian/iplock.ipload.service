@@ -1,9 +1,6 @@
 # Documentation available at:
 # https://www.freedesktop.org/software/systemd/man/systemd.service.html
 
-# Note: this file is placed under conf/... because it does not match the name
-#       of the package (which is iplock)
-
 [Unit]
 Description=IP Load -- load the firewall after boot
 Documentation=https://snapwebsites.org/project/iplock file:/usr/share/doc/iplock-doc/html/ man:ipload(8)
