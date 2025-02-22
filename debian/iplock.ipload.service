@@ -4,6 +4,8 @@
 [Unit]
 Description=IP Load -- load the firewall after boot
 Documentation=https://snapwebsites.org/project/iplock file:/usr/share/doc/iplock-doc/html/ man:ipload(8)
+# The default dependencies do depend on the network so turn that off
+DefaultDependencies=no
 Wants=network-pre.target systemd-modules-load.service local-fs.target
 Before=network-pre.target
 After=systemd-modules-load.service local-fs.target
