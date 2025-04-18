@@ -350,7 +350,7 @@ void conntrack_parser::parse_address_port(bool negate)
     }
     addr::addr a(range.get_from());
 
-    if(a.get_port_defined())
+    if(a.is_port_defined())
     {
         // we have a port included in the address, move it to the port
         // definition (no "end" port in this case--once libaddr supports
