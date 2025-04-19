@@ -1794,7 +1794,7 @@ void rule::parse_addresses(
             if(protocol.empty()
             && r.has_from()
             && !r.has_to()
-            && !r.get_from().get_port_defined())
+            && !r.get_from().is_port_defined())
             {
                 // these addresses get mixed with the f_protocols and f_ports
                 //
