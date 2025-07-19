@@ -20,19 +20,21 @@ then
 	exit 1
 fi
 
+# WARNING: /run/user/$UID only exists for logged in users; it won't be there
+#          if you run such a script as CRON or a daemon
 INITIALIZED=/run/user/$UID/dynamic_ip_setup
 if test ! -f ${INITIALIZED}
 then
 	touch ${INITIALIZED}
 
-	# create the "dyanmic_ips" ipset (it may exist)
+	# create the "dynamic_ips" ipset (it may exist)
 	#
 	sudo ipset create dynamic_ips hash:ip -exist
 
 	# add a rule where the source IP must match that ipset
 	#
 	# WARNING: this command is likely totally wrong since appending is
-	#          no likely to place the rule in a correct location but it
+	#          not likely to place the rule in a correct location but it
 	#          gives you an idea of how to define said rule
 	#
 	sudo iptables -A INPUT -p tcp -m tcp --dport 22 --syn \

@@ -2,6 +2,19 @@ iplock (3.0.57.0~bionic) bionic; urgency=high
 
   * ipload now prints a message on success which will make the logs
     easier to read (otherwise it is not 100% clear that it succeeded).
+  * The default ipload firewall was created in a non-existent folder
+    (/run/users/0,) this version will instead use /var/lib/iplock.
+  * Do not save the showfw output in /run/user/0/...; use the /tmp/iplock
+    folder instead (create if necessary using umask for security).
+  * Renamed get_port_defined() as is_port_defined().
+  * Fixed the service so it does not depend on the default dependencies.
+  * Changed the BLOCK and UNBLOCK messages with IPWALL_... prefix.
+  * Enhanced the IPWALL_CURRENT_STATUS and firewall UP concepts.
+  * Detect all interfaces, especially those that are up if not expected.
+  * Properly handle the STATUS message with a dispatch CALLBACK.
+  * Fixed a [verify] section start point.
+  * Fixed some documentation, old references, etc.
+  * Updated the debian/compat to use the dependency instead.
 
  -- Alexis Wilke <alexis@m2osw.com>  Sun, 21 Jul 2024 15:04:06 -0700
 

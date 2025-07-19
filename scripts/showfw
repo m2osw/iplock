@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -e
 #
 # Script used to quickly check out the firewall, without having to remember
 # all the options. You must use sudo to run this script:
@@ -24,7 +24,7 @@ do
 		TYPE=filter
 		;;
 
-	-l|"--line-numbers")
+	"-l"|"--line-numbers")
 		LINE_NUMBERS="--line-numbers"
 		;;
 
@@ -44,8 +44,8 @@ do
 		TYPE=security
 		;;
 
-	-h|"--help")
-		echo "Usage: sudo `basename $0` [-4|-6] [--filter|--nat] [--line-numbers] [--help]"
+	"-h"|"--help")
+		echo "Usage: sudo `basename $0` [-4|-6] [--filter|--nat] [--line-numbers] [--help] [chain]"
 		echo
 		echo "  -4                    to display the IPv4 tables, this is the default"
 		echo "  -6                    to display the IPv6 tables"
@@ -55,6 +55,9 @@ do
 		echo "  --mangle              to display the mangle table"
 		echo "  --nat                 to display the nat table"
 		echo "  --raw                 to display the raw table"
+		echo "  --security            to display the security table"
+		echo
+		echo "the [chain] parameter allows to only display that specific chain (i.e. INPUT)"
 		exit 0
 		;;
 
@@ -76,15 +79,15 @@ done
 # looking at the output (the one drawback is that you have to wait for the
 # entire set to be output before seeing anything)
 #
-OUTPUT_DIR="/run/user/0"
+if test "`whoami`" != "root"
+then
+	echo "error: you must be root to run this command."
+	exit 1
+fi
+OUTPUT_DIR="/tmp/iplock"
+umask 077
 mkdir -p "${OUTPUT_DIR}"
-chown root:root "${OUTPUT_DIR}"
-chmod 600 "${OUTPUT_DIR}"
 OUTPUT="${OUTPUT_DIR}/iprules.txt"
-rm -rf "${OUTPUT}"
-touch "${OUTPUT}"
-chown root:root "${OUTPUT}"
-chmod 600 "${OUTPUT}"
 ${IPTABLES} -t ${TYPE} -L ${CHAIN} -nvx ${LINE_NUMBERS} > "${OUTPUT}"
 less -S "${OUTPUT}"
 rm -rf "${OUTPUT}"

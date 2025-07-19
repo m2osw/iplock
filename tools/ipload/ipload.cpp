@@ -924,11 +924,11 @@ bool ipload::load_data()
 
 void ipload::create_defaults()
 {
-    // the load_data() fails (no files, in most cases) then we want a
+    // when the load_data() fails (no files, in most cases) then we want a
     // fallback to block the firewall (because by default the Linux
     // firewall is wide open)
     //
-    snapdev::file_contents defaults("/run/users/0/default_firewall.conf", true);
+    snapdev::file_contents defaults("/var/lib/iplock/default-firewall.conf", true);
     defaults.contents(std::string(tools_ipload::default_firewall, tools_ipload::default_firewall_size));
     if(!defaults.write_all())
     {
