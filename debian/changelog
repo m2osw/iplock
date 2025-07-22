@@ -1,4 +1,4 @@
-iplock (3.0.57.0~bionic) bionic; urgency=high
+iplock (3.0.57.0~noble) noble; urgency=high
 
   * ipload now prints a message on success which will make the logs
     easier to read (otherwise it is not 100% clear that it succeeded).
