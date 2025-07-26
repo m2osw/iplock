@@ -1,3 +1,9 @@
+iplock (3.0.57.1~noble) noble; urgency=high
+
+  * Fixed ipwall service description. The boot part is ipload.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Sat, 26 Jul 2025 11:11:35 -0700
+
 iplock (3.0.57.0~noble) noble; urgency=high
 
   * ipload now prints a message on success which will make the logs

@@ -3,4 +3,4 @@
 # This file tells the communicatord that the ipwall is a local
 # service and such a service is going to connect to it
 #
-description=The ipwall sets up the firewall on boot and blocks new IP at runtime.
+description=The ipwall service allows for runtime firewall changes (adding/removing IPs to block).
