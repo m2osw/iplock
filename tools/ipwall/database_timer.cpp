@@ -36,7 +36,7 @@ namespace ipwall
 
 
 /** \class database_timer
- * \brief The timer used when a connection to Cassandra fails.
+ * \brief The timer used when a connection to the database fails.
  *
  * When we receive the DATABASE_READY event, the connection is likely to
  * work. However, while reading the data in the following loop, we may
@@ -49,7 +49,7 @@ namespace ipwall
  * overloaded so trying to reconnect immediately at this stage is not
  * a good plan.
  *
- * At this time we setup the timer to 30 seconds. The firewall continues
+ * At this time, we setup the timer to 30 seconds. The firewall continues
  * to be fully functional, so a longer pause should not be much of a
  * problem.
  */

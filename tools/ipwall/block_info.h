@@ -47,7 +47,6 @@ namespace ipwall
 
 enum class status_t
 {
-    BLOCK_INFO_UNDEFINED,       // never banned before
     BLOCK_INFO_BANNED,
     BLOCK_INFO_UNBANNED,        // has been banned before
 };
@@ -60,7 +59,7 @@ public:
     typedef std::vector<block_info>   block_info_vector_t;
 
                         block_info(std::string const & uri);
-                        block_info(ed::message const & message, status_t status = status_t::BLOCK_INFO_BANNED);
+                        block_info(ed::message const & message, status_t status);
 
     bool                is_valid() const;
 

@@ -519,7 +519,7 @@ void server::setup_firewall()
  *
  * This function is called when the wakeup timer times out. We set the
  * date when the wakeup timer has to time out to the next IP that
- * times out. That information comes from the Cassandra database.
+ * times out. That information comes from the database.
  *
  * Certain IP addresses are permanently added to the firewall,
  * completely preventing the offender from accessing us for the
@@ -870,7 +870,7 @@ void server::block_ip(ed::message const & msg)
         // the URI may include a protocol and an IP separated by "://"
         // if no "://" appears, then only an IP is expected
         //
-        block_info info(msg);
+        block_info info(msg, status_t::BLOCK_INFO_BANNED);
         info.set_ban_count(1); // newly created ban count is always 0, so just set to 1
 
 #if 0
@@ -924,7 +924,7 @@ void server::block_ip(ed::message const & msg)
                 //        inside the keep_longest() function...)
             }
 
-            // keep them sorted, as in the Cassandra database
+            // keep them sorted, as in the database
             //
             // even if we do not push a new entry, the keep_longest()
             // may end up changing the order of the existing items...
@@ -971,7 +971,7 @@ void server::unblock_ip(ed::message const & msg)
         // the URI may include a protocol and an IP separated by "://"
         // if no "://" appears, then only an IP is expected
         //
-        block_info info(msg);
+        block_info info(msg, status_t::BLOCK_INFO_UNBANNED);
 
         // remove from the firewall
         //
@@ -987,7 +987,7 @@ void server::unblock_ip(ed::message const & msg)
         else
         {
             // find the block in the cache, it should be there unless we
-            // lost the connection with the Cassandra cluster
+            // lost the connection with the database
             //
             auto const & it(std::find(
                       f_blocks.begin()

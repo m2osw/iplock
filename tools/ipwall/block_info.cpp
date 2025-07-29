@@ -49,20 +49,21 @@ namespace ipwall
 
 
 
-block_info::block_info(ed::message const & message, status_t status)
+block_info::block_info(ed::message const & msg, status_t status)
 {
     // retrieve scheme and IP
     //
-    if(!message.has_parameter("uri"))
+    if(!msg.has_parameter("uri"))
     {
         // TODO: create a snap_exception instead
         //
         throw std::runtime_error("a IPWALL_BLOCK message \"uri\" parameter is mandatory.");
     }
 
-    set_uri(message.get_parameter("uri"));
+    set_uri(msg.get_parameter("uri"));
 
-    if(!message.has_parameter("period"))
+    if(status == status_t::BLOCK_INFO_UNBANNED
+    || !msg.has_parameter("period"))
     {
         // if period was not specified, block for a day
         //
@@ -70,12 +71,12 @@ block_info::block_info(ed::message const & message, status_t status)
     }
     else
     {
-        set_block_limit(message.get_parameter("period"));
+        set_block_limit(msg.get_parameter("period"));
     }
 
-    if(message.has_parameter("reason"))
+    if(msg.has_parameter("reason"))
     {
-        f_reason = message.get_parameter("reason");
+        f_reason = msg.get_parameter("reason");
     }
 
     f_status = status;
@@ -118,14 +119,6 @@ bool block_info::is_valid() const
 //    if(!is_valid())
 //    {
 //        return;
-//    }
-//
-//    // this is probably wrong, we may not want to save anything
-//    // if still undefined
-//    //
-//    if(f_status == status_t::BLOCK_INFO_UNDEFINED)
-//    {
-//        f_status = status_t::BLOCK_INFO_BANNED;
 //    }
 //
 //    // we want to check the info row to see whether we had an old entry
@@ -308,7 +301,7 @@ void block_info::set_ip(std::string const & ip)
     if(ip.empty())
     {
         SNAP_LOG_ERROR
-            << "IPWALL_BLOCK without a URI (or at least an IP in the \"uri\" parameter.) IPWALL_BLOCK will be ignored."
+            << "IPWALL_BLOCK without a URI (or at least an IP in the \"uri\" parameter.) IPWALL_BLOCK message will be ignored."
             << SNAP_LOG_SEND;
         return;
     }
@@ -407,7 +400,7 @@ void block_info::set_scheme(std::string scheme)
         }
     }
 
-    // further we limit the length of the protocol to 20 characters
+    // further we limit the length of the scheme to 20 characters
     //
     if(bad_scheme || scheme.length() > 20)
     {
