@@ -64,7 +64,7 @@
 
 
 
-/** \class
+/** \class state_parser
  * \brief This class is used to parse the state field.
  *
  * This state field is pretty complex. It allows for a set of states but

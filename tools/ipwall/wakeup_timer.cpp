@@ -35,15 +35,15 @@ namespace ipwall
 
 
 
-/** \brief Initializes the timer with a pointer to the snap firewall.
+/** \brief Initializes the timer with a pointer to the server.
  *
- * The constructor saves the pointer of the snap_firewall object so
+ * The constructor saves the pointer of the server object so
  * it can later be used when the process timeouts.
  *
- * By default the timer is "off" meaning that it will not trigger
+ * By default the timer is "off" meaning that it does not trigger
  * a process_timeout() call until you turn it on.
  *
- * \param[in] sfw  A pointer to the snap_firewall object.
+ * \param[in] s  A pointer to the server object.
  */
 wakeup_timer::wakeup_timer(server * s)
     : timer(-1)
@@ -53,7 +53,7 @@ wakeup_timer::wakeup_timer(server * s)
 }
 
 
-/** \brief The wake up timer timed out.
+/** \brief The wake up timer activation.
  *
  * The wake up timer is used to know when we have to remove IP
  * addresses from the firewall. Adding happens at the start and

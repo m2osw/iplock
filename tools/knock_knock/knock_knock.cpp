@@ -17,6 +17,19 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+/** \file
+ *
+ * \image html iplock-logo.jpg
+ *
+ * The knock-knock command allows you to open a door by knocking on
+ * pre-specified ports as defined in your firewall with the
+ * `"knock = ..."` parameter.
+ *
+ * This command line tool accepts the same set of ports with a protocol
+ * set to `tcp:` or `udp:` as that ipload parameter.
+ */
+
+
 // iplock
 //
 #include    <iplock/version.h>
@@ -62,19 +75,6 @@
 //
 #include    <snapdev/poison.h>
 
-
-
-/** \mainpage
- *
- * \image html iplock-logo.jpg
- *
- * The knock-knock command allows you to open a door by knocking on
- * pre-specified ports as defined in your firewall with the
- * `"knock = ..."` parameter.
- *
- * This command line tool accepts the same set of ports with a protocol
- * set to `tcp:` or `udp:` as that ipload parameter.
- */
 
 
 /** \brief Command line options.

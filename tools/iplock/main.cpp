@@ -17,7 +17,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-/** \mainpage
+/** \file
  *
  * \image html iplock-logo.jpg
  *
@@ -30,7 +30,7 @@
  * use of the `ipset` command line as required. The shell command line
  * used to add and remove IPs is defined in the configuration file:
  *
- * \cpde
+ * \code
  * /etc/iplock/iplock.conf
  * \endcode
  *
