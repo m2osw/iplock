@@ -301,6 +301,8 @@ void wait_on_firewall::add_wait_on_firewall_commands()
  *
  * If starting the systemctl command fails, the state does not change and
  * the process stops.
+ *
+ * \return The function always returns true.
  */
 bool wait_on_firewall::check_status(ed::timer::pointer_t t)
 {
@@ -372,7 +374,7 @@ void wait_on_firewall::start_check()
 
 
 bool wait_on_firewall::systemctl_exited(
-      ed::child_status status
+      ed::child_status const & status
     , cppprocess::process::pointer_t p)
 {
     // make sure that on any error the state gets reset to IDLE
@@ -380,7 +382,7 @@ bool wait_on_firewall::systemctl_exited(
     snapdev::safe_object<check_state_t *, reset_state> safe_state;
     safe_state.make_safe(&f_check_state);
 
-    int const result(get_systemctl_result(status, p));
+    int const result(p->get_result(status));
     if(f_check_state == check_state_t::CHECK_STATE_IS_ENABLED)
     {
         switch(result)
@@ -425,62 +427,6 @@ bool wait_on_firewall::systemctl_exited(
 }
 
 
-int wait_on_firewall::get_systemctl_result(
-      ed::child_status status
-    , cppprocess::process::pointer_t p)
-{
-    cppprocess::io_capture_pipe::pointer_t output_pipe(std::dynamic_pointer_cast<cppprocess::io_capture_pipe>(p->get_output_io()));
-    cppprocess::io_capture_pipe::pointer_t error_pipe(std::dynamic_pointer_cast<cppprocess::io_capture_pipe>(p->get_error_io()));
-    if(status.is_signaled())
-    {
-        SNAP_LOG_ERROR
-            << "\""
-            << p->get_command_line()
-            << "\" received a signal and died: "
-            << status.terminate_signal()
-            << "\n -- Console Output:\n"
-            << output_pipe->get_output()
-            << " -- Console Errors:\n"
-            << error_pipe->get_output()
-            << SNAP_LOG_SEND;
-
-        return -1;
-    }
-    else if(status.is_exited())
-    {
-        if(status.exit_code() == 0)
-        {
-            return 0;
-        }
-
-        SNAP_LOG_RECOVERABLE_ERROR
-            << "an error occurred running \""
-            << p->get_command_line()
-            << "\": "
-            << status.exit_code()
-            << "\n -- Console Output:\n"
-            << output_pipe->get_output()
-            << " -- Console Errors:\n"
-            << error_pipe->get_output()
-            << SNAP_LOG_SEND;
-
-        return 1;
-    }
-
-    SNAP_LOG_SEVERE
-        << "unknown status returned running \""
-        << p->get_command_line()
-        << "\":\n"
-        << " -- Console Output:\n"
-        << output_pipe->get_output()
-        << " -- Console Errors:\n"
-        << error_pipe->get_output()
-        << SNAP_LOG_SEND;
-
-    return -2;
-}
-
-
 void wait_on_firewall::set_status(firewall_status_t status)
 {
     if(f_firewall_status != status)
@@ -519,8 +465,8 @@ firewall_status_t wait_on_firewall::get_firewall_status() const
 
 void wait_on_firewall::msg_ipwall_current_status(ed::message & msg)
 {
-    // once up, the firewall should never go back down (i.e. the ipwall will
-    // not flush an existing firewall)
+    // once up, the firewall should never go back down (i.e. by default
+    // ipload does not flush an existing firewall)
     //
     // however, if the ipwall service is restarted, we may get an "ipwall
     // is down" message (state=down) and that changes the state of the
@@ -538,7 +484,7 @@ void wait_on_firewall::msg_ipwall_current_status(ed::message & msg)
         break;
 
     default:
-        // the ipload state is not yet determine or it is not active
+        // the ipload state is not yet determined or it is not active
         break;
 
     }

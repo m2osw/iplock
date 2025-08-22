@@ -101,7 +101,7 @@ private:
     bool                    check_status(ed::timer::pointer_t t);
     void                    start_check();
     bool                    systemctl_exited(
-                                      ed::child_status status
+                                      ed::child_status const & status
                                     , cppprocess::process::pointer_t p);
     int                     get_systemctl_result(
                                       ed::child_status status
