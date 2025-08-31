@@ -20,6 +20,8 @@
 ##
 ## Documentation
 ##
+project(iplock-documentation)
+
 find_package(SnapDoxygen)
 AddDoxygenTarget(
     iplock
