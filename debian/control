@@ -3,7 +3,7 @@ Section: net
 Priority: optional
 Maintainer: Alexis Wilke <alexis@m2osw.com>
 Build-Depends: cmake,
-    communicatord-dev (>= 2.0.0.0~jammy),
+    communicator-dev (>= 2.0.0.0~jammy),
     cppprocess-dev (>= 1.1.52.0~jammy),
     cppthread-dev (>= 1.1.13.0~jammy),
     debhelper-compat (= 13),

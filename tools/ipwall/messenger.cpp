@@ -29,9 +29,9 @@
 #include    <iplock/names.h>
 
 
-// communicatord
+// communicator
 //
-#include    <communicatord/names.h>
+#include    <communicator/names.h>
 
 
 // prinbee
@@ -87,7 +87,7 @@ messenger::messenger(server * s, advgetopt::getopt & opts)
         // communicator daemon so that way we can send that message
         // from there and prinbee
         //
-        DISPATCHER_MATCH(communicatord::g_name_communicatord_cmd_ipwall_get_status, &messenger::msg_ipwall_get_status),
+        DISPATCHER_MATCH(::communicator::g_name_communicator_cmd_ipwall_get_status, &messenger::msg_ipwall_get_status),
 
         DISPATCHER_MATCH(iplock::g_name_iplock_cmd_ipwall_block,                    &messenger::msg_ipwall_block_ip),
         DISPATCHER_MATCH(iplock::g_name_iplock_cmd_ipwall_unblock,                  &messenger::msg_ipwall_unblock_ip),
@@ -152,15 +152,15 @@ void messenger::msg_ipwall_get_status(ed::message & msg)
     //
     ed::message reply;
     reply.reply_to(msg);
-    reply.set_command(communicatord::g_name_communicatord_cmd_ipwall_current_status);
+    reply.set_command(::communicator::g_name_communicator_cmd_ipwall_current_status);
     reply.add_parameter(
-              communicatord::g_name_communicatord_param_cache
-            , communicatord::g_name_communicatord_value_no);
+              ::communicator::g_name_communicator_param_cache
+            , ::communicator::g_name_communicator_value_no);
     reply.add_parameter(
-              communicatord::g_name_communicatord_param_status
+              ::communicator::g_name_communicator_param_status
             , f_server->is_firewall_up()
-                    ? communicatord::g_name_communicatord_value_up
-                    : communicatord::g_name_communicatord_value_down);
+                    ? ::communicator::g_name_communicator_value_up
+                    : ::communicator::g_name_communicator_value_down);
     send_message(reply);
 }
 

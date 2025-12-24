@@ -41,9 +41,9 @@
 #include    <iplock/version.h>
 
 
-// communicatord
+// communicator
 //
-#include    <communicatord/flags.h>
+#include    <communicator/flags.h>
 
 
 // libaddr
@@ -628,12 +628,12 @@ void ipload::check_network_status()
             message += interfaces_up;
             message += "\" were already up while first installing the "
                        "firewall (i.e. at boot time)";
-            communicatord::flag::pointer_t f(COMMUNICATORD_FLAG_UP(
+            communicator::flag::pointer_t f(COMMUNICATOR_FLAG_UP(
                   "iplock"
                 , "ipload"
                 , "network-up"
                 , message));
-            f->set_state(communicatord::flag::state_t::STATE_UP)
+            f->set_state(communicator::flag::state_t::STATE_UP)
                 .set_priority(90) // this is considered a security issue
                 .add_tag("security")
                 .add_tag("firewall")

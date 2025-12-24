@@ -27,9 +27,9 @@
 #include    <iplock/names.h>
 
 
-// communicatord
+// communicator
 //
-#include    <communicatord/names.h>
+#include    <communicator/names.h>
 
 
 // snaplogger
@@ -122,7 +122,7 @@ void block_ip(
     //
     ed::message message;
     message.set_command(iplock::g_name_iplock_cmd_ipwall_block);
-    message.set_service(communicatord::g_name_communicatord_service_public_broadcast);
+    message.set_service(communicator::g_name_communicator_service_public_broadcast);
 
     message.add_parameter(iplock::g_name_iplock_param_uri, uri);
 

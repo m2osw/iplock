@@ -78,6 +78,10 @@ enum class check_state_t
 class wait_on_firewall
 {
 public:
+    typedef std::shared_ptr<wait_on_firewall>
+                            pointer_t;
+    typedef std::weak_ptr<wait_on_firewall>
+                            weak_pointer_t;
     typedef std::function<bool(firewall_status_t)>
                             status_callback_t;
     typedef snapdev::callback_manager<status_callback_t>::callback_id_t
@@ -87,6 +91,7 @@ public:
 
     void                    add_wait_on_firewall_commands();
     firewall_status_t       get_firewall_status() const;
+    bool                    is_firewall_up() const;
     callback_id_t           add_status_callback(status_callback_t func);
     bool                    remove_status_callback(callback_id_t callback_id);
 
@@ -98,7 +103,7 @@ private:
     typedef snapdev::callback_manager<status_callback_t>
                             callback_manager_t;
 
-    bool                    check_status(ed::timer::pointer_t t);
+    bool                    check_status();
     void                    start_check();
     bool                    systemctl_exited(
                                       ed::child_status const & status

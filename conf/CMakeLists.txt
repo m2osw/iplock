@@ -42,7 +42,7 @@ install(
         ipwall.service
 
     DESTINATION
-        ${COMMUNICATORD_SERVICES_INSTALL_DIR}
+        ${COMMUNICATOR_SERVICES_INSTALL_DIR}
 )
 
 
