@@ -38,12 +38,18 @@
 
 // fluid-settings
 //
-#include    <fluid-settings/fluid_settings_connection.h>
+//#include    <fluid-settings/fluid_settings_connection.h>
 
 
-// snapdev
+// eventdispatcher
 //
-#include    <snapdev/callback_manager.h>
+#include    <eventdispatcher/message.h>
+#include    <eventdispatcher/timer.h>
+
+
+// advgetopt
+//
+#include    <advgetopt/advgetopt.h>
 
 
 // cppprocess
@@ -51,20 +57,34 @@
 #include    <cppprocess/process.h>
 
 
+// serverplugins
+//
+#include    <serverplugins/factory.h>
+#include    <serverplugins/plugin.h>
+
+
 
 namespace iplock
+{
+namespace wait_on_firewall
 {
 
 
 
 enum firewall_status_t
 {
+    FIREWALL_STATUS_UNKNOWN,        // returned by from_string() for invalid/unrecognized states
+
     FIREWALL_STATUS_NOT_READY,      // ipload has not yet run or failed
     FIREWALL_STATUS_OFF,            // ipload is disabled so the firewall is not going to be UP or ACTIVE
     FIREWALL_STATUS_DOWN,           // ipload is enabled, but we do not yet know whether it is UP or ACTIVE
     FIREWALL_STATUS_UP,             // ipload has run, firewall is up
     FIREWALL_STATUS_ACTIVE,         // ipwall is running so you can dynamically BLOCK IP addresses
 };
+
+
+char const *        to_string(firewall_status_t status);
+firewall_status_t   from_string(char const * status);
 
 
 enum class check_state_t
@@ -75,33 +95,46 @@ enum class check_state_t
 };
 
 
+SERVERPLUGINS_VERSION(wait_on_firewall, 1, 0)
+
+
 class wait_on_firewall
+    : public serverplugins::plugin
 {
 public:
-    typedef std::shared_ptr<wait_on_firewall>
-                            pointer_t;
-    typedef std::weak_ptr<wait_on_firewall>
-                            weak_pointer_t;
-    typedef std::function<bool(firewall_status_t)>
-                            status_callback_t;
-    typedef snapdev::callback_manager<status_callback_t>::callback_id_t
-                            callback_id_t;
+    SERVERPLUGINS_DEFAULTS(wait_on_firewall);
 
-    virtual                 ~wait_on_firewall();
+    //typedef std::weak_ptr<wait_on_firewall>
+    //                        weak_pointer_t;
+    //typedef std::function<bool(firewall_status_t)>
+    //                        status_callback_t;
+    //typedef snapdev::callback_manager<status_callback_t>::callback_id_t
+    //                        callback_id_t;
+    //
+    //virtual                 ~wait_on_firewall();
 
-    void                    add_wait_on_firewall_commands();
-    firewall_status_t       get_firewall_status() const;
-    bool                    is_firewall_up() const;
-    callback_id_t           add_status_callback(status_callback_t func);
-    bool                    remove_status_callback(callback_id_t callback_id);
+    // serverplugins::plugin implementation
+    //
+    virtual void                    bootstrap() override;
+
+    // signals
+    //
+    void                            on_initialize(advgetopt::getopt & opts);
+    void                            on_terminate();
+
+    //void                    add_wait_on_firewall_commands(); -> on_initialize()
+    //firewall_status_t       get_firewall_status() const;
+    //bool                    is_firewall_up() const;
+    //callback_id_t           add_status_callback(status_callback_t func);
+    //bool                    remove_status_callback(callback_id_t callback_id);
 
     // new callbacks
     //
-    virtual void            status_changed(firewall_status_t status);
+    //virtual void            status_changed(firewall_status_t status);
 
 private:
-    typedef snapdev::callback_manager<status_callback_t>
-                            callback_manager_t;
+    //typedef snapdev::callback_manager<status_callback_t>
+    //                        callback_manager_t;
 
     bool                    check_status();
     void                    start_check();
@@ -113,12 +146,13 @@ private:
                                     , cppprocess::process::pointer_t p);
     void                    set_status(firewall_status_t status);
 
+    void                    msg_iplock_get_status(ed::message & msg);
     void                    msg_ipwall_current_status(ed::message & msg);
     void                    msg_status(ed::message & msg);
     void                    msg_ready(ed::message & msg);
 
     ed::timer::pointer_t    f_status_timer = ed::timer::pointer_t();
-    callback_manager_t      f_status_callbacks = callback_manager_t();
+    //callback_manager_t      f_status_callbacks = callback_manager_t();
     check_state_t           f_check_state = check_state_t::CHECK_STATE_IDLE;
     firewall_status_t       f_firewall_status = firewall_status_t::FIREWALL_STATUS_NOT_READY;
     bool                    f_ipwall_is_up = false;
@@ -126,5 +160,6 @@ private:
 
 
 
+} // namespace wait_on_firewall
 } // namespace iplock
 // vim: ts=4 sw=4 et

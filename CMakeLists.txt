@@ -46,6 +46,7 @@ include_directories(
 # Sub-directories
 add_subdirectory(cmake)         # cmake files
 add_subdirectory(iplock)        # library
+add_subdirectory(plugins)       # plugins
 add_subdirectory(tools)         # tools and daemon
 add_subdirectory(doc)           # documentation
 add_subdirectory(conf)          # configuration

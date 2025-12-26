@@ -7,19 +7,19 @@ ipwall \- Service to block and unblock IP addresses in your firewall
 .SH DESCRIPTION
 The \fBipwall(8)\fR service understands the `IPWALL_BLOCK' and
 `IPWALL_UNBLOCK' messages that are used to immediately block and unblock
-IP addresses. The command can be broadcasted using the communicator daemon
+IP addresses. The command can be broadcast using the communicator daemon
 so all your computers in your entire cluster can instantly block a hacker's
 IP address.
 .PP
 Say your website system is accessed at a URL which starts with `/wp-admin'
 but you are not running Wordpress. Immediately, you recognize that the
-person behind that access is a hacker and you can send the user's IP address
+person behind that access is a hacker and you can send that user's IP address
 to your firewall so further communication from that user is blocked.
 .PP
 The block is for 24 hours by default. It can be changed to a few other
 possible values such as 5 minutes or forever.
 .PP
-The \fBipwall(8)\fR service automatically starts after the \fBipload(1)\fR ran.
+The \fBipwall(8)\fR service automatically starts after \fBipload(1)\fR ran.
 It runs until stopped or the computer is shutdown. It uses the
 \fBiplock(1)\fR tool in order to add and remove IP addresses from various
 chains defined in the iptables firewall or sets of IPs.
@@ -42,6 +42,7 @@ to compile the \fBipwall(8)\fR tool.
 .TP
 \fB\-\-config\-dir\fR [\fISOURCE\fR]...
 Define a list of configuration directories to search for configuration files.
+You can enter multiple paths by separating them with spaces.
 
 .TP
 \fB\-\-configuration\-filenames\fR
@@ -73,7 +74,7 @@ configuration file. Commands are not allowed in the environment variable.
 Defines what exceptions are expected to collect from the stack.
 Nearly all our exceptions are expected to stop a process. This command line
 option gives you the ability to define how much information is to be collected
-from the stack trace when that exception occurred. By default, it is set to
+from the stack trace when that exception occurs. By default, it is set to
 `yes' (which is the synomym of `simple'). With the logger, that exception
 stack information can automatically be logged to your log file. Very useful
 to debug issues in your software running on a remote server.

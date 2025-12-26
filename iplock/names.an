@@ -5,6 +5,8 @@ project=iplock
 
 [public]
 cmd_ipwall_block=IPWALL_BLOCK
+cmd_ipwall_current_status=IPWALL_CURRENT_STATUS
+cmd_ipwall_get_status=IPWALL_GET_STATUS
 cmd_ipwall_unblock=IPWALL_UNBLOCK
 
 param_period=period
