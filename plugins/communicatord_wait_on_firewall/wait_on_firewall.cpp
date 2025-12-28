@@ -209,7 +209,7 @@ SERVERPLUGINS_END(wait_on_firewall)
  */
 void wait_on_firewall::bootstrap()
 {
-    SERVERPLUGINS_LISTEN(wait_on_firewall, communicator_daemon::communicatord, initialize, boost::placeholders::_1);
+    SERVERPLUGINS_LISTEN(wait_on_firewall, communicator_daemon::communicatord, initialize, std::placeholders::_1);
     SERVERPLUGINS_LISTEN0(wait_on_firewall, communicator_daemon::communicatord, terminate);
 }
 
