@@ -272,11 +272,9 @@ void wait_on_firewall::on_initialize(advgetopt::getopt & opts)
 {
     snapdev::NOT_USED(opts);
 
-    ed::connection * c(dynamic_cast<ed::connection *>(this));
-    if(c == nullptr)
-    {
-        throw logic_error("the wait_on_firewall class must be used with a connection class.");
-    }
+    SNAP_LOG_CONFIGURATION
+        << "wait_on_firewall::on_initialization(): processing..."
+        << SNAP_LOG_SEND;
 
     communicator_daemon::communicatord::pointer_t s(plugins()->get_server<communicator_daemon::communicatord>());
     if(s == nullptr)
@@ -323,6 +321,10 @@ void wait_on_firewall::on_initialize(advgetopt::getopt & opts)
     // instant)
     //
     check_status();
+
+    SNAP_LOG_CONFIGURATION
+        << "wait_on_firewall::on_initialization(): ready."
+        << SNAP_LOG_SEND;
 }
 
 
@@ -354,7 +356,7 @@ void wait_on_firewall::on_terminate()
  * #
  * a=>b [label="start check process"];
  * --- [label="if already running, return"];
- * b=>c [label="run systemctl is-enabled"];
+ * b=>c [label="run systemctl is-enabled ipload"];
  * ... [label="wait for process to complete"];
  * e=>d [label="check result of systemctl"];
  * --- [label="if check failed (signaled), return without changing the state"];
@@ -365,7 +367,7 @@ void wait_on_firewall::on_terminate()
  * # Phase 2: check is-active
  * #
  * d=>b [label="continue check process"];
- * b=>c [label="run systemctl is-active"];
+ * b=>c [label="run systemctl is-active ipload"];
  * ... [label="wait for process to complete"];
  * e=>d [label="check result of systemctl"];
  * --- [label="if check failed (signaled), return without changing the state"];
@@ -412,9 +414,11 @@ void wait_on_firewall::start_check()
     systemctl_process->add_argument(iplock::g_name_iplock_service_ipload);
 
     cppprocess::io_capture_pipe::pointer_t output_pipe(std::make_shared<cppprocess::io_capture_pipe>());
+    output_pipe->set_name("wait_on_firewall_output_pipe");
     systemctl_process->set_output_io(output_pipe);
 
     cppprocess::io_capture_pipe::pointer_t error_pipe(std::make_shared<cppprocess::io_capture_pipe>());
+    error_pipe->set_name("wait_on_firewall_error_pipe");
     systemctl_process->set_error_io(error_pipe);
 
     int const r(systemctl_process->start());
@@ -428,14 +432,7 @@ void wait_on_firewall::start_check()
         return;
     }
 
-    //ed::connection * c(dynamic_cast<ed::connection *>(this));
-    //if(c == nullptr)
-    //{
-    //    throw logic_error("the wait_on_firewall class must be used with a connection class.");
-    //}
-
     ed::signal_child::pointer_t child_signal(ed::signal_child::get_instance());
-    //ed::connection::weak_pointer_t w(c->shared_from_this());
     child_signal->add_listener(
               systemctl_process->process_pid()
             , [this, systemctl_process](ed::child_status status)
@@ -545,53 +542,8 @@ void wait_on_firewall::msg_iplock_get_status(ed::message & msg)
     iplock_status_msg.add_parameter(
               communicator::g_name_communicator_param_firewall_status
             , to_string(f_firewall_status));
-    iplock_status_msg.add_parameter(
-              communicator::g_name_communicator_param_cache
-            , communicator::g_name_communicator_value_no);
     conn->send_message_to_connection(iplock_status_msg);
 }
-
-
-//wait_on_firewall::callback_id_t wait_on_firewall::add_status_callback(status_callback_t func)
-//{
-//    return f_status_callbacks.add_callback(func);
-//}
-
-
-//bool wait_on_firewall::remove_status_callback(callback_id_t callback_id)
-//{
-//    return f_status_callbacks.remove_callback(callback_id);
-//}
-
-
-//void wait_on_firewall::status_changed(firewall_status_t firewall_status)
-//{
-//    snapdev::NOT_USED(firewall_status);
-//
-//    f_status_callbacks.call(f_firewall_status);
-//}
-
-
-//firewall_status_t wait_on_firewall::get_firewall_status() const
-//{
-//    return f_firewall_status;
-//}
-
-
-//bool wait_on_firewall::is_firewall_up() const
-//{
-//    switch(f_firewall_status)
-//    {
-//    case firewall_status_t::FIREWALL_STATUS_UP:
-//    case firewall_status_t::FIREWALL_STATUS_ACTIVE:
-//        return true;
-//
-//    default:
-//        return false;
-//
-//    }
-//    snapdev::NOT_REACHED();
-//}
 
 
 void wait_on_firewall::msg_ipwall_current_status(ed::message & msg)
@@ -662,12 +614,6 @@ void wait_on_firewall::msg_ready(ed::message & msg)
     {
         throw logic_error("the wait_on_firewall is a plugin and it must have a communicatord as its server.");
     }
-
-    //ed::connection_with_send_message * c(dynamic_cast<ed::connection_with_send_message *>(this));
-    //if(c == nullptr)
-    //{
-    //    throw logic_error("the wait_on_firewall class must also represent a connection_with_send_message.");
-    //}
 
     // send an IPWALL_GET_STATUS query message to get the current ipwall
     // status

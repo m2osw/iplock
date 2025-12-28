@@ -34,6 +34,19 @@ target_include_directories(${PROJECT_NAME}
         ${SNAPLOGGER_INCLUDE_DIRS}
 )
 
+target_link_libraries(${PROJECT_NAME}
+    PUBLIC
+        iplock
+        #${ADVGETOPT_LIBRARIES}
+        #${COMMUNICATOR_LIBRARIES}
+        #${EVENTDISPATCHER_LIBRARIES}
+        #${FLUIDSETTINGS_LIBRARIES}
+        #${CPPPROCESS_LIBRARIES}
+        #${LIBADDR_LIBRARIES}
+        #${LIBEXCEPT_LIBRARIES}
+        #${SNAPLOGGER_LIBRARIES}
+)
+
 install(
     TARGETS
         ${PROJECT_NAME}

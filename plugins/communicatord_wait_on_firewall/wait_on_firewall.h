@@ -104,38 +104,16 @@ class wait_on_firewall
 public:
     SERVERPLUGINS_DEFAULTS(wait_on_firewall);
 
-    //typedef std::weak_ptr<wait_on_firewall>
-    //                        weak_pointer_t;
-    //typedef std::function<bool(firewall_status_t)>
-    //                        status_callback_t;
-    //typedef snapdev::callback_manager<status_callback_t>::callback_id_t
-    //                        callback_id_t;
-    //
-    //virtual                 ~wait_on_firewall();
-
     // serverplugins::plugin implementation
     //
-    virtual void                    bootstrap() override;
+    virtual void            bootstrap() override;
 
     // signals
     //
-    void                            on_initialize(advgetopt::getopt & opts);
-    void                            on_terminate();
-
-    //void                    add_wait_on_firewall_commands(); -> on_initialize()
-    //firewall_status_t       get_firewall_status() const;
-    //bool                    is_firewall_up() const;
-    //callback_id_t           add_status_callback(status_callback_t func);
-    //bool                    remove_status_callback(callback_id_t callback_id);
-
-    // new callbacks
-    //
-    //virtual void            status_changed(firewall_status_t status);
+    void                    on_initialize(advgetopt::getopt & opts);
+    void                    on_terminate();
 
 private:
-    //typedef snapdev::callback_manager<status_callback_t>
-    //                        callback_manager_t;
-
     bool                    check_status();
     void                    start_check();
     bool                    systemctl_exited(
@@ -152,7 +130,6 @@ private:
     void                    msg_ready(ed::message & msg);
 
     ed::timer::pointer_t    f_status_timer = ed::timer::pointer_t();
-    //callback_manager_t      f_status_callbacks = callback_manager_t();
     check_state_t           f_check_state = check_state_t::CHECK_STATE_IDLE;
     firewall_status_t       f_firewall_status = firewall_status_t::FIREWALL_STATUS_NOT_READY;
     bool                    f_ipwall_is_up = false;
