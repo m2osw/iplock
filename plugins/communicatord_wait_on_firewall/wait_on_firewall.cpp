@@ -518,7 +518,7 @@ void wait_on_firewall::set_status(firewall_status_t status)
         iplock_status_msg.set_service(communicator::g_name_communicator_service_local_broadcast);
         iplock_status_msg.set_command(communicator::g_name_communicator_cmd_iplock_current_status);
         iplock_status_msg.add_parameter(
-                  communicator::g_name_communicator_param_firewall_status
+                  communicator::g_name_communicator_param_status
                 , to_string(f_firewall_status));
         iplock_status_msg.add_parameter(
                   communicator::g_name_communicator_param_cache
@@ -540,7 +540,7 @@ void wait_on_firewall::msg_iplock_get_status(ed::message & msg)
     iplock_status_msg.reply_to(msg);
     iplock_status_msg.set_command(communicator::g_name_communicator_cmd_iplock_current_status);
     iplock_status_msg.add_parameter(
-              communicator::g_name_communicator_param_firewall_status
+              communicator::g_name_communicator_param_status
             , to_string(f_firewall_status));
     conn->send_message_to_connection(iplock_status_msg);
 }
