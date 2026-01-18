@@ -54,8 +54,6 @@ private:
     // this is owned by the main server function so no need for a smart pointer
     //
     server *            f_server = nullptr;
-    ed::dispatcher::pointer_t
-                        f_dispatcher = ed::dispatcher::pointer_t();
 };
 
 

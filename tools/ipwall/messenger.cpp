@@ -76,36 +76,20 @@ namespace ipwall
 messenger::messenger(server * s, advgetopt::getopt & opts)
     : fluid_settings_connection(opts, "ipwall")
     , f_server(s)
-    , f_dispatcher(std::make_shared<ed::dispatcher>(this))
 {
     set_name("messenger");
 
-    set_dispatcher(f_dispatcher);
-
-    f_dispatcher->add_matches({
+    get_dispatcher()->add_matches({
         DISPATCHER_MATCH(iplock::g_name_iplock_cmd_ipwall_get_status, &messenger::msg_ipwall_get_status),
         DISPATCHER_MATCH(iplock::g_name_iplock_cmd_ipwall_block,      &messenger::msg_ipwall_block_ip),
         DISPATCHER_MATCH(iplock::g_name_iplock_cmd_ipwall_unblock,    &messenger::msg_ipwall_unblock_ip),
     });
-
-    // further dispatcher initialization
-    //
-#ifdef _DEBUG
-    f_dispatcher->set_trace();
-    f_dispatcher->set_show_matches();
-#endif
 }
 
 
 void messenger::finish_initialization()
 {
-    add_fluid_settings_commands();
-
-    // add the communicator commands last (it includes the "always match")
-    f_dispatcher->add_communicator_commands();
-
     process_fluid_settings_options();
-
     automatic_watch_initialization();
 }
 
@@ -122,6 +106,9 @@ void messenger::msg_ipwall_unblock_ip(ed::message & msg)
 }
 
 
+// TODO: derive from prinbee_connection instead of fluid_settings_connection
+//       and we get the following "for free" (automatic, that is)
+//
 //void messenger::msg_database_ready(ed::message & msg)
 //{
 //    snapdev::NOT_USED(msg);
