@@ -120,6 +120,7 @@ std::string parse_ports(
             if(!advgetopt::validator_duration::convert_string(
                       l.substr(slash + 1)
                     , advgetopt::validator_duration::VALIDATOR_DURATION_DEFAULT_FLAGS
+                    , 1.0
                     , duration))
             {
                 return "duration is invalid";

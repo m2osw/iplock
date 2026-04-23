@@ -3925,6 +3925,7 @@ void rule::to_iptables_target(result_builder & result, line_builder const & line
                     if(advgetopt::validator_duration::convert_string(
                                   o
                                 , advgetopt::validator_duration::VALIDATOR_DURATION_DEFAULT_FLAGS
+                                , 1.0
                                 , duration))
                     {
                         final_line.append_both(
@@ -4006,6 +4007,7 @@ void rule::to_iptables_target(result_builder & result, line_builder const & line
                     if(advgetopt::validator_duration::convert_string(
                               o
                             , advgetopt::validator_duration::VALIDATOR_DURATION_DEFAULT_FLAGS
+                            , 1.0
                             , duration))
                     {
                         final_line.append_both(

@@ -21,7 +21,7 @@
  * \brief ipload tool
  *
  * This tool loads configuration files in order to build the firewall
- * scripts and upload those script using iptables.
+ * scripts and upload them in the firewall using iptables.
  */
 
 
@@ -171,6 +171,7 @@ bool recent_parser::parse(std::string const & expression)
                 if(advgetopt::validator_duration::convert_string(
                               f_value
                             , advgetopt::validator_duration::VALIDATOR_DURATION_DEFAULT_FLAGS
+                            , 1.0
                             , ttl))
                 {
                     // this is the TTL

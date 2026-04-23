@@ -221,6 +221,7 @@ knock_knock::knock_knock(int argc, char * argv[])
     advgetopt::validator_duration::convert_string(
                   f_opts.get_string("delay")
                 , advgetopt::validator_duration::VALIDATOR_DURATION_DEFAULT_FLAGS
+                , 1.0
                 , f_delay);
 }
 
