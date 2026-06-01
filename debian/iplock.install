@@ -3,6 +3,7 @@
 #
 usr/sbin/iplock
 usr/sbin/ipload
+usr/sbin/iptables-edit
 usr/bin/iprecent
 usr/bin/knock-knock
 usr/bin/knock-knock-possibilities
@@ -21,7 +22,8 @@ conf/README.md                                     etc/iplock/iplock.d/
 conf/logger/ipload.conf                            etc/iplock/logger/
 conf/logger/iplock.conf                            etc/iplock/logger/
 conf/logger/knock-knock.conf                       etc/iplock/logger/
-conf/logger/README.md                              etc/iplock/logger/
+conf/logger/iptables-edit.conf                     etc/iplock/logger/
+conf/logger/README.md                              etc/iplock/logger/iplock.d/
 conf/01-iptables.conf                              etc/rsyslog.d/
 conf/ipload                                        usr/share/iplock/
 conf/50-variables.conf                             usr/share/iplock/

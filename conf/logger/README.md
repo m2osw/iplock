@@ -11,10 +11,11 @@ The files have to be named:
 
     ??-ipload.conf
     ??-iplock.conf
+    ??-iptables-edit.conf
     ??-ipwall.conf
     ??-knock-knock.conf
 
 Where `??` represents a number from 00 to 99. In general, the administrator
-should use 50. 00 is reverved for this project. Other projects may use other
+should use 50. 00 is reserved for this project. Other projects may use other
 numbers.
 
