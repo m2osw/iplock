@@ -52,4 +52,8 @@
       those states (i.e. "state", "recent", etc.)
     * Another possibility is to use an "order: ..." field.
 * Write tests.
+* Add a rollback option in the iptables-edit tool
+  - allow for saving up to N backups
+  - allow for restoring the state to one of these backups
+  - allow for editing starting from one of these backups
 

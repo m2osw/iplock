@@ -165,20 +165,20 @@ advgetopt::option const g_options[] =
     advgetopt::define_option(
           advgetopt::Name("ip")
         , advgetopt::ShortName('4')
-        , advgetopt::Flags(advgetopt::all_flags<
+        , advgetopt::Flags(advgetopt::standalone_all_flags<
               advgetopt::GETOPT_FLAG_GROUP_OPTIONS>())
         , advgetopt::Help("Edit the IPv4 table (this is the default).")
     ),
     advgetopt::define_option(
           advgetopt::Name("ip4")
-        , advgetopt::Flags(advgetopt::all_flags<
+        , advgetopt::Flags(advgetopt::standalone_all_flags<
               advgetopt::GETOPT_FLAG_GROUP_OPTIONS>())
         , advgetopt::Alias("ip")
     ),
     advgetopt::define_option(
           advgetopt::Name("ip6")
         , advgetopt::ShortName('6')
-        , advgetopt::Flags(advgetopt::all_flags<
+        , advgetopt::Flags(advgetopt::standalone_all_flags<
               advgetopt::GETOPT_FLAG_GROUP_OPTIONS>())
         , advgetopt::Help("Edit the IPv6 table (this is the default).")
     ),
@@ -197,7 +197,7 @@ advgetopt::option const g_options[] =
             , advgetopt::GETOPT_FLAG_REQUIRED>())
         , advgetopt::DefaultValue("5s")
         , advgetopt::Validator("duration")
-        , advgetopt::Help("Delay before iptables-apply restores the previous version of the firewall.")
+        , advgetopt::Help("Delay before restoring the previous version of the firewall.")
     ),
     advgetopt::end_options()
 };
@@ -235,7 +235,7 @@ advgetopt::options_environment const g_options_environment =
                          | advgetopt::GETOPT_ENVIRONMENT_FLAG_PROCESS_SYSTEM_PARAMETERS,
     .f_help_header = "Usage: %p [-<opt>]\n"
                      "where -<opt> is one or more of:",
-    .f_help_footer = "%c",
+    .f_help_footer = "%c\nLicense: %l",
     .f_version = IPLOCK_VERSION_STRING,
     .f_license = "GNU GPL 3",
     .f_copyright = "Copyright (c) 2026-"

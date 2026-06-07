@@ -5,7 +5,7 @@
 # We manage several recent lists in our firewall (synflood and denylist
 # at time of writing). Once in a while, your IP or a cusomter's IP gets
 # added by mistake. This can be problematic. It is, however, very easy
-# to remove this IP. This script allows you add, remove, or flush these
+# to remove this IP. This script allows you to add, remove, or flush these
 # lists.
 #
 
