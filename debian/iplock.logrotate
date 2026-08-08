@@ -1,7 +1,25 @@
+# iplock
+#
+# The iplock and ipload tools write logs so it needs to be rotated.
+#
+# Note: In most cases, if no errors occur, no logs is expected to be
+#       written by iplock.
+#
+/var/log/iplock/*.log {
+    daily
+    maxsize 1M
+    missingok
+    rotate 10
+    compress
+    delaycompress
+    notifempty
+    create 640 iplock iplock
+}
+
 # iptables
 #
 # We move the iptable logs to /var/log/iptables/iptables.log so we have to
-# make sure it gets rotated. This file is here for that purpose.
+# make sure it gets rotated.
 #
 /var/log/iptables/iptables.log {
     daily
