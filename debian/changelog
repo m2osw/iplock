@@ -1,8 +1,27 @@
-iplock (3.0.57.1~noble) noble; urgency=high
+iplock (3.0.58.0~noble) noble; urgency=high
 
   * Fixed ipwall service description. The boot part is ipload.
+  * Moved the get_systemctl_result() to cppprocess.
+  * Moved the wait_for_firewall as a communicatord plugin.
+  * Moved the IPWALL_... message definitions to this project.
+  * However, the IPLOCK_... are in the communicatord along the plugin.
+  * Updated the doxygen setup and documentation.
+  * Removed the libboost dependency.
+  * Added the iptables-edit tool.
+    - this is an equivalent to:
+    - iptables-save
+    - edit rules
+    - iptables-restore
+    - with a lot of safety guards including a confirmation for accepting
+      changes permanently (which will fail on a remote server with an ssh
+      connection--it will then auto-restore to your original saving you
+      a few hours on that day)
+  * Removed the f_dispatcher since we have it in the communicator library now.
+  * Fixed location of the logger conf/logger/README.md file.
+  * Updated the logrotate file to also rotate the iplock logs.
+  * Many clean ups.
 
- -- Alexis Wilke <alexis@m2osw.com>  Sat, 26 Jul 2025 11:11:35 -0700
+ -- Alexis Wilke <alexis@m2osw.com>  Sat, 15 Aug 2026 15:38:34 -0700
 
 iplock (3.0.57.0~noble) noble; urgency=high
 
