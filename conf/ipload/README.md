@@ -70,6 +70,20 @@ Where `??` is a number from `00` to `99` defining the order in which the files
 are to be loaded. In most cases, as the administrator you want to use number
 `50`. Other packages may install files with other numbers.
 
+By default, the `iplock` package installs rules under `/usr/share/iplock`.
+At time of writing, there are 31 files there. Many examples on how to time
+`ipload` rules. Some of those files are not active by default as they can
+cause issues on many systems.
+
+## List of IPs
+
+As part of the loading process, `ipload` reads _drop files_. Those are
+managed by different SBL. In general, they represent IP addresses of
+rogue computers that can be blocked.
+
+Those lists get loaded in an `iptable` set which then gets mentioned in
+the firewall along a `DROP` action.
+
 
 # `ipload` rule files
 
@@ -126,11 +140,40 @@ use the `before`/`after` parameters every time.
 
 ## Rules
 
-The rules actual represet one or more `iptables` rules.
+The rules actually represent one or more `iptables` rules.
 
 For example, if you include the name of three different interfaces, 6 IP
 addresses, and 2 protocols, one such `ipload` rule generates 36 `iptables`
 rules.
+
+The following single `ipload` rule will generate 4 `iptables` rules:
+
+    [rule::forward_packet_in]
+    section = content
+    chain = forward_traffic
+    condition = '"${forward_mode}" == "open"'
+    source_interface = ${forward_public_interface}
+    destination_interface = ${forward_private_interface}
+    protocols = tcp, udp, icmp, icmpv6
+    states = any
+    action = ACCEPT
+
+And the following uses the list of `${forward_private_ips}`, assuming 3 of
+those, and since we have two protocols and three states, that's 18 rules.
+
+    [rule::forward_packets_in]
+    chain = forward_traffic
+    condition = '"${forward_mode}" == "limited"'
+    source_interface = ${forward_public_interface}
+    destination_interface = ${forward_private_interface}
+    except_source = ${forward_gateway}
+    destination = ${forward_private_ips}
+    protocols = tcp, udp
+    states = established | related | !new
+    action = ACCEPT
+
+**Note:** When using many ports, the system may create an `ipset` so as to
+          avoid creating many separate rules.
 
 Much more details are available in the `ipload` manual page:
 
