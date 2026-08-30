@@ -92,7 +92,7 @@ int main(int argc, char * argv[])
 {
     ed::signal_handler::create_instance();
     libexcept::verify_inherited_files();
-    libexcept::collect_stack_trace();
+    libexcept::set_collect_stack_trace(collect_stack_t::COLLECT_STACK_YES);
 
     try
     {
